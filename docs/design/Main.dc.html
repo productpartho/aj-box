@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AJ Box start-up screen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap">
+<style>
+body{margin:0}
+a{color:#FFD166}a:hover{color:#FFF4FB}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes twinkle{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.6)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.5)}}
+.bob{animation:bob 1.6s ease-in-out infinite}
+.bob2{animation-delay:.25s}
+.tw{animation:twinkle 1.8s ease-in-out infinite}
+.tw2{animation-delay:.45s}
+.tw3{animation-delay:.9s}
+.tw4{animation-delay:1.3s}
+.p1{animation:pulse 1s ease-in-out infinite}
+.p2{animation:pulse 1s ease-in-out infinite;animation-delay:.25s}
+.p3{animation:pulse 1s ease-in-out infinite;animation-delay:.5s}
+.p4{animation:pulse 1s ease-in-out infinite;animation-delay:.75s}
+@media (prefers-reduced-motion: reduce){*{animation:none !important}}
+</style>
+</helmet>
+<div style="width: 240px; height: 240px; position: relative; overflow: hidden; box-sizing: border-box; background: #2A0A3D; font-family: 'Fredoka', system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px">
+<svg class="tw" style="position: absolute; left: 30px; top: 34px; width: 22px; height: 22px" viewBox="0 0 22 22" aria-hidden="true"><path d="M11 1 L13 9 L21 11 L13 13 L11 21 L9 13 L1 11 L9 9 Z" fill="#FFD166"></path></svg>
+<svg class="tw tw2" style="position: absolute; right: 34px; top: 46px; width: 16px; height: 16px" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1 L9.5 6.5 L15 8 L9.5 9.5 L8 15 L6.5 9.5 L1 8 L6.5 6.5 Z" fill="#FFF4FB"></path></svg>
+<svg class="tw tw3" style="position: absolute; right: 24px; top: 114px; width: 20px; height: 20px" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1 L12 8 L19 10 L12 12 L10 19 L8 12 L1 10 L8 8 Z" fill="#FFD166"></path></svg>
+<svg class="tw tw4" style="position: absolute; left: 24px; top: 128px; width: 14px; height: 14px" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1 L8.3 5.7 L13 7 L8.3 8.3 L7 13 L5.7 8.3 L1 7 L5.7 5.7 Z" fill="#C9A0FF"></path></svg>
+<div role="img" aria-label="AJ Box" style="display: flex; flex-direction: column; align-items: center; line-height: 0.84; margin-top: 4px">
+<div class="bob" style="font-size: 86px; font-weight: 700; color: #FF5FA2; text-shadow: 0 4px 0 #E0218A; letter-spacing: 3px">AJ</div>
+<div class="bob bob2" style="font-size: 62px; font-weight: 700; color: #C9A0FF; text-shadow: 0 4px 0 #7B2CBF; letter-spacing: 2px">Box</div>
+</div>
+<div aria-hidden="true" style="display: flex; gap: 10px; align-items: center">
+<div class="p1" style="width: 8px; height: 8px; border-radius: 4px; background: #FFD166"></div>
+<div class="p2" style="width: 8px; height: 8px; border-radius: 4px; background: #FF5FA2"></div>
+<div class="p3" style="width: 8px; height: 8px; border-radius: 4px; background: #C9A0FF"></div>
+<div class="p4" style="width: 8px; height: 8px; border-radius: 4px; background: #FFF4FB"></div>
+</div>
+<svg style="position: absolute; left: 10px; bottom: 10px; width: 32px; height: 32px; transform: rotate(-12deg)" viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="#FF5FA2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="16" cy="13" rx="9" ry="4"></ellipse><path d="M7 13v8c0 2.2 4 4 9 4s9-1.8 9-4v-8"></path><path d="M8 4l5 6"></path><path d="M24 4l-5 6"></path></svg>
+<svg style="position: absolute; right: 10px; bottom: 10px; width: 32px; height: 32px; transform: rotate(12deg)" viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="#C9A0FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 24V7l14-3v17"></path><circle cx="8" cy="24" r="4"></circle><circle cx="22" cy="21" r="4"></circle></svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":240,"height":240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

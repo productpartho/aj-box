@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AJ Box parent mode</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap">
+<style>
+body{margin:0}
+a{color:#FFD166}a:hover{color:#FFF4FB}
+</style>
+</helmet>
+<div style="width: 240px; height: 240px; position: relative; overflow: hidden; box-sizing: border-box; background: #2A0A3D; font-family: 'Fredoka', system-ui, sans-serif; display: flex; flex-direction: column; justify-content: center; padding: 12px; gap: 10px">
+<div style="display: flex; align-items: center; gap: 8px; height: 22px">
+<svg style="width: 20px; height: 20px" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="#FFD166" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="3"></circle><path d="M10 1.5v2.5M10 16v2.5M1.5 10H4M16 10h2.5M4 4l1.8 1.8M14.2 14.2L16 16M16 4l-1.8 1.8M5.8 14.2L4 16"></path></svg>
+<div style="font-size: 18px; font-weight: 600; color: #FFF4FB">Parent mode</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="height: 40px; box-sizing: border-box; border-radius: 10px; background: #3D1656; border: 2px solid #C9A0FF; display: flex; align-items: center; justify-content: space-between; padding: 0 10px">
+<div style="font-size: 16px; font-weight: 500; color: #FFF4FB">Default tempo</div>
+<div style="font-size: 16px; font-weight: 600; color: #2A0A3D; background: #C9A0FF; border-radius: 12px; padding: 2px 10px">110 BPM</div>
+</div>
+<div style="height: 40px; box-sizing: border-box; border-radius: 10px; border: 2px solid #3D1656; display: flex; align-items: center; justify-content: space-between; padding: 0 10px">
+<div style="font-size: 16px; font-weight: 500; color: #FFF4FB">Swap timing</div>
+<div style="font-size: 16px; font-weight: 600; color: #2A0A3D; background: #C9A0FF; border-radius: 12px; padding: 2px 10px">Instant</div>
+</div>
+<div style="height: 40px; box-sizing: border-box; border-radius: 10px; border: 2px solid #3D1656; display: flex; align-items: center; justify-content: space-between; padding: 0 10px">
+<div style="font-size: 16px; font-weight: 500; color: #FFF4FB">Bluetooth</div>
+<div style="font-size: 16px; font-weight: 600; color: #2A0A3D; background: #C9A0FF; border-radius: 12px; padding: 2px 10px">Off</div>
+</div>
+</div>
+<div style="font-size: 16px; font-weight: 500; color: #C9A0FF">Sounds: plug in USB</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":240,"height":240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

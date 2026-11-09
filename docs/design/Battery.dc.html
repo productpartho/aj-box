@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AJ Box low battery</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap">
+<style>
+body{margin:0}
+a{color:#FFD166}a:hover{color:#FFF4FB}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@keyframes zz{0%{transform:translate(0,0);opacity:0}30%{opacity:1}100%{transform:translate(8px,-20px);opacity:0}}
+.breathe{animation:breathe 3s ease-in-out infinite}
+.z1{animation:zz 3s ease-out infinite}
+.z2{animation:zz 3s ease-out infinite;animation-delay:1s}
+.z3{animation:zz 3s ease-out infinite;animation-delay:2s}
+@media (prefers-reduced-motion: reduce){*{animation:none !important}}
+</style>
+</helmet>
+<div style="width: 240px; height: 240px; position: relative; overflow: hidden; box-sizing: border-box; background: #2A0A3D; font-family: 'Fredoka', system-ui, sans-serif; display: flex; align-items: center; justify-content: center">
+<svg class="z1" style="position: absolute; left: 170px; top: 52px; width: 14px; height: 16px" viewBox="0 0 14 16" aria-hidden="true" fill="none" stroke="#C9A0FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2h10L2 14h10"></path></svg>
+<svg class="z2" style="position: absolute; left: 184px; top: 40px; width: 12px; height: 14px" viewBox="0 0 12 14" aria-hidden="true" fill="none" stroke="#C9A0FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2h8L2 12h8"></path></svg>
+<svg class="z3" style="position: absolute; left: 160px; top: 44px; width: 10px; height: 12px" viewBox="0 0 10 12" aria-hidden="true" fill="none" stroke="#C9A0FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2h6L2 10h6"></path></svg>
+<svg class="breathe" role="img" aria-label="Sleepy battery: time to charge" style="width: 140px; height: 80px" viewBox="0 0 140 80"><rect x="4" y="4" width="120" height="72" rx="16" fill="#3D1656" stroke="#FFF4FB" stroke-width="4"></rect><rect x="126" y="28" width="10" height="24" rx="3" fill="#FFF4FB"></rect><rect x="14" y="14" width="16" height="52" rx="4" fill="#E0218A"></rect><path d="M54 36q6 6 12 0" fill="none" stroke="#FFF4FB" stroke-width="3" stroke-linecap="round"></path><path d="M82 36q6 6 12 0" fill="none" stroke="#FFF4FB" stroke-width="3" stroke-linecap="round"></path><circle cx="74" cy="54" r="4" fill="none" stroke="#FFF4FB" stroke-width="3"></circle></svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":240,"height":240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
