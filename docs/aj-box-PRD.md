@@ -109,7 +109,7 @@ The black keys carry printed labels (OP1 to OP6, PIT, GLO, MONO, POLY) for the s
 | ARP | Replay: plays her last jam back |
 | SAVE | Save a favourite: the current drum, melody, sounds and effects become a heart (8 hearts; a new one replaces the oldest) |
 | SEQ | Favourites: each tap jumps to the next heart |
-| Hold OCT− or OCT+ and turn ALGORITHM | Mood: Happy (C major pentatonic), Dreamy (F major pentatonic) or Spooky (C minor pentatonic), changing on the next bar |
+| Hold OCT− or OCT+ and turn ALGORITHM | Mood: Happy (C major pentatonic), Dreamy (F major pentatonic), Spooky (C minor pentatonic), Magic (C D E F♯ G♯), Floaty (C D F G B♭), Faraway (C D E♭ G A♭) or Adventure (C D♭ E G A♭), changing on the next bar. Every mood has 5 notes, so every melody plays in every mood |
 | HOME + SAVE held 2 s | Parent mode, hard for a 6-year-old to hit by accident |
 
 ## Loop library and storage
@@ -132,21 +132,21 @@ The black keys carry printed labels (OP1 to OP6, PIT, GLO, MONO, POLY) for the s
 
 **How a melody loop is built:** instrument plus pattern. About half are arpeggios (a held chord played Up, Down, Bounce or Random, the same shapes as the stock arpeggiator) and half are 16-step riffs. Melodies use only the 5 notes of one pentatonic scale (default C major pentatonic: C, D, E, G, A), so nothing clashes. All patterns are original or public domain; no copyrighted songs.
 
-**Sound swaps:** PRESETS steps through 12 drum kits built on the DRUM 808 engine and ALGORITHM through 24 melody instruments (20 FM, 4 sampled). A sampled drum loop keeps its own sound; turning PRESETS on one just shows a sparkle.
+**Sound swaps:** PRESETS steps through 12 drum kits built on the DRUM 808 engine and ALGORITHM through 24 melody instruments: 20 synthesized on FM1 Open's FM, Pluck (plucked string), PSG (chiptune) and 303 (acid bass) engines, and 4 sampled. A sampled drum loop keeps its own sound; turning PRESETS on one just shows a sparkle.
 
-**Storage math** (IMA ADPCM, Interactive Multimedia Association adaptive differential pulse-code modulation: 4 bits per sample, mono)
+**Storage math** (SEA5, FM1 Open's stock sample codec, mono at 32 kHz, stored in the stock 456 KiB sample bank; chosen Nov 10, 2026 over 16 kHz IMA ADPCM for brighter sound)
 
-1. At 16 kHz: 16,000 × 4 ÷ 8 = **8,000 bytes per second**.
-2. 1 bar at 100 BPM = 4 beats × 0.6 s = 2.4 s, so 2.4 × 8,000 = **19,200 bytes** per drum loop.
-3. 4 drum loops: 4 × 19,200 = **76,800 bytes (75 KiB)**.
-4. 4 melody notes at 0.8 s each: 4 × 0.8 × 8,000 = **25,600 bytes (25 KiB)**.
-5. Total audio: 102,400 bytes = **100 KiB, or 20% of a 500 KiB budget**.
-6. That leaves room for 2-bar drum loops: 153,600 + 25,600 = 179,200 bytes = 175 KiB (35%), if the spike confirms the space.
-7. The synthesized side is small: 24 DX7 voices at 128 bytes each = 3,072 bytes (3 KiB); 96 patterns × 64 steps × 4 bytes = 24,576 bytes (24 KiB).
+1. SEA5 stores 320 frames in 228 bytes; at 32 kHz that is 100 chunks a second = **22,800 bytes per second**.
+2. 1 bar at 100 BPM = 4 beats × 0.6 s = 2.4 s = 240 chunks = **54,720 bytes** per drum loop.
+3. 4 drum loops: 4 × 54,720 = **218,880 bytes (214 KiB)**.
+4. 4 melody notes at 0.8 s each: 4 × 80 chunks × 228 = **72,960 bytes (71 KiB)**.
+5. Total audio: 291,840 bytes = **285 KiB, or 62.5% of the 466,944-byte (456 KiB) sample bank**.
+6. 2-bar drum loops only fit for some: two 2-bar loops plus two 1-bar loops come to 401,280 bytes (86%); all four at 2 bars (510,720 bytes) would not fit.
+7. The synthesized side is small: 20 synthesized instruments at most 128 bytes each (a DX7 voice; Pluck, PSG and 303 need only a few knob values) = at most 2,560 bytes (2.5 KiB); 96 patterns × 64 steps × 4 bytes = 24,576 bytes (24 KiB).
 
 Her saved jam and favourites are tiny: one jam of up to 2 minutes stored as key and knob events (5 events per second × 120 s × 4 bytes = 2,400 bytes) plus 8 favourites at 32 bytes each (256 bytes) come to 2,656 bytes, under 3 KiB.
 
-16 kHz caps the audio at 8 kHz of treble: fine on the built-in speaker, a little dull on headphones. 22.05 kHz would cost 37.8% more space (22,050 ÷ 16,000 = 1.378).
+32 kHz keeps treble up to 16 kHz, so recordings stay bright on headphones too. The fallback, if the bank is ever needed for something else, is 16 kHz IMA ADPCM at 8,000 bytes per second (100 KiB for the same 8 sounds).
 
 ## Playback rules
 
@@ -195,7 +195,7 @@ The screen splits down the middle to match her hands: pink drums on the left, pu
 - **Bottom strip:** a bubble for each effect that's on. Turning a knob draws an arc in that knob's colour.
 - **States by glow, not words:** playing glows, muted dims, a Dice pick spins in.
 
-While REC is on, a dot pulses in the top strip. SAVE and SEQ show a heart with its number (1 to 8). Mood shows a sun, a cloud or a moon.
+While REC is on, a dot pulses in the top strip. SAVE and SEQ show a heart with its number (1 to 8). Mood shows a sun (Happy), a cloud (Dreamy), a moon (Spooky), a magic wand (Magic), a balloon (Floaty), a paper lantern (Faraway) or a treasure map (Adventure).
 
 | Role | Colour | Hex |
 | --- | --- | --- |
@@ -252,7 +252,7 @@ The tempo range (30 to 200 BPM) is fixed in the build.
 
 **How it fits together**
 
-1. **Engines:** FM1 Open's FM voices for melodies; FM1 Open's DRUM 808 engine for synthesized drums; one ADPCM sample player with 2 voices (1 sliced drum, 1 pitched melody note).
+1. **Engines:** FM1 Open's FM, Pluck, PSG and 303 engines for melodies; FM1 Open's DRUM 808 engine for synthesized drums; one SEA5 sample player with 2 voices (1 sliced drum, 1 pitched melody note). AJ Box runs its own engine (clock, swaps, mixer) in place of FM1 Open's sealed sequencer, calling FM1 Open's sound engines directly (decided Nov 10, 2026).
 2. **Clock:** one master clock in 16th-note steps drives both sides; swaps are phase-locked to it.
 3. **Library:** one manifest file listing all 96 loops, 12 kits, 24 instruments and their pictures, compiled into the firmware.
 4. **Workflow with Claude Code:** render loops to WAV files on the PC and tune by ear, then run them in the browser preview, then flash the FM-1.
@@ -271,7 +271,7 @@ AJ Box is done when she starts a drum and a melody without help on her first try
 
 **Milestones**
 
-1. **Spike:** build FM1 Open; measure free flash, worst-case CPU (8 drum voices + 4 FM voices + 2 sample voices + 6 effects), screen resolution, key LED colours and the supported sample format.
+1. **Spike:** build FM1 Open; measure free flash, worst-case CPU (8 drum voices + 4 melody voices on the heaviest melody engine + 2 sample voices + 6 effects), screen resolution, key LED colours and the supported sample format.
 2. **Core toy:** 8 + 8 keys on one page, phase-locked swaps, PLAY/STOP, synthesized loops only.
 3. **Library:** 48 + 48 loops, paging, sound swaps, the 8 samples.
 4. **Magic:** 6 effects, 4 knobs, Fill, Fast, Mute, Dice, Finish, jam recording, favourites and Mood.
@@ -282,11 +282,11 @@ AJ Box is done when she starts a drum and a melody without help on her first try
 
 | Risk | Fallback |
 | --- | --- |
-| Less than 100 KiB free for audio once code and engines are in | Drop to 12 kHz, or fewer sampled sounds |
+| Less than 285 KiB free in the sample bank once code and engines are in | Drop to 16 kHz IMA ADPCM (100 KiB), or fewer sampled sounds |
 | 6 effects at once overload the CPU | Cap at 3 at a time, oldest drops off |
 | Small speaker loses bass | Mix every loop on the built-in speaker first |
 | Too many controls for a 6-year-old | Introduce the three layers over days, not all at once |
-| Some newer FM-1s ship a different flash chip (UC25HQ80) that some firmwares don't support, losing saves at switch-off ([Drey Andersson](https://dreyandersson.com/blog/m-vave-fm-1-custom-firmware/)) | Check the unit's chip before flashing; confirm support with the base firmware's maintainers |
+| Some newer FM-1s ship a different flash chip (UC25HQ80) that some firmwares don't support, losing saves at switch-off ([Drey Andersson](https://dreyandersson.com/blog/m-vave-fm-1-custom-firmware/)) | Partho's unit has the newer chip. FM1 Open's sealed SDK flash driver reads the chip ID but has no ID whitelist, and both chips are 1 MiB, so the layout and budget are unchanged. AJ Box saves only through the SDK and reads back every write. If a save fails, the heart stays empty instead of pretending. Proof is the S0 power-off test on the device |
 
 ## Sources
 
