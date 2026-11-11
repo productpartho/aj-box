@@ -1,0 +1,3 @@
+# Desktop build outputs and renders (regenerate with dsp/build.ps1 -Render)
+/dsp/build/
+/renders/
