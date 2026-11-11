@@ -40,12 +40,46 @@ Spec: docs/aj-box-PRD.md (cite R numbers). Screens: docs/design/.
 
 ## 4. Build in four slices
 
-1. **S0 Spike.** Claude Code reads `firmware/` and reports build steps, free flash, CPU headroom, screen format and sample slots; you flash its build of stock FM1 Open, then go back to V15. *Verify: both flashes work.*
+1. **S0 Spike.** Claude Code reads `firmware/` and reports build steps, free flash, CPU headroom, screen format and sample slots. On the device: read the firmware identity on the workbench update page (Connect only, install nothing); if it isn't `FM-1_015`, stop and ask. Don't install a third-party bootloader just to take a backup. Save a preset on stock and check it survives a power-off. Flash Claude Code's build of stock FM1 Open; this first install asks for force-flash, which is expected only then (see "Flashing rules"). Save a project and a DX7 voice, switch off, unplug for a minute, switch on, three times; measure the S0 numbers; then go back to stock V15 through M-VAVE's own update route. *Verify: identity recorded, saves survive every power-off, both flashes work.*
 2. **S1 Sound on the Mac.** Clock, the DRUM 808 engine, FM voice, sampler, limiter and a WAV renderer, with 4 drum and 4 melody loops. *Verify: she likes what she hears.*
-3. **S2 AJ Box on the device.** In this order, flashing after each: keys, swaps and the start-up screen; the full library and samples; effects and knobs; helper keys; jams, favourites and Mood; final screens; parent mode. *Verify: everything in the PRD works on the FM-1, in time and under budget.*
-4. **S3 Play-test.** 3 sessions with her, fix where she gets stuck, tag v1.0. *Verify: the PRD's success measures are met.*
+3. **S2 AJ Box on the device.** In this order, flashing after each: keys, swaps and the start-up screen; the full library and samples; effects and knobs; helper keys; jams, favourites and Mood; final screens; parent mode. Every build follows "Saving and update-mode rules"; the first build that saves anything saves one heart and passes the power-off test before more is added. *Verify: everything in the PRD works on the FM-1, in time and under budget.*
+4. **S3 Play-test.** 3 sessions with her, fix where she gets stuck, tag v1.0. Play-test builds follow the same saving and update-mode rules; the v1.0 build passes the power-off test and a trip back to stock V15 before the tag. *Verify: the PRD's success measures are met.*
 
 ## Flashing rules
 
 - Charged battery, a data cable straight into the computer, nothing else holding the MIDI port, and never unplug mid-install.
-- Keep the way back to stock V15 tested.
+- Keep the way back to stock tested. Stock V15 saves fine on the newer UC25HQ80 chip (Melodee issue #110), so V15 through M-VAVE's own update route is the way back.
+- Install only through M-VAVE's update protocol (the FM1 Open workbench or update page). Recovery for a bricked unit is weak on this chip: the UBOOT recovery tool still refuses it, and M-Flasher needs its own bootloader written before it can back up a stock unit.
+- After any flash that touches saving, do the power-off test before calling it done.
+- The first install of FM1 Open on a stock unit asks for force-flash: that is the update page's own route from V15 (`docs/s0-findings.md`, "Force-flash is the normal route"). Accept it only when the identity read just before was exactly `FM-1_015`. Any other force-flash request, including any on a unit already running FM1 Open or AJ Box, means stop and ask.
+- After every install, before anything else: reconnect on the update page and read the identity (Connect only). If the page can't see the FM-1, stop: that build has broken the way back.
+- "Restore original V15" always writes (it replaces the four voice banks even on a unit already on V15). Press it only when going back to stock.
+
+## Saving and update-mode rules (S2, S3 and every later build)
+
+These turn the CLAUDE.md flash rule into steps. They apply to every build that goes on the FM-1, including play-test builds in S3.
+
+Saving:
+
+- Storage calls are `fm1_flash_size`, `fm1_flash_read`, `fm1_flash_write`, `fm1_flash_erase` and `fm1_flash_map`, and nothing else. No SPI driver, no chip-ID read or compare anywhere in AJ Box, no table of known chips.
+- Flash calls run only in the control task, never in audio, timer, MIDI or SysEx callbacks (`fm1.h`). A save asked for elsewhere is queued.
+- Each thing saved (hearts, the jam, the power-off memory, parent settings) is a record with a version and a checksum, kept in two sectors written in turn, with a commit mark written last. A save that is cut off by switch-off leaves the older copy readable. A record must fit one 4 KiB sector with its header: the jam is 1,024 events today (4,136 bytes), so cap it at 1,000 events when saving is built.
+- Every return code is checked. After the last write the record is read back with `fm1_flash_read` and compared byte for byte with what was meant to be saved, even though the SDK also verifies.
+- The screen shows a heart, a jam or a parent setting as saved only after that compare passes. On any failure the heart stays empty (PRD "Risks"), and nothing is retried silently.
+- If `fm1_flash_size()` is 0 or too small, AJ Box still plays, but every save shows as failed. It never keeps saves in RAM and shows them as saved. This is decided by the SDK's answer, never by the chip.
+- AJ Box's records live outside the 466,944-byte sample bank. Their place is fixed from the S0 flash numbers before the first saving build.
+- First saving build: one heart only, then the power-off test (save, off, unplugged 1 minute, on, three times) before jams, memory and parent settings are added. Repeat the test whenever the save code changes, and once more on the v1.0 build.
+
+Keeping update mode reachable:
+
+- The update handler is inside M-VAVE's sealed SDK and runs before AJ Box's SysEx hook. AJ Box never handles, filters or replaces update messages (commands 17, 48, 49, 50).
+- The SDK start-up and USB-MIDI bring-up in `app/board/` stay exactly as FM1 Open has them, and run before any AJ Box code.
+- Nothing AJ Box does at start-up can hang or crash: no flash writes at start-up, no unbounded loops, and every saved record is checked (version, checksum, every index in range) before it is used. A record that fails is ignored and the factory defaults are used.
+- The control task always returns to the SDK; interrupts are never left off; audio code keeps to the SDK's RAM-section rules so it is safe while flash is being written.
+- `FM1_UPDATE_PRODUCT` stays in the `FM-1_8<6 digits>` form, so the page accepts AJ Box builds and the way back to V15 without force-flash.
+- Each S2 step is a small change on top of a build that is already proven to reach the update page. If an install fails or the page stops seeing the FM-1, stop and ask; no other tools.
+
+Open items for Partho:
+
+- The PRD has no picture for "the jam didn't save" or "the parent setting didn't save" (only the empty heart). Needed before those saves are built.
+- PRD "Playback rules" 10 saves 30 s after the last change, but a flash write briefly silences the sound. S0 step e measures the gap; then decide whether to save only while nothing is playing.
