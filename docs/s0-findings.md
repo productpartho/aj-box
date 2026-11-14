@@ -114,25 +114,42 @@ What desktop can't show: whether the native device kernels match the portable C 
 - **Key LEDs** (PRD open question in "Feel"): `fm1_led_set(key, on)` is on/off only, driven from the key scan matrix (`fm1_led[11]` bytes). The colour is fixed by the hardware, so plan on single-colour LEDs. Check the colour on the device.
 - **Controls:** `fm1_controls`: 27 key bits (F3 to G5), 14 buttons, 7 encoder deltas, the MASTER pot and battery as 10-bit ADC values. This matches PRD "FM-1 hardware this design works within".
 - **Tempo:** stock internal tempo is 30 to 300 BPM; PRD "Playback rules" 1 narrows it to 30 to 200.
-- **Flash chip (PRD "Risks", UC25HQ80):** Partho's unit is the newer one. In the sealed SDK (`sdk/lib/libfm1_engine.a`), `read_flash_id` sends the standard ID command and stores the result in `flash_info`; `norflash_ioctl` sizes the chip from the ID's capacity byte (it calls `_pow`); `fm1_flash_init` uses the size and `fm1_layout`, with no ID compare. Neither 0x856014 (Puya) nor 0xB36014 (UC25HQ80) appears anywhere in the library. Both chips report capacity byte 0x14 (1 MiB). So no whitelist was found, but the pi32 code can't be disassembled here: the S0 power-off test on the device is the proof.
-  - Outside evidence ([Melodee issue #110](https://github.com/keremimo/melodee/issues/110)): on a 0xB36014 unit, stock V15 and Baud Girl FM-1+VA save and keep settings; Melodee went RAM-only because `persist_boot()` set `flash_ok = (fl_jedec_ram() == 0x856014u)`, fixed in 1.6.0. No report yet for FM1 Open on this chip.
+- **Flash chip (PRD "Risks"):** Partho's unit has the original Puya chip, JEDEC ID 0x856014, read by M-Flasher on Nov 13, 2026 ("M-Flasher" below). An earlier version of this note said it was the newer UC25HQ80 (0xB36014); that was wrong. Support for both chips stays as a portability rule. In the sealed SDK (`sdk/lib/libfm1_engine.a`), `read_flash_id` sends the standard ID command and stores the result in `flash_info`; `norflash_ioctl` sizes the chip from the ID's capacity byte (it calls `_pow`); `fm1_flash_init` uses the size and `fm1_layout`, with no ID compare. Neither 0x856014 (Puya) nor 0xB36014 (UC25HQ80) appears anywhere in the library. Both chips report capacity byte 0x14 (1 MiB). So no whitelist was found, but the pi32 code can't be disassembled here: the S0 power-off test on the device is the proof.
+  - Outside evidence ([Melodee issue #110](https://github.com/keremimo/melodee/issues/110)): on a 0xB36014 unit, stock V15 and Baud Girl FM-1+VA save and keep settings; Melodee went RAM-only because `persist_boot()` set `flash_ok = (fl_jedec_ram() == 0x856014u)`, fixed in 1.6.0. No report yet for FM1 Open on the UC25HQ80. This is background now: Partho's unit has the Puya chip FM1 Open was written for.
   - Firmware identity: the update page (`sdk/WebUpdate.js`) asks the device for a 27-byte identity (MIDI command 17) on Connect, which writes nothing. Stock V15 answers `FM-1_015`; FM1 Open answers the `FM1_UPDATE_PRODUCT` in `app/version.h` (`FM-1_8000014` for V14).
   - **Force-flash is the normal route from stock to FM1 Open** (checked in `Updater.connect` and `install`, Nov 10, 2026). With an FM1 Open package loaded, any identity that is neither the package's own product nor an Open pattern (`FM1_OFFICIAL_OPEN`, `FM1_COMMUNITY_<n>`, `FM-1_8<6 digits>`) is a "migration", and that includes stock `FM-1_015`. Connect then only reports the identity; Install refuses until "Enable force flash and reconnect" is on, which puts a `FM-1_015` unit on the page's own V15 route (`mode = 'legacy'`). So the first install of FM1 Open on a stock unit always asks for force-flash. An unexpected force-flash request is one where the identity is not exactly `FM-1_015`, or one on a unit already running FM1 Open or AJ Box.
   - Going back: "Restore original V15" loads the stock package (SHA-256 pinned in the page). A unit on FM1 Open answers with an Open identity and the capability command (49), so no force-flash is needed. The restore also rewrites all four voice banks with the 128 factory voices, and on a unit already on V15 it does only that, so it is never a read-only action.
   - AJ Box builds must keep an identity the page accepts: `sdk/Build.ps1` requires `FM1_UPDATE_PRODUCT` to match `FM-1_8<6 digits>`. Keeping it means every later AJ Box install and the way back to V15 run without force-flash.
   - Update mode is in the sealed SDK, not the app: `fm1.h` says "Firmware update messages are handled before" the app's SysEx hook, and nothing in `app/` handles commands 17, 49 or 50 or calls `fm1_device_recovery()`. So the app can't remove the update route, but it can starve it: a crash or endless loop at start-up, interrupts left off, or a control task that never returns would stop the SDK answering. No button-hold that forces update mode was found in the open code; treat it as not existing.
   - Flash calls and audio: `fm1.h` allows `fm1_flash_read/write/erase` only from the control task ("Never from audio, timer, MIDI or SysEx callbacks") and says "Writes/erases briefly silence audio". `fm1_flash_write` already verifies by read-back and returns `FM1_FLASH_IO` on a mismatch; `fm1_flash_size()` returns 0 if the reservation can't be validated. The raw API is not transactional; FM1 Open itself uses commit markers and a staging sector (`app/project.c`, `app/fm_library.c`).
-  - Recovery on this chip: the UBOOT recovery tool still refuses it (fix on an untested branch); M-Flasher can't reach download mode on a stock unit without writing its bootloader first, and its README lists the FM-1 as untested.
+  - Recovery: on the Puya chip (this unit) M-Flasher and the UBOOT recovery tool both support the chip (Partho, Nov 14, 2026; M-Flasher read a full backup from this unit). On the UC25HQ80 the UBOOT recovery tool still refuses the chip (fix on an untested branch). Installing through M-VAVE's update protocol stays the normal route; M-Flasher is the rescue route.
+
+## M-Flasher (Nov 13, 2026)
+
+Partho ran M-Flasher on the unit. From the backup's own metadata file:
+
+| Item | Value |
+| --- | --- |
+| Tool | m-flasher 0.12.0, loader "M-Flasher 1.3, CPU at 96 MHz" |
+| Model | FM-1 |
+| Flash chip | 0x856014 (Puya) |
+| Bootloader at backup time | stock (M-VAVE) |
+| Firmware at backup time | "FM-1 102 (Baud Girl)", app OK |
+| Full backup | `Documents\M-Flasher\backups\fm1-20261113-164913.bin`, 1,048,576 bytes (the whole 1 MiB), SHA-256 `c639430c…115342f`, matching the metadata; kept outside the repo |
+
+- The backup is of the unit as it was on Nov 13, running Baud Girl firmware. It is not a backup of stock V15.
+- Not yet confirmed by Partho: whether M-Flasher's own bootloader was installed after the backup. If it was, REC held at power-on enters download mode, and an official M-VAVE update restores the stock bootloader (Partho, from M-Flasher's notes; not checked here).
+- Steps a and b below were done on stock V15 on Nov 10. The firmware has changed since, so the identity has to be read again before any install.
 
 ## S0 on the device (log)
 
-Unit: UC25HQ80 flash, JEDEC ID 0xB36014. Every install is done by Partho through the update page. A step that fails stops the run.
+Unit: Puya flash, JEDEC ID 0x856014 (M-Flasher, Nov 13, 2026). Every install is done by Partho through the update page. A step that fails stops the run.
 
 | Step | What | Result |
 | --- | --- | --- |
-| a | Identity on Connect (nothing installed) | not run yet |
-| b | Stock baseline: save a preset, off, unplugged 1 minute, on | not run yet |
-| c | Build unmodified FM1 Open (size report), install through the update page | not run yet |
+| a | Identity on Connect (nothing installed) | **Pass**, Nov 10, 2026: hosted workbench (open.m-vave.com/fm1-workbench, Official Open firmware V14 page), Connect device only, identity `FM-1_015` (stock V15) |
+| b | Stock baseline: save a preset, off, unplugged 1 minute, on | **Pass**, Nov 10, 2026: on stock V15 a changed ALGORITHM on preset 001 was saved with SAVE and was still there after switch-off, USB unplugged for 1 minute, switch-on. Stock firmware saves on this chip |
+| c | Build unmodified FM1 Open (size report), install through the update page | **Build pass**, Nov 10, 2026 (FM1 Open V14 at 4c7496d, JieLi toolchain 2.5.3, `clang.exe` hash matches): app image 453,576 bytes; flash image 471,040; VM 32,768; BTIF 4,096; user partition 536,576 (0x7C000 to 0xFF000); total 1,044,480 of 1,048,576 with no spare gap (`vm_extra_gap_bytes` 0). Package `FM1_OFFICIAL_OPEN.fwsc` 492,084 bytes, build id `bb7938ce…757d`. **Install: not run yet.** Nov 14, 2026: M-Flasher's backup shows Baud Girl firmware on the unit on Nov 13, so it is no longer on stock V15; read the identity again before installing |
 | d | Power-off test × 3: a project and a DX7 voice survive | not run yet |
 | e | Free flash, audio deadline and overruns, screen format, sample slots, sound gap while saving | not run yet |
 | f | Back to stock V15 through the page; boots; presets save | not run yet |

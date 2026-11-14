@@ -40,7 +40,7 @@ Spec: docs/aj-box-PRD.md (cite R numbers). Screens: docs/design/.
 
 ## 4. Build in four slices
 
-1. **S0 Spike.** Claude Code reads `firmware/` and reports build steps, free flash, CPU headroom, screen format and sample slots. On the device: read the firmware identity on the workbench update page (Connect only, install nothing); if it isn't `FM-1_015`, stop and ask. Don't install a third-party bootloader just to take a backup. Save a preset on stock and check it survives a power-off. Flash Claude Code's build of stock FM1 Open; this first install asks for force-flash, which is expected only then (see "Flashing rules"). Save a project and a DX7 voice, switch off, unplug for a minute, switch on, three times; measure the S0 numbers; then go back to stock V15 through M-VAVE's own update route. *Verify: identity recorded, saves survive every power-off, both flashes work.*
+1. **S0 Spike.** Claude Code reads `firmware/` and reports build steps, free flash, CPU headroom, screen format and sample slots. On the device: read the firmware identity on the workbench update page (Connect only, install nothing); if it isn't `FM-1_015`, stop and ask. A full flash backup taken with M-Flasher is kept outside the repo (`docs/s0-findings.md`, "M-Flasher"). Save a preset on stock and check it survives a power-off. Flash Claude Code's build of stock FM1 Open; this first install asks for force-flash, which is expected only then (see "Flashing rules"). Save a project and a DX7 voice, switch off, unplug for a minute, switch on, three times; measure the S0 numbers; then go back to stock V15 through M-VAVE's own update route. *Verify: identity recorded, saves survive every power-off, both flashes work.*
 2. **S1 Sound on the Mac.** Clock, the DRUM 808 engine, FM voice, sampler, limiter and a WAV renderer, with 4 drum and 4 melody loops. *Verify: she likes what she hears.*
 3. **S2 AJ Box on the device.** In this order, flashing after each: keys, swaps and the start-up screen; the full library and samples; effects and knobs; helper keys; jams, favourites and Mood; final screens; parent mode. Every build follows "Saving and update-mode rules"; the first build that saves anything saves one heart and passes the power-off test before more is added. *Verify: everything in the PRD works on the FM-1, in time and under budget.*
 4. **S3 Play-test.** 3 sessions with her, fix where she gets stuck, tag v1.0. Play-test builds follow the same saving and update-mode rules; the v1.0 build passes the power-off test and a trip back to stock V15 before the tag. *Verify: the PRD's success measures are met.*
@@ -48,8 +48,8 @@ Spec: docs/aj-box-PRD.md (cite R numbers). Screens: docs/design/.
 ## Flashing rules
 
 - Charged battery, a data cable straight into the computer, nothing else holding the MIDI port, and never unplug mid-install.
-- Keep the way back to stock tested. Stock V15 saves fine on the newer UC25HQ80 chip (Melodee issue #110), so V15 through M-VAVE's own update route is the way back.
-- Install only through M-VAVE's update protocol (the FM1 Open workbench or update page). Recovery for a bricked unit is weak on this chip: the UBOOT recovery tool still refuses it, and M-Flasher needs its own bootloader written before it can back up a stock unit.
+- Keep the way back to stock tested. Stock V15 through M-VAVE's own update route is the way back.
+- Install through M-VAVE's update protocol (the FM1 Open workbench or update page): that is the normal route for every build. Partho's unit has the original Puya chip (0x856014), which M-Flasher and the UBOOT recovery tool both support, so M-Flasher is the rescue route if an install leaves the FM-1 unable to reach the update page. Use it only after stopping and asking. On a UC25HQ80 unit recovery is weaker (`docs/s0-findings.md`).
 - After any flash that touches saving, do the power-off test before calling it done.
 - The first install of FM1 Open on a stock unit asks for force-flash: that is the update page's own route from V15 (`docs/s0-findings.md`, "Force-flash is the normal route"). Accept it only when the identity read just before was exactly `FM-1_015`. Any other force-flash request, including any on a unit already running FM1 Open or AJ Box, means stop and ask.
 - After every install, before anything else: reconnect on the update page and read the identity (Connect only). If the page can't see the FM-1, stop: that build has broken the way back.
@@ -57,7 +57,7 @@ Spec: docs/aj-box-PRD.md (cite R numbers). Screens: docs/design/.
 
 ## Saving and update-mode rules (S2, S3 and every later build)
 
-These turn the CLAUDE.md flash rule into steps. They apply to every build that goes on the FM-1, including play-test builds in S3.
+These turn the CLAUDE.md flash rule into steps. Partho's unit has the Puya chip (0x856014); the rules hold for both chips, so AJ Box stays portable to UC25HQ80 units. They apply to every build that goes on the FM-1, including play-test builds in S3.
 
 Saving:
 
@@ -77,7 +77,7 @@ Keeping update mode reachable:
 - Nothing AJ Box does at start-up can hang or crash: no flash writes at start-up, no unbounded loops, and every saved record is checked (version, checksum, every index in range) before it is used. A record that fails is ignored and the factory defaults are used.
 - The control task always returns to the SDK; interrupts are never left off; audio code keeps to the SDK's RAM-section rules so it is safe while flash is being written.
 - `FM1_UPDATE_PRODUCT` stays in the `FM-1_8<6 digits>` form, so the page accepts AJ Box builds and the way back to V15 without force-flash.
-- Each S2 step is a small change on top of a build that is already proven to reach the update page. If an install fails or the page stops seeing the FM-1, stop and ask; no other tools.
+- Each S2 step is a small change on top of a build that is already proven to reach the update page. If an install fails or the page stops seeing the FM-1, stop and ask before trying anything else. M-Flasher is the rescue route, not a way to install builds.
 
 Open items for Partho:
 
