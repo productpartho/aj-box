@@ -213,7 +213,7 @@ Measured on Nov 14, 2026:
 | AJ Box's engine, effects, sampler and loop data compiled for this chip (`dsp/src`, `assets/loops.c`) | 38,000 at -O2, 29,000 at -Oz |
 | Portable copies of the engines (DX7, 303, PSG, effects, mixer; 808 and pluck would not compile for the chip as they stand) | 35,600 without 808 and pluck; the DX7 figure leaves out its inner loops, which exist only as sealed assembly |
 
-So the design chosen on Nov 10 (AJ Box's own engine driving the native kernels) cannot be built. Two ways forward, for Partho to choose:
+So the design chosen on Nov 10 (AJ Box's own engine driving the native kernels) cannot be built. **Decided by Partho, Nov 14, 2026: option 1.** Use the stock instrument and its sound engines; drop the own-engine idea for this build. The two options as they were put:
 
 1. **AJ Box as a new front for the stock instrument.** Drums on one track and the melody on another; AJ Box's loop library, kits, instruments, moods, screens and keys on top; swaps by replacing the pattern. All five synth engines stay native, so the CPU load is the stock one, and it fits the flash. To settle first: the stock sampler is 8 one-shot pads, so tempo-following sliced loops and pitched sampled melodies (Music Box, Kalimba, La, Cat) need another answer; Wobble, Wah, Crunch, Stutter and Swoosh would run on the finished mix in the app's output stage; the desktop renderer has to be rebuilt on FM1 Open's portable instrument (`web/engine`) so tests and WAVs match the device.
 2. **AJ Box's own engine with its own copies of fewer engines.** All five do not fit beside the sealed ones. A cut-down set (for example 808, PSG and pluck, no DX7 and no 303) might, with unknown CPU load, and it drops 14 of the 20 synthesized instruments.

@@ -65,7 +65,7 @@ AJ Box uses every physical control on the FM-1; the tight limit is storage, not 
 | Power | 2000 mAh (milliamp-hour) battery, rated 12 hours | Low battery shown as a sleepy face |
 | Storage | 1 MiB of flash in total ([FM-1 Transporter](https://github.com/kurogedelic/FM-1-transporter/wiki)); one sampler firmware gets 500 KiB (kibibytes) usable for audio ([Pigeon 0.5 beta](https://github.com/TheShrimpBlimp/pigeon/releases)) | Sets the 8-sample limit |
 
-- **Stock limit that goes away:** the stock firmware won't run the arpeggiator and sequencer together; it shows "Disable SEQ to enter". AJ Box runs its own clock, so both styles of melody can exist side by side.
+- **Stock limit that goes away:** the stock firmware won't run the arpeggiator and sequencer together; it shows "Disable SEQ to enter". AJ Box drives FM1 Open's instrument, which runs its sequencer and arpeggiator together, so both styles of melody can exist side by side.
 - **Base to build on:** M-VAVE's official [FM1 Open V14](https://github.com/m-vave/fm1_open/releases/tag/V14) (Oct 19, 2026) already has a DX7 engine, sample playback, 8 sample slots, reverb and delay sends, tap tempo with tempo-synced delay, and a browser workbench for managing samples ([Synthtopia](https://synthtopia.com/content/2026/10/20/m-vave-officially-opens-fm-1-firmware-to-developers-with-new-workbench-sdk)). It is licensed GPLv3 (GNU General Public License v3) with an SDK (Software Development Kit) linking exception.
 
 ## Control map
@@ -252,8 +252,8 @@ The tempo range (30 to 200 BPM) is fixed in the build.
 
 **How it fits together**
 
-1. **Engines:** FM1 Open's FM, Pluck, PSG and 303 engines for melodies; FM1 Open's DRUM 808 engine for synthesized drums; one SEA5 sample player with 2 voices (1 sliced drum, 1 pitched melody note). AJ Box runs its own engine (clock, swaps, mixer) in place of FM1 Open's sealed sequencer, calling FM1 Open's sound engines directly (decided Nov 10, 2026).
-2. **Clock:** one master clock in 16th-note steps drives both sides; swaps are phase-locked to it.
+1. **Engines:** FM1 Open's FM, Pluck, PSG and 303 engines for melodies; FM1 Open's DRUM 808 engine for synthesized drums; FM1 Open's sampler for recorded sounds. AJ Box does not run its own engine: it is a new front for FM1 Open's stock instrument, with drums on one track and the melody on another, and swaps a track's pattern while it plays (decided Nov 14, 2026; M-VAVE's library seals the sound engines, so the Nov 10 own-engine plan could not be built). **Open:** the stock sampler is 8 one-shot pads, so how the 4 sampled drum loops and the 4 sampled melody notes work is still to be settled; Wobble, Wah, Crunch, Stutter and Swoosh run on the finished mix if the processor allows.
+2. **Clock:** FM1 Open's sequencer clock in 16th-note steps drives both sides; a swap replaces the pattern while the position carries on, so it is phase-locked.
 3. **Library:** one manifest file listing all 96 loops, 12 kits, 24 instruments and their pictures, compiled into the firmware.
 4. **Workflow with Claude Code:** render loops to WAV files on the PC and tune by ear, then run them in the browser preview, then flash the FM-1.
 5. **Licence:** GPLv3 is fine for home use; if you share the firmware publicly, publish the source with it.

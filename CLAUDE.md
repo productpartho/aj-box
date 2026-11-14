@@ -5,7 +5,7 @@ Spec: docs/aj-box-PRD.md (cite section names). Plan: docs/aj-box-build-plan.md.
 Screens: docs/design/*.dc.html, true size 240 x 240 (Icons and Stickers are reference sheets). Read the inline styles for exact sizes and colours.
 
 ## Layout
-- dsp/       portable C engine + a desktop (Windows) renderer that writes WAV files
+- dsp/       desktop (Windows) renderer that writes WAV files, and the loop logic. The device uses FM1 Open's stock instrument, not AJ Box's own engine (M-VAVE's library seals the sound engines), so dsp/ is being moved onto FM1 Open's portable instrument in firmware/web/engine
 - firmware/  submodule: fork of m-vave/fm1_open V14 (GPLv3 with SDK linking exception)
 - assets/    loop manifest, 8 samples, icon sheets
 - tools/     sample encoder, icon packer, size report
