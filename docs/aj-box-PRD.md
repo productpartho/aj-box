@@ -127,14 +127,19 @@ The black keys carry printed labels (OP1 to OP6, PIT, GLO, MONO, POLY) for the s
 
 **The 8 sampled sounds**
 
-- **Drums (4),** each stored as a 1-bar loop cut into 16 slices: dhol, pots and pans, beatbox, rain stick. Slices are re-triggered by the clock, so a sampled loop follows any tempo without changing pitch.
-- **Melody (4),** each stored as a single note that the pattern plays at different pitches: her own "la" (recorded at home), cat meow, kalimba, music box. One recording can play any tune in any key.
+Decided Nov 14, 2026: all 8 are **one-shot sounds** on the stock sampler's 8 pads, played in patterns by the clock, so they follow any tempo without changing pitch. (The stock sampler can't slice a recorded loop or play a recording at different pitches, and AJ Box no longer runs its own sampler.)
+
+- **Drum sounds:** single hits such as a dhol hit, a pot clang, a spoon tap, a beatbox kick and snare, a rain stick shake.
+- **Her sounds:** her own "la" (recorded at home) and a cat meow, as single hits used in the drum loops.
+- The exact 8 are chosen when the recordings are made. Sampled melodies (music box, kalimba, la, cat as tunes) are dropped for this build; those 8 melody loops move to synthesized instruments.
 
 **How a melody loop is built:** instrument plus pattern. About half are arpeggios (a held chord played Up, Down, Bounce or Random, the same shapes as the stock arpeggiator) and half are 16-step riffs. Melodies use only the 5 notes of one pentatonic scale (default C major pentatonic: C, D, E, G, A), so nothing clashes. All patterns are original or public domain; no copyrighted songs.
 
-**Sound swaps:** PRESETS steps through 12 drum kits built on the DRUM 808 engine and ALGORITHM through 24 melody instruments: 20 synthesized on FM1 Open's FM, Pluck (plucked string), PSG (chiptune) and 303 (acid bass) engines, and 4 sampled. A sampled drum loop keeps its own sound; turning PRESETS on one just shows a sparkle.
+**Sound swaps:** PRESETS steps through 12 drum kits built on the DRUM 808 engine and ALGORITHM through 20 melody instruments, all synthesized on FM1 Open's FM, Pluck (plucked string), PSG (chiptune) and 303 (acid bass) engines (24 before Nov 14, 2026, when 4 were sampled). A drum loop made of recorded sounds keeps its own sound; turning PRESETS on one just shows a sparkle.
 
 **Storage math** (SEA5, FM1 Open's stock sample codec, mono at 32 kHz, stored in the stock 456 KiB sample bank; chosen Nov 10, 2026 over 16 kHz IMA ADPCM for brighter sound)
+
+Since Nov 14, 2026 the 8 recordings are one-shots, so steps 2 to 6 below are the old plan and overstate the need: the stock bank holds about 19.5 seconds in total across its 8 pads, and 8 short hits use a fraction of it.
 
 1. SEA5 stores 320 frames in 228 bytes; at 32 kHz that is 100 chunks a second = **22,800 bytes per second**.
 2. 1 bar at 100 BPM = 4 beats × 0.6 s = 2.4 s = 240 chunks = **54,720 bytes** per drum loop.
