@@ -138,12 +138,14 @@ Partho ran M-Flasher on the unit. From the backup's own metadata file:
 | Full backup | `Documents\M-Flasher\backups\fm1-20261113-164913.bin`, 1,048,576 bytes (the whole 1 MiB), SHA-256 `c639430c…115342f`, matching the metadata; kept outside the repo |
 
 - The backup is of the unit as it was on Nov 13, running Baud Girl firmware. It is not a backup of stock V15.
-- Not yet confirmed by Partho: whether M-Flasher's own bootloader was installed after the backup. If it was, REC held at power-on enters download mode, and an official M-VAVE update restores the stock bootloader (Partho, from M-Flasher's notes; not checked here).
+- Confirmed by Partho, Nov 14, 2026: the unit is still running Baud Girl. The FM1 Open install in step c was never done, so nothing from FM1 Open has been on this unit yet.
+- Confirmed by Partho, Nov 14, 2026: after the backup, M-Flasher installed its open bootloader (m-bootloader, github.com/jvitkauskas/m-bootloader) on the unit. Per its README (not yet tried on this unit): PLAY held at power-on opens a recovery menu (Boot app, Download mode, Boot anyway, Wipe user data); the feature list says REC held at power-on enters download mode; every firmware's checksum is checked before it starts, and a build that fails opens the menu by itself. Official M-VAVE updates put the stock bootloader back; the README doesn't say whether FM1 Open's update page does. To reinstall it: `m-flasher bootloader --file fm1-uboot.boot` (writes the bootloader only).
+- Bootloader rules for every device step: after each install, Partho holds PLAY at power-on and the result (menu appears or not) goes in the log; then ask him whether to reinstall the bootloader. If a build opens the menu by itself, that is a failing checksum: fix the build; "Boot anyway" is never the routine. "Wipe user data" is never used in any step.
 - Steps a and b below were done on stock V15 on Nov 10. The firmware has changed since, so the identity has to be read again before any install.
 
 ## S0 on the device (log)
 
-Unit: Puya flash, JEDEC ID 0x856014 (M-Flasher, Nov 13, 2026). Every install is done by Partho through the update page. A step that fails stops the run.
+Unit: Puya flash, JEDEC ID 0x856014 (M-Flasher, Nov 13, 2026). Every install is done by Partho through the update page. A step that fails stops the run. After each install (steps c and f) the log also records the PLAY-at-power-on check: whether m-bootloader's recovery menu still appears.
 
 | Step | What | Result |
 | --- | --- | --- |
