@@ -182,7 +182,7 @@ Answered Nov 10, 2026: **1(b) SEA5 at 32 kHz** (`dsp/` now uses FM1 Open's SEA5 
    - **(b) Use the stock SEA5 bank and its native decoder.** Better treble, reuses the workbench's sample manager (PRD parent mode "swap any of the 8 sampled sounds over USB"), but uses about 2.85× the space.
 
    Swapping the codec in `dsp/` is a small change. I'd decide after the free-flash number comes in.
-2. **Stock sequencer or AJ Box clock.** The stock instrument ("groove": 8 tracks, 64-step patterns at 16, 32, 48 or 64 steps, per-track source DX7, 808, sampler and others) is inside the sealed library, driven by `groove_*` calls. It doesn't do phase-locked swaps or sliced loops. `app/board/audio.c` (APP code) is what calls `fm1_engine_render()`, so S2 can call AJ Box's renderer there instead and drive the native `drum808_kit_*` and `synth_dx7_*` kernels directly. Those symbols are in the archive (`Build.ps1` requires them in SRAM). Whether the APP may call them without the groove engine initialised needs checking in S2.
+2. **Stock sequencer or AJ Box clock.** (Superseded by "S2 design finding" above: the kernels named here are sealed.) The stock instrument ("groove": 8 tracks, 64-step patterns at 16, 32, 48 or 64 steps, per-track source DX7, 808, sampler and others) is inside the sealed library, driven by `groove_*` calls. It doesn't do phase-locked swaps or sliced loops. `app/board/audio.c` (APP code) is what calls `fm1_engine_render()`, so S2 can call AJ Box's renderer there instead and drive the native `drum808_kit_*` and `synth_dx7_*` kernels directly. Those symbols are in the archive (`Build.ps1` requires them in SRAM). Whether the APP may call them without the groove engine initialised needs checking in S2.
 3. **Build plan wording.** The plan says "go back to V15" while the PRD bases on FM1 Open **V14**. These are consistent: V14 is the open firmware and V15 is M-VAVE's original stock firmware, the recovery image.
 
 ## S2 budget (measured Nov 14, 2026, from the FM1 Open V14 build; no AJ Box firmware code written yet)
@@ -191,5 +191,29 @@ Answered Nov 10, 2026: **1(b) SEA5 at 32 kHz** (`dsp/` now uses FM1 Open's SEA5 
 - **Where the 453,576 bytes go** (from `build/dx7/sdk.map`): M-VAVE's sealed library 379,834 bytes (code 302,050, RAM-loaded code and data 77,752, plus 32); FM1 Open's own app 73,570 bytes (code 70,442, of which `app/screen.c` is 39,949; RAM-loaded 3,128).
 - So AJ Box cannot be added on top of FM1 Open. Its code, loop data and screens have to fit in the roughly 73 KiB the stock app uses now, by replacing the stock screens and whatever else the build lets go.
 - **RAM is not the problem:** 523,596 bytes of RAM, 247,340 of it free for the heap against a required minimum of 49,152.
-- **Build rules that shape the design:** every `.c` file under `app/` is compiled, so AJ Box sources can live there. `sdk/Build.ps1` is hash-pinned by `sdk/manifest.json` and requires `fm1_engine_render`, the native DX7, 808, 303, PSG, pluck and SEA kernels, and a list of app callbacks to stay linked and in RAM. So the sealed sound kernels stay in the image whether AJ Box uses them or not, and AJ Box's engine has to call those kernels rather than bring its own copies of the engines.
-- **Not yet checked:** whether the native kernels (`drum808_kit_*`, `bass303_bank_*`, `synth_dx7_*`, `psg_*`) take the same calls as the portable sources `dsp/` uses on the desktop; how many bytes AJ Box's engine compiles to for this chip; which stock app parts can be removed without failing the build's checks.
+- **Build rules that shape the design:** every `.c` file under `app/` is compiled, so AJ Box sources can live there. `sdk/Build.ps1` is hash-pinned by `sdk/manifest.json` and requires `fm1_engine_render`, the native DX7, 808, 303, PSG, pluck and SEA kernels, and a list of app callbacks to stay linked and in RAM. So the sealed sound kernels stay in the image whether AJ Box uses them or not. (An earlier version of this line said AJ Box's engine could call them; it can't, see "S2 design finding" below.)
+
+## S2 design finding (Nov 14, 2026): the sound engines are sealed
+
+**The app cannot call the sound engines.** In `sdk/lib/libfm1_engine.a` the DX7, 808, 303, PSG, pluck, effects and limiter functions (`synth_dx7_render`, `drum808_kit_trigger`, `psg_key`, `fm1_master_gain` and the rest) are local symbols: a trial app that referenced `fm1_master_gain` failed to link with "undefined reference". `sdk/synth.json` says the same thing: `"sealed_audio_api": true`. Decision 2 below was answered on the opposite assumption ("S2 can ... drive the native `drum808_kit_*` and `synth_dx7_*` kernels directly"), which was wrong.
+
+What the library does let the app call (201 global symbols):
+
+- The stock instrument as a whole, through `app/instrument.h`: 8 tracks, each a DX7, 303, 808, PSG, pluck or sampler, 64 steps per track, tempo, track mute and volume, reverb and delay sends. `groove_sequence_replace(track, first, cells, count)` swaps a track's pattern while it plays, and the playing position carries on, which is a phase-locked swap. `groove_fm_import` loads a DX7 voice, `groove_tone_edit` and `groove_timbre_apply` set 808, 303, PSG and pluck sounds.
+- The platform: flash, MIDI, Bluetooth, controls, screen.
+- `fm1_engine_render` (the whole instrument's output, once per block), `fm1_sea_decode_groups` and `sampledrum_bind`. The app owns the last stage after `fm1_engine_render` (`app/audio_output.c`), so it can process or add to the finished stereo block.
+
+Measured on Nov 14, 2026:
+
+| What | Bytes |
+| --- | --- |
+| Image limit | 453,921 |
+| Image with an empty app (trial link in a scratch copy, never flashed) | 369,308 |
+| Room for AJ Box | about 84,600, a little less once the Bluetooth functions the build insists on are kept |
+| AJ Box's engine, effects, sampler and loop data compiled for this chip (`dsp/src`, `assets/loops.c`) | 38,000 at -O2, 29,000 at -Oz |
+| Portable copies of the engines (DX7, 303, PSG, effects, mixer; 808 and pluck would not compile for the chip as they stand) | 35,600 without 808 and pluck; the DX7 figure leaves out its inner loops, which exist only as sealed assembly |
+
+So the design chosen on Nov 10 (AJ Box's own engine driving the native kernels) cannot be built. Two ways forward, for Partho to choose:
+
+1. **AJ Box as a new front for the stock instrument.** Drums on one track and the melody on another; AJ Box's loop library, kits, instruments, moods, screens and keys on top; swaps by replacing the pattern. All five synth engines stay native, so the CPU load is the stock one, and it fits the flash. To settle first: the stock sampler is 8 one-shot pads, so tempo-following sliced loops and pitched sampled melodies (Music Box, Kalimba, La, Cat) need another answer; Wobble, Wah, Crunch, Stutter and Swoosh would run on the finished mix in the app's output stage; the desktop renderer has to be rebuilt on FM1 Open's portable instrument (`web/engine`) so tests and WAVs match the device.
+2. **AJ Box's own engine with its own copies of fewer engines.** All five do not fit beside the sealed ones. A cut-down set (for example 808, PSG and pluck, no DX7 and no 303) might, with unknown CPU load, and it drops 14 of the 20 synthesized instruments.
