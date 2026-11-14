@@ -129,9 +129,8 @@ The black keys carry printed labels (OP1 to OP6, PIT, GLO, MONO, POLY) for the s
 
 Decided Nov 14, 2026: all 8 are **one-shot sounds** on the stock sampler's 8 pads, played in patterns by the clock, so they follow any tempo without changing pitch. (The stock sampler can't slice a recorded loop or play a recording at different pitches, and AJ Box no longer runs its own sampler.)
 
-- **Drum sounds:** single hits such as a dhol hit, a pot clang, a spoon tap, a beatbox kick and snare, a rain stick shake.
-- **Her sounds:** her own "la" (recorded at home) and a cat meow, as single hits used in the drum loops.
-- The exact 8 are chosen when the recordings are made. Sampled melodies (music box, kalimba, la, cat as tunes) are dropped for this build; those 8 melody loops move to synthesized instruments.
+- **No recordings (Partho, Nov 14, 2026):** nothing is recorded at home or anywhere else. Claude Code makes all 8 sounds by synthesis, as single hits in the spirit of the page themes: a dhol-like hit, a pot clang, a spoon tap, a beatbox-like kick and snare, a rain-stick shake and two more.
+- Parent mode's "swap any of the 8 sampled sounds over USB" is dropped for this build. Sampled melodies (music box, kalimba, la, cat as tunes) are dropped for this build; those 8 melody loops move to synthesized instruments.
 
 **How a melody loop is built:** instrument plus pattern. About half are arpeggios (a held chord played Up, Down, Bounce or Random, the same shapes as the stock arpeggiator) and half are 16-step riffs. Melodies use only the 5 notes of one pentatonic scale (default C major pentatonic: C, D, E, G, A), so nothing clashes. All patterns are original or public domain; no copyrighted songs.
 

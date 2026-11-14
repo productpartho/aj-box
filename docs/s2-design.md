@@ -89,7 +89,14 @@ CLAUDE.md says new sound code gets a WAV and a test before it touches `firmware/
 
 Keys, swaps and the start-up screen; the full library and one-shots; effects and knobs; helper keys; jams, favourites and Mood; final screens; parent mode. Each is a small change on a build that already reaches the update page. Before the first one: reinstall M-Flasher's bootloader, and I ask before the 518 MiB download needed to build the local update page.
 
-## Decisions I need from you
+## Decisions (Partho, Nov 14, 2026)
+
+1. The design is approved to build.
+2. No recorded sounds: Claude Code synthesizes the 8 one-shots.
+3. Parent mode sample swapping is dropped for this build.
+4. Asked for: Saria's Song and Song of Storms (from Zelda: Ocarina of Time) in place of two melody loops. Waiting on which two, and on changing PRD "Loop library and storage", which says no copyrighted songs.
+
+## Decisions I needed from you (answered above)
 
 1. Is this design right to build?
 2. The 8 one-shot sounds: which 8, and who records them. Placeholders will do until then.
