@@ -145,6 +145,10 @@ Partho ran M-Flasher on the unit. From the backup's own metadata file:
 
 ## S0 on the device (log)
 
+**Result, Nov 14, 2026: S0 closed the short way, by Partho's decision.** Passed: identity read, stock save baseline, FM1 Open V14 build and size report, FM1 Open V14 installed, the update page still sees the unit, one project save survives a power-off. Deferred by Partho: two more save rounds and the DX7 voice save, device measurements that need a debug build, and the trip back to stock V15. The unit stays on FM1 Open V14 with the stock bootloader.
+
+What S2 has to do first because of that: reinstall M-Flasher's bootloader before the first build that is not an official release; measure CPU headroom and the sound gap while saving on the first AJ Box builds; keep the firmware inside the 471,040-byte image area (everything above it is reserved, and FM1 Open's own app image is 453,576 bytes).
+
 Unit: Puya flash, JEDEC ID 0x856014 (M-Flasher, Nov 13, 2026). Every install is done by Partho through the update page. A step that fails stops the run. After each install (steps c and f) the log also records the PLAY-at-power-on check: whether m-bootloader's recovery menu still appears.
 
 | Step | What | Result |
@@ -153,9 +157,9 @@ Unit: Puya flash, JEDEC ID 0x856014 (M-Flasher, Nov 13, 2026). Every install is 
 | b | Stock baseline: save a preset, off, unplugged 1 minute, on | **Pass**, Nov 10, 2026: on stock V15 a changed ALGORITHM on preset 001 was saved with SAVE and was still there after switch-off, USB unplugged for 1 minute, switch-on. Stock firmware saves on this chip |
 | c | Build unmodified FM1 Open (size report), install through the update page | **Build pass**, Nov 10, 2026 (FM1 Open V14 at 4c7496d, JieLi toolchain 2.5.3, `clang.exe` hash matches): app image 453,576 bytes; flash image 471,040; VM 32,768; BTIF 4,096; user partition 536,576 (0x7C000 to 0xFF000); total 1,044,480 of 1,048,576 with no spare gap (`vm_extra_gap_bytes` 0). Package `FM1_OFFICIAL_OPEN.fwsc` 492,084 bytes, build id `bb7938ce…757d`. **Install pass**, Nov 14, 2026: official FM1 Open V14 from the hosted workbench (Partho's choice; not the local build), force-flash from identity `FM-1_102` (Baud Girl), ended with "Update complete. Your FM1 is ready to use; no further flashing is needed." PLAY held at power-on afterwards: no recovery menu, the FM-1 started normally, so the install most likely put the stock bootloader back (M-Flasher's REC download mode is then gone until the bootloader is reinstalled). Identity re-read after the install (Connect only): `FM-1_8000014`, FM1 Open V14, so the update page still sees the unit. Bootloader: not reinstalled for now; reinstall it before the first build that is not an official M-VAVE or FM1 Open release (suggested by Claude Code, Partho did not object) |
 | c2 | Identity on Baud Girl (Connect only, nothing installed) | **Pass**, Nov 14, 2026: hosted workbench, Connect device only, identity `FM-1_102` (Baud Girl FM-1+VA version 102). This is the expected identity for the FM1 Open install. Decision, Nov 14, 2026: S0 carries on from Baud Girl instead of going back to stock first. Partho allows force-flash once for the FM1 Open install, from exactly the identity this read shows; anything else means stop |
-| d | Power-off test × 3: a project and a DX7 voice survive | not run yet |
-| e | Free flash, audio deadline and overruns, screen format, sample slots, sound gap while saving | not run yet |
-| f | Back to stock V15 through the page; boots; presets save | not run yet |
+| d | Power-off test × 3: a project and a DX7 voice survive | **Pass, one round**, Nov 14, 2026, on FM1 Open V14: SAVE on the SAVE PROJECT page stored the project (named UNTITLED) with no flash error; after switch-off, 1 minute unplugged and switch-on, the slot still held it. Rounds 2 and 3 and the DX7 voice save: deferred by Partho (they were for the UC25HQ80 worry; this unit has the Puya chip) |
+| e | Free flash, audio deadline and overruns, screen format, sample slots, sound gap while saving | **From the build and the code**: flash sizes in step c; screen format and sample slots in the sections above. **Deferred to S2 by Partho**: audio deadline, overruns and CPU headroom (measure on the first AJ Box build, no separate debug build), and the sound gap while saving (measure on the first build that saves) |
+| f | Back to stock V15 through the page; boots; presets save | **Deferred by Partho**, Nov 14, 2026: the unit stays on FM1 Open V14, since AJ Box installs on top of it without force-flash. The way back to V15 ("Restore original V15" on the workbench) is untested on this unit |
 
 ## Numbers to read in the spike (measure on device)
 
