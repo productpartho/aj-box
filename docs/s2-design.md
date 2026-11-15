@@ -72,6 +72,7 @@ The screens are the unknown. Icons at 48 × 48 in the fixed 8-colour palette hav
 
 - FM1 Open's whole simulator (`firmware/web`, `firmware/app`, `firmware/third_party`) builds natively with the desktop compiler and no changes, and runs. `dsp/stock/probe.c` writes a drum pattern and a tune into two tracks with `groove_sequence_replace`, starts the transport and renders `renders/s2/probe-stock-instrument.wav`.
 - A pattern swapped while playing takes effect and the position carries on (step 31 after 2 bars at 120 BPM, as expected).
+- `dsp/stock/ajstock.c` turns AJ Box's loops, kits and instruments into stock cells and settings and renders pairs. Page 1 is rendered both ways for the drum loudness question in `renders/s2/page1-one-track` and `renders/s2/page1-three-tracks`. Levels are not balanced yet (pairs peak between -8 and -17 dBFS), moods other than Happy and the sampler track are not ported yet.
 - **New limit found:** a drum step has one velocity for every drum in it. AJ Box's patterns give each part its own loudness on the same step (a hard kick with a soft hat). Either the loudest hit sets the step, or soft, normal and hard hits go on separate 808 tracks. To be decided by ear.
 
 ## What I don't know yet, and how I'll find out
