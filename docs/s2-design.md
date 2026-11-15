@@ -68,6 +68,12 @@ Every track runs 64 steps (4 bars). A 1-bar or 2-bar loop is written out two or 
 
 The screens are the unknown. Icons at 48 × 48 in the fixed 8-colour palette have to be stored packed. The first build reports the real size, and every build after it.
 
+## First results on the desktop (Nov 14, 2026)
+
+- FM1 Open's whole simulator (`firmware/web`, `firmware/app`, `firmware/third_party`) builds natively with the desktop compiler and no changes, and runs. `dsp/stock/probe.c` writes a drum pattern and a tune into two tracks with `groove_sequence_replace`, starts the transport and renders `renders/s2/probe-stock-instrument.wav`.
+- A pattern swapped while playing takes effect and the position carries on (step 31 after 2 bars at 120 BPM, as expected).
+- **New limit found:** a drum step has one velocity for every drum in it. AJ Box's patterns give each part its own loudness on the same step (a hard kick with a soft hat). Either the loudest hit sets the step, or soft, normal and hard hits go on separate 808 tracks. To be decided by ear.
+
 ## What I don't know yet, and how I'll find out
 
 1. **Does a pattern swap click or stall?** Edits briefly hold the audio gate. Test on the desktop first, then on the first device build.
