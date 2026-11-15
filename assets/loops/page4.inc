@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception
+﻿/* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception
  * Copyright (c) 2026 Partho Ghosh.
  * Page 4: Around the World drums (dhol, tabla, samba, reggaeton), Animal
  * Choir melodies (cat, bird, voices). */
@@ -43,13 +43,16 @@ static const ajb_drum_loop_t clave_walk = {"Clave Walk", 16, NULL, {
     [AJB_CP] = "o.o.o.o.o.o.o.o.",
 }, GAIN(0.54)};
 
-/* Goron City drums, from the same score: two toms answering, congas on the
- * one and the "and" of two. */
-static const ajb_drum_loop_t goron_drums = {"Goron Drums", 16, NULL, {
-    [AJB_MT] = "X.....X.........",
-    [AJB_HT] = "....X.....X.....",
-    [AJB_LT] = "............X.X.",
-}, GAIN(1.99)};   /* as loud as a 16-bit gain goes: toms alone are quiet on the World kit */
+/* Goron City drums, from the same score (bars 5 and 6): two toms answering,
+ * congas on the one and the "and" of two, and the cuica. The 808 has no
+ * cuica, so its high note is the cowbell and its low note the rim. */
+static const ajb_drum_loop_t goron_drums = {"Goron Drums", 32, NULL, {
+    [AJB_MT] = "X.....X........." "X.....X.........",
+    [AJB_HT] = "....X.....X....." "....X.....X.....",
+    [AJB_LT] = "............X.X." "............X.X.",
+    [AJB_CB] = "..o...o........." "..o...o.........",
+    [AJB_RS] = "o.......o.o....." "....o...o.o.....",
+}, GAIN(1.43)};
 
 /* Island: 3-3-2 kick, rim on 2 and 4, two hand drums. */
 static const ajb_drum_loop_t island = {"Island", 16, NULL, {
