@@ -62,6 +62,9 @@ static struct {
     uint16_t replay_at;
     uint8_t dirty;
     ajapp_parent_t parent;
+    uint8_t parent_open, parent_row, parent_result, bluetooth_due;
+    int16_t swap_to[AJAPP_SIDES];       /* next-bar swaps: the loop waiting, NONE when none */
+    uint8_t swap_step[AJAPP_SIDES];
     struct { uint32_t off_at; uint8_t note; } chime[4];
     uint8_t chime_channel;
 } app;
@@ -326,6 +329,7 @@ static void start_side(unsigned side, int index)
     position(&running, &step);
     app.slot[side] = app.last[side] = index;
     app.stopping[side] = 0;
+    app.swap_to[side] = NONE;
     if (app.finishing) { app.finishing = 0; }
     if (side == AJAPP_DRUMS) { set_drum_sound(); write_drums(); }
     else {
@@ -338,6 +342,7 @@ static void start_side(unsigned side, int index)
 static void clear_side(unsigned side)
 {
     app.slot[side] = NONE;
+    app.swap_to[side] = NONE;
     app.stopping[side] = 0;
     if (side == AJAPP_DRUMS) write_drums(); else write_melody(0, 0);
     if (app.slot[AJAPP_DRUMS] == NONE && app.slot[AJAPP_MELODY] == NONE) transport(0xfc);
@@ -369,6 +374,12 @@ void ajapp_pick(unsigned side, unsigned index)
     if (running && app.slot[side] == (int)index && !app.stopping[side]) {
         app.stopping[side] = 1;         /* the playing key again: stop on the next beat */
         app.stop_step[side] = (uint8_t)((step / 4U + 1U) * 4U % STEPS);
+        app.swap_to[side] = NONE;
+        return;
+    }
+    if (running && app.parent.swap_on_bar && !app.finishing) {   /* PRD "Parent mode": wait for the next bar */
+        app.swap_to[side] = (int16_t)index;
+        app.swap_step[side] = (uint8_t)((step / 16U + 1U) * 16U % STEPS);
         return;
     }
     start_side(side, (int)index);
@@ -426,6 +437,7 @@ void ajapp_finish(void)
     position(&running, &step);
     if (!running || app.finishing || (app.slot[AJAPP_DRUMS] == NONE && app.slot[AJAPP_MELODY] == NONE)) return;
     note(C_FINISH, 0, 0);
+    app.swap_to[AJAPP_DRUMS] = app.swap_to[AJAPP_MELODY] = NONE;
     unsigned bar = (step / 16U + 1U) * 16U % STEPS, keep = (bar - step) & (STEPS - 1);
     struct groove_step cells[STEPS];
     memset(cells, 0, sizeof cells);
@@ -458,6 +470,7 @@ void ajapp_play_stop(void)
         app.finishing = 0;
         app.slot[AJAPP_DRUMS] = app.slot[AJAPP_MELODY] = NONE;
         app.stopping[AJAPP_DRUMS] = app.stopping[AJAPP_MELODY] = 0;
+        app.swap_to[AJAPP_DRUMS] = app.swap_to[AJAPP_MELODY] = NONE;
         write_drums(); write_melody(0, 0);
         transport(0xfc);
         return;
@@ -695,6 +708,11 @@ int ajapp_save_memory(void)
     app.memory = s;
     return 0;
 }
+/* Bluetooth follows the parent setting: music and MIDI on, or everything off. The radio can be busy; then try again. */
+static void bluetooth_apply(void)
+{
+    app.bluetooth_due = fm1_bluetooth_configure(app.parent.bluetooth ? FM1_BT_AUDIO | FM1_BT_MIDI : 0) == -2;
+}
 void ajapp_parent_get(ajapp_parent_t *settings) { *settings = app.parent; }
 int ajapp_parent_set(const ajapp_parent_t *settings)
 {
@@ -703,7 +721,29 @@ int ajapp_parent_set(const ajapp_parent_t *settings)
     next.swap_on_bar = next.swap_on_bar != 0; next.bluetooth = next.bluetooth != 0; next.reserved = 0;
     if (ajstore_save(AJSTORE_PARENT, &next, sizeof next)) return -1;    /* not saved: the old setting stands */
     app.parent = next;
+    bluetooth_apply();
     return 0;
+}
+void ajapp_parent_open(void) { app.parent_open = 1; app.parent_row = 0; app.parent_result = AJAPP_PARENT_UNCHANGED; }
+void ajapp_parent_close(void) { app.parent_open = 0; }
+void ajapp_parent_row(int delta)
+{
+    if (!app.parent_open) return;
+    app.parent_row = (uint8_t)(((int)app.parent_row + delta % AJAPP_PARENT_ROWS + AJAPP_PARENT_ROWS) % AJAPP_PARENT_ROWS);
+}
+int ajapp_parent_change(int delta)
+{
+    if (!app.parent_open || !delta) return -1;
+    ajapp_parent_t next = app.parent;
+    if (app.parent_row == AJAPP_PARENT_TEMPO) {
+        int bpm = (int)next.default_bpm + (delta > 0 ? 5 : -5);
+        next.default_bpm = (uint8_t)(bpm < AJAPP_BPM_MIN ? AJAPP_BPM_MIN : bpm > AJAPP_BPM_MAX ? AJAPP_BPM_MAX : bpm);
+    } else if (app.parent_row == AJAPP_PARENT_SWAP) next.swap_on_bar = !next.swap_on_bar;
+    else next.bluetooth = !next.bluetooth;
+    int failed = ajapp_parent_set(&next);
+    app.parent_result = failed ? AJAPP_PARENT_NOT_SAVED : AJAPP_PARENT_SAVED;
+    if (!failed && app.parent_row == AJAPP_PARENT_TEMPO) ajapp_set_bpm(next.default_bpm);    /* hear the new speed now */
+    return failed ? -1 : 0;
 }
 /* Hello: C5 E5 G5 C6 on the FM track, about a second. */
 void ajapp_chime(void)
@@ -744,6 +784,9 @@ void ajapp_tick(void)
     position(&running, &step);
     for (unsigned side = 0; side < AJAPP_SIDES; ++side)
         if (app.stopping[side] && (!running || reached(step, app.stop_step[side]))) clear_side(side);
+    for (unsigned side = 0; side < AJAPP_SIDES; ++side)
+        if (app.swap_to[side] != NONE && (!running || reached(step, app.swap_step[side]))) start_side(side, app.swap_to[side]);
+    if (app.bluetooth_due) bluetooth_apply();
     if (app.mood_waiting && (!running || reached(step, app.mood_step))) {
         app.mood_waiting = 0;
         write_melody(0, 0);             /* the bar has turned: the kept steps take the new mood too */
@@ -802,6 +845,8 @@ void ajapp_init(const ajb_library_t *library)
         parent.default_bpm <= AJAPP_BPM_MAX && parent.swap_on_bar <= 1 && parent.bluetooth <= 1) app.parent = parent;
     ++app.quiet;
     ajapp_set_bpm(app.parent.default_bpm);
+    app.swap_to[AJAPP_DRUMS] = app.swap_to[AJAPP_MELODY] = NONE;
+    bluetooth_apply();
     --app.quiet;
     if (!ajstore_load(AJSTORE_HEARTS, &app.hearts, sizeof app.hearts)) {
         unsigned good = app.hearts.count <= AJAPP_HEARTS && app.hearts.newest < AJAPP_HEARTS;
@@ -837,5 +882,7 @@ void ajapp_status(ajapp_status_t *st)
     st->octave = app.octave; st->bpm = (uint16_t)app.bpm;
     st->recording = app.recording; st->replaying = app.replaying;
     st->hearts = app.hearts.count; st->heart = app.heart_at; st->has_jam = app.has_jam;
+    for (unsigned side = 0; side < AJAPP_SIDES; ++side) st->waiting[side] = (int8_t)(app.swap_to[side] == NONE ? -1 : app.swap_to[side]);
+    st->parent_open = app.parent_open; st->parent_row = app.parent_row; st->parent_result = app.parent_result;
 }
 void ajapp_debug_volume(int volume) { app.debug_volume = volume; }

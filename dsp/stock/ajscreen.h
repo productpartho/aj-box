@@ -3,7 +3,7 @@
  *
  * AJ Box's screens (PRD "Screen and look", docs/design): the start-up
  * screen, the play screen with its effect bubbles, knob arcs and recording
- * dot, the heart, Ta-da, Mood and sleepy battery screens. What is playing
+ * dot, the heart, Ta-da, Mood, sleepy battery and parent mode screens. What is playing
  * comes from ajapp_status; the code that reads the keys tells the screen
  * about the things a status cannot show (a heart just saved, a knob turned).
  * Times are fm1_millis() values. Control side only. */

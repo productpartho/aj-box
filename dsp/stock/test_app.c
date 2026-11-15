@@ -557,6 +557,100 @@ static void test_screens(void)
     CHECK(pixel(20, 60) == AJD_DUSK && pixel(120, 95) == AJD_PLUM, "after Finish the play screen should be back and quiet");
 }
 
+/* ---- parent mode (PRD "Parent mode") ---- */
+
+static void test_parent(void)
+{
+    printf("parent mode: the menu, saving, next-bar swaps\n");
+    fresh();
+    ajscreen_init(fm1_millis());
+    wait_ms(1600);
+    ajapp_parent_t p;
+    ajapp_parent_get(&p);
+    CHECK(p.default_bpm == AJAPP_BPM_DEFAULT && !p.swap_on_bar && !p.bluetooth, "a fresh box: 110 BPM, instant swaps, Bluetooth off");
+    CHECK(ajapp_parent_change(1) != 0 && !now().parent_open, "nothing should change while the menu is shut");
+
+    /* The menu: the chosen row is outlined, values sit in lilac pills. */
+    ajapp_parent_open(); look();
+    CHECK(now().parent_open && now().parent_row == AJAPP_PARENT_TEMPO && now().parent_result == AJAPP_PARENT_UNCHANGED, "the menu should open on the first row");
+    CHECK(pixel(120, 55) == AJD_LILAC && pixel(120, 101) == AJD_DUSK && pixel(120, 147) == AJD_DUSK, "the first row should be outlined");
+    CHECK(pixel(200, 60) == AJD_DUSK && pixel(205, 65) == AJD_LILAC && pixel(120, 205) == AJD_PLUM, "values should sit in lilac pills, and nothing is saved yet");
+    unsigned title = 0;
+    for (unsigned y = 25; y < 42; ++y) for (unsigned x = 40; x < 150; ++x) title += pixel(x, y) == AJD_CREAM;
+    CHECK(title > 150, "the title should be written in cream: %u pixels", title);
+
+    /* Tempo moves in fives, is heard at once, and stops at the ends. */
+    CHECK(ajapp_parent_change(1) == 0 && now().parent_result == AJAPP_PARENT_SAVED && now().bpm == 115, "tempo up should save and play: %u", now().bpm);
+    look();
+    unsigned saved = 0;
+    for (unsigned y = 197; y < 214; ++y) for (unsigned x = 14; x < 80; ++x) saved += pixel(x, y) == AJD_LILAC;
+    CHECK(saved > 60, "the menu should say Saved: %u pixels", saved);
+    for (unsigned i = 0; i < 30; ++i) ajapp_parent_change(1);
+    ajapp_parent_get(&p);
+    CHECK(p.default_bpm == AJAPP_BPM_MAX, "tempo should stop at 200, got %u", p.default_bpm);
+    for (unsigned i = 0; i < 50; ++i) ajapp_parent_change(-1);
+    ajapp_parent_get(&p);
+    CHECK(p.default_bpm == AJAPP_BPM_MIN, "tempo should stop at 30, got %u", p.default_bpm);
+    for (unsigned i = 0; i < 16; ++i) ajapp_parent_change(1);
+
+    /* Rows wrap; the other two settings flip. */
+    ajapp_parent_row(1); look();
+    CHECK(now().parent_row == AJAPP_PARENT_SWAP && pixel(120, 101) == AJD_LILAC && pixel(120, 55) == AJD_DUSK, "the second row should be outlined");
+    unsigned instant = 0, next_bar = 0;
+    for (unsigned y = 109; y < 133; ++y) for (unsigned x = 100; x < 218; ++x) instant += pixel(x, y) == AJD_LILAC;
+    CHECK(ajapp_parent_change(1) == 0, "swap timing should save");
+    look();
+    for (unsigned y = 109; y < 133; ++y) for (unsigned x = 100; x < 218; ++x) next_bar += pixel(x, y) == AJD_LILAC;
+    CHECK(next_bar > instant + 100, "Next bar should need a wider pill than Instant: %u then %u", instant, next_bar);
+    ajapp_parent_row(1);
+    CHECK(ajapp_parent_change(-1) == 0, "Bluetooth should save");
+    ajapp_parent_row(1);
+    CHECK(now().parent_row == AJAPP_PARENT_TEMPO, "rows should wrap round");
+    ajapp_parent_row(-1);
+    CHECK(now().parent_row == AJAPP_PARENT_BLUETOOTH, "and back");
+    ajapp_parent_get(&p);
+    CHECK(p.default_bpm == 110 && p.swap_on_bar == 1 && p.bluetooth == 1, "settings after the menu: %u %u %u", p.default_bpm, p.swap_on_bar, p.bluetooth);
+    ajapp_parent_close(); look();
+    CHECK(!now().parent_open && pixel(20, 60) == AJD_DUSK && pixel(97, 20) == AJD_GRAPE, "closing should bring the play screen back");
+
+    /* They survive switching off. */
+    power_cycle();
+    ajapp_parent_get(&p);
+    CHECK(p.default_bpm == 110 && p.swap_on_bar == 1 && p.bluetooth == 1 && !now().parent_open, "settings after switching off and on: %u %u %u",
+          p.default_bpm, p.swap_on_bar, p.bluetooth);
+
+    /* Next-bar swaps: the first press starts at once; a new loop waits for the bar line; the place is kept. */
+    ajapp_pick(AJAPP_DRUMS, 0); ajapp_pick(AJAPP_MELODY, 0);
+    block();
+    CHECK(now().running && now().slot[0] == 0 && now().slot[1] == 0, "with nothing playing a press should start at once");
+    run_to_step(18);
+    ajapp_pick(AJAPP_DRUMS, 2); ajapp_pick(AJAPP_MELODY, 5);
+    block();
+    CHECK(now().slot[0] == 0 && now().waiting[0] == 2 && now().slot[1] == 0 && now().waiting[1] == 5, "new loops should wait for the bar");
+    ajapp_pick(AJAPP_DRUMS, 3);
+    run_to_step(31);
+    CHECK(now().slot[0] == 0 && now().waiting[0] == 3, "the last key pressed should be the one waiting");
+    run_to_step(32); block(); block();
+    CHECK(now().slot[0] == 3 && now().slot[1] == 5 && now().waiting[0] == -1 && now().waiting[1] == -1 && now().step == 32,
+          "both should swap on the bar line and keep the place: %d %d at step %u", now().slot[0], now().slot[1], now().step);
+    ajapp_pick(AJAPP_DRUMS, 4);
+    ajapp_pick(AJAPP_DRUMS, 3);
+    CHECK(now().stopping[0] && now().waiting[0] == -1, "the playing key should still stop on the beat, and drop what was waiting");
+    run_to_step(40);
+    ajapp_pick(AJAPP_MELODY, 6);
+    ajapp_play_stop(); block(); block();
+    CHECK(!now().running && now().waiting[1] == -1, "PLAY/STOP should drop what was waiting");
+
+    /* Back to instant swaps. */
+    ajapp_parent_open(); ajapp_parent_row(1);
+    CHECK(ajapp_parent_change(1) == 0, "swap timing should save again");
+    ajapp_parent_close();
+    ajapp_pick(AJAPP_DRUMS, 0);
+    run_to_step(5);
+    ajapp_pick(AJAPP_DRUMS, 1);
+    CHECK(now().slot[0] == 1 && now().waiting[0] == -1, "instant swaps should be back");
+}
+
 int main(void)
 {
     test_keys();
@@ -567,6 +661,7 @@ int main(void)
     test_memory();
     test_library();
     test_screens();
+    test_parent();
     printf("%u checks, %u failed\n", checks, failures);
     return failures != 0;
 }

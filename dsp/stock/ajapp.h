@@ -55,6 +55,15 @@ void ajapp_chime(void);              /* the hello chime */
 typedef struct { uint8_t default_bpm, swap_on_bar, bluetooth, reserved; } ajapp_parent_t;
 void ajapp_parent_get(ajapp_parent_t *settings);
 int ajapp_parent_set(const ajapp_parent_t *settings);
+/* The parent menu (PRD "Parent mode": HOME + SAVE held 2 s opens it). Three rows:
+ * default tempo, swap timing, Bluetooth. A change is saved at once; the menu
+ * shows the new value only when the save was read back. */
+enum { AJAPP_PARENT_TEMPO, AJAPP_PARENT_SWAP, AJAPP_PARENT_BLUETOOTH, AJAPP_PARENT_ROWS };
+enum { AJAPP_PARENT_UNCHANGED, AJAPP_PARENT_SAVED, AJAPP_PARENT_NOT_SAVED };
+void ajapp_parent_open(void);
+void ajapp_parent_close(void);
+void ajapp_parent_row(int delta);        /* move to another row */
+int ajapp_parent_change(int delta);      /* change the row's setting: tempo in steps of 5; 0 when saved */
 
 typedef struct {
     int8_t slot[AJAPP_SIDES];           /* playing loop as page * 8 + slot, -1 none */
@@ -68,6 +77,8 @@ typedef struct {
     uint8_t recording, replaying;
     uint8_t hearts, heart;              /* how many are saved; the one SEQ is on, 1..8, 0 none */
     uint8_t has_jam;
+    int8_t waiting[AJAPP_SIDES];        /* a loop waiting for the bar line (next-bar swaps), -1 none */
+    uint8_t parent_open, parent_row, parent_result;     /* AJAPP_PARENT_UNCHANGED, _SAVED or _NOT_SAVED */
 } ajapp_status_t;
 void ajapp_status(ajapp_status_t *status);
 

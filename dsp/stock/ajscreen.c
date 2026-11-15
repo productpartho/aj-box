@@ -12,7 +12,7 @@
 #include <string.h>
 #include "art.inc"
 
-enum { MODE_HELLO, MODE_PLAY, MODE_HEART, MODE_FINISH, MODE_MOOD, MODE_SLEEPY, MODE_NONE = 255 };
+enum { MODE_HELLO, MODE_PLAY, MODE_HEART, MODE_FINISH, MODE_MOOD, MODE_SLEEPY, MODE_PARENT, MODE_NONE = 255 };
 enum { OVER_NONE, OVER_KNOB, OVER_KIT, OVER_INSTRUMENT };
 enum { TILE_EMPTY, TILE_PLAYING, TILE_MUTED };
 enum { DECO_NONE, DECO_NOTES, DECO_SPARKLE, DECO_ECHO };
@@ -79,6 +79,13 @@ static void build(struct scene *s, uint32_t now)
     if (scr.over_on && !before(now, scr.over_until)) scr.over_on = 0;
 
     if (now - scr.started < HELLO_MS) { s->mode = MODE_HELLO; s->full.phase = (uint8_t)((now - scr.started) / 200); return; }
+    if (st.parent_open) {               /* parent mode covers everything until it is shut */
+        ajapp_parent_t parent;
+        ajapp_parent_get(&parent);
+        s->mode = MODE_PARENT; s->full.a = st.parent_row; s->full.b = parent.default_bpm;
+        s->full.phase = (uint8_t)(parent.swap_on_bar | parent.bluetooth << 1 | st.parent_result << 2);
+        return;
+    }
     if (scr.mode_on && scr.mode == MODE_SLEEPY) { s->mode = MODE_SLEEPY; return; }
     if (scr.finish_on) { s->mode = MODE_FINISH; s->full.phase = (uint8_t)(now / 200 & 7); return; }
     if (scr.mode_on && scr.mode == MODE_HEART) {
@@ -335,6 +342,62 @@ static void paint_sleepy(const ajd_canvas_t *c)
     picture(c, art_zed, 160, 44, 12, 0, 256);
 }
 
+/* Words, for parent mode only: the letters it needs and the digits. */
+static const char letters[] = "PDSBINOMabdefghilmnoprstuvwx";
+static const uint8_t *const letter_art[] = {
+    art_ch_P, art_ch_D, art_ch_S, art_ch_B, art_ch_I, art_ch_N, art_ch_O, art_ch_M, art_ch_a, art_ch_b, art_ch_d, art_ch_e,
+    art_ch_f, art_ch_g, art_ch_h, art_ch_i, art_ch_l, art_ch_m, art_ch_n, art_ch_o, art_ch_p, art_ch_r, art_ch_s, art_ch_t,
+    art_ch_u, art_ch_v, art_ch_w, art_ch_x,
+};
+static const uint8_t *const number_art[10] = {
+    art_digit0, art_digit1, art_digit2, art_digit3, art_digit4, art_digit5, art_digit6, art_digit7, art_digit8, art_digit9,
+};
+/* Draws text with its top at y16 and returns the x16 after it; scale 256 is the
+ * 16-pixel size. With no canvas it only measures. */
+static int text(const ajd_canvas_t *c, int x16, int y16, const char *s, unsigned scale, uint16_t colour)
+{
+    for (; *s; ++s) {
+        if (*s >= '0' && *s <= '9') {
+            if (c) ajd_picture(c, number_art[*s - '0'], x16, y16 + (int)(scale >> 4), scale * 13 / 25, 0, colour, 256);
+            x16 += (int)(19 * scale >> 5);
+            continue;
+        }
+        const char *at = strchr(letters, *s);
+        if (*s == ' ' || !at) { x16 += (int)(5 * scale >> 4); continue; }
+        const uint8_t *art = letter_art[at - letters];
+        if (c) ajd_picture(c, art, x16, y16, scale, 0, colour, 256);
+        x16 += (int)(art[0] * scale >> 4);
+    }
+    return x16;
+}
+
+/* Parent mode (docs/design, Parent): a title, three rows, and whether the last change was saved. */
+static void paint_parent(const ajd_canvas_t *c, const struct scene *s)
+{
+    static const char *const label[AJAPP_PARENT_ROWS] = {"Default tempo", "Swap timing", "Bluetooth"};
+    enum { SMALL = 218 };
+    const unsigned bpm = s->full.b, flags = s->full.phase, result = flags >> 2;
+    char tempo[12];
+    unsigned n = 0;
+    if (bpm >= 100) tempo[n++] = (char)('0' + bpm / 100);
+    tempo[n++] = (char)('0' + bpm / 10 % 10); tempo[n++] = (char)('0' + bpm % 10);
+    memcpy(tempo + n, " BPM", 5);
+    const char *const value[AJAPP_PARENT_ROWS] = {tempo, flags & 1 ? "Next bar" : "Instant", flags & 2 ? "On" : "Off"};
+    picture(c, art_gear, 12, 24, 20, 0, 256);
+    text(c, PX(40), PX(25), "Parent mode", 256, AJD_CREAM);
+    for (unsigned r = 0; r < AJAPP_PARENT_ROWS; ++r) {
+        const int y = 55 + 46 * (int)r, chosen = r == s->full.a;
+        ajd_box(c, 12, y, 216, 40, 10, chosen ? AJD_LILAC : AJD_DUSK, 256);
+        ajd_box(c, 14, y + 2, 212, 36, 8, chosen ? AJD_DUSK : AJD_PLUM, 256);
+        text(c, PX(22), PX(y + 13), label[r], SMALL, AJD_CREAM);
+        const int wide = text(0, 0, 0, value[r], SMALL, 0) / 16 + 20;
+        ajd_box(c, 218 - wide, y + 8, wide, 24, 12, AJD_LILAC, 256);
+        text(c, PX(218 - wide + 10), PX(y + 13), value[r], SMALL, AJD_PLUM);
+    }
+    if (result == AJAPP_PARENT_SAVED) text(c, PX(14), PX(197), "Saved", 256, AJD_LILAC);
+    else if (result == AJAPP_PARENT_NOT_SAVED) text(c, PX(14), PX(197), "Not saved", 256, AJD_PINK);
+}
+
 static void paint(const ajd_canvas_t *c, const struct scene *s)
 {
     ajd_fill(c, AJD_PLUM);
@@ -344,6 +407,7 @@ static void paint(const ajd_canvas_t *c, const struct scene *s)
     case MODE_FINISH: paint_finish(c, s); break;
     case MODE_MOOD: paint_mood(c, s); break;
     case MODE_SLEEPY: paint_sleepy(c); break;
+    case MODE_PARENT: paint_parent(c, s); break;
     default: paint_play(c, s); break;
     }
 }

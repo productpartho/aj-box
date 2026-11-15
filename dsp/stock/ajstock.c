@@ -405,7 +405,7 @@ static int png_write(const char *path, const uint8_t *rgb, unsigned w, unsigned 
     return fclose(f);
 }
 
-enum { SHEET_COLUMNS = 4, SHEET_ROWS = 4, SHEET_GAP = 8, SHEET_W = SHEET_COLUMNS * (240 + SHEET_GAP) + SHEET_GAP,
+enum { SHEET_COLUMNS = 6, SHEET_ROWS = 3, SHEET_GAP = 8, SHEET_W = SHEET_COLUMNS * (240 + SHEET_GAP) + SHEET_GAP,
        SHEET_H = SHEET_ROWS * (240 + SHEET_GAP) + SHEET_GAP };
 static uint8_t sheet[SHEET_W * SHEET_H * 3];
 static unsigned shots;
@@ -492,6 +492,10 @@ static void screens(const char *dir)
     wait_ms(600); shot(dir, "15-finish");
     ajscreen_battery(0, 1, fm1_millis());
     wait_ms(2000); shot(dir, "16-battery-low");
+    wait_ms(1000);
+    ajapp_parent_open(); shot(dir, "17-parent-mode");
+    ajapp_parent_row(1); ajapp_parent_change(1); shot(dir, "18-parent-next-bar-saved");
+    ajapp_parent_change(1); ajapp_parent_close();
     snprintf(path, sizeof path, "%s/all-screens.png", dir);
     if (!png_write(path, sheet, SHEET_W, SHEET_H)) printf("%s\n", path);
 }
