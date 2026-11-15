@@ -147,5 +147,26 @@ int main(int argc, char **argv)
         normalise(mix, total, 0.7, pcm);
         failed |= save(argv[1], more[v].name, pcm, total);
     }
+
+    /* Partho picked A as closest. Three takes on A: higher, a wider and longer
+     * slide, and both together. */
+    static const struct { const char *name; double h0, h1, hs, l0, l1, ls; } takes[3] = {
+        {"cuica-A2-higher.wav", 560.0, 860.0, 0.20, 440.0, 350.0, 0.24},
+        {"cuica-A3-wider-longer.wav", 400.0, 820.0, 0.27, 380.0, 240.0, 0.30},
+        {"cuica-A4-higher-wider.wav", 520.0, 1050.0, 0.25, 480.0, 300.0, 0.28}};
+    for (unsigned v = 0; v < 3; ++v) {
+        memset(high, 0, sizeof high); memset(low, 0, sizeof low);
+        nh = squeak(high, takes[v].h0, takes[v].h1, takes[v].hs, 1.0);
+        nl = squeak(low, takes[v].l0, takes[v].l1, takes[v].ls, 0.0);
+        memset(mix, 0, sizeof mix);
+        for (unsigned s = 0; s < 64; ++s) {
+            char c = rhythm[s % 32];
+            const double *src = c == 'h' ? high : c == 'l' ? low : NULL;
+            unsigned n = c == 'h' ? nh : nl, at = (unsigned)(s * step);
+            for (unsigned i = 0; src && i < n && at + i < total; ++i) mix[at + i] += src[i];
+        }
+        normalise(mix, total, 0.7, pcm);
+        failed |= save(argv[1], takes[v].name, pcm, total);
+    }
     return failed;
 }
