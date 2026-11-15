@@ -94,6 +94,7 @@ Keys, swaps and the start-up screen; the full library and one-shots; effects and
 1. The design is approved to build.
 2. No recorded sounds: Claude Code synthesizes the 8 one-shots.
 3. Parent mode sample swapping is dropped for this build.
+5. A real cuica for Goron City: `tools/make_cuica.c` synthesizes a high and a low cuica squeak. They take 2 of the sampler's 8 pads when the one-shots are built, and Goron Drums' cuica part moves from cowbell and rim onto them. Waiting on Partho's ear.
 4. Asked for: Saria's Song and Song of Storms (from Zelda: Ocarina of Time) in place of two melody loops. Done for three (Saria's Song, Song of Storms, Zelda's Lullaby, in place of Cat Song, La La La and Kitten Chase on page 4); Zelda's Lullaby and Goron City were added to the request. Goron City waits on its notes. The PRD's no-copyrighted-songs line is removed at Partho's instruction.
 
 ## Decisions I needed from you (answered above)
