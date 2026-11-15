@@ -1,3 +1,7 @@
 # Desktop build outputs and renders (regenerate with dsp/build.ps1 -Render)
 /dsp/build/
 /renders/
+
+# The manual: M-VAVE's photo and the built page (perl docs/manual/build.pl)
+/docs/manual/cache/
+/docs/manual/out/
