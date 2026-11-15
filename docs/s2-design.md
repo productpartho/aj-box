@@ -139,14 +139,14 @@ Every check in the script passed: sound-interrupt code in fast memory, Bluetooth
 - Whether Bluetooth switches as asked, and whether the mix effects glitch when a knob changes them mid-block.
 - The save gap against PRD rule 10, still unmeasured.
 
-**The old engine's build** (`dsp/build.ps1`) compiles FM1 Open's `fm_factory.c`, which this firmware branch no longer has, so it does not build while the submodule is on `ajbox`. Its 6,008 checks last passed before this step. It is not what goes on the FM-1.
+**The old engine's build** (`dsp/build.ps1`) compiles FM1 Open's `fm_factory.c`, which this firmware branch no longer has. Fixed later the same day: the build now takes that file from FM1 Open V14 (commit `4c7496d` of the submodule) into `dsp/build/fm1open`, and tells the shared code it is the old engine (`AJB_OWN_ENGINE`). Its 6,008 checks pass again. It is not what goes on the FM-1.
 
 ### The update page (Nov 15, 2026): built, not used
 
 Built with M-VAVE's unchanged `sdk/Build.ps1 -Package`. Nothing has been installed.
 
-- **Page:** `firmware/build/official-web/FM1-Official-Open-Source.html`, 2,453,074 bytes, SHA-256 `35ff59e8…f702`. Open it in Chrome or Edge on the PC.
-- **What it holds:** the AJ Box package (479,796 bytes, identity `FM-1_8660001`, Build ID `2013ff28065f2dc6`, SHA-256 `c40b639b…2851`) and M-VAVE's original V15 as the page's own recovery image. The app image is the same 439,092 bytes and every script check passed again.
+- **Page:** `firmware/build/official-web/FM1-Official-Open-Source.html`, 2,453,074 bytes, SHA-256 `27b1d411…a938`. Open it in Chrome or Edge on the PC.
+- **What it holds:** the AJ Box package (479,796 bytes, identity `FM-1_8660001`, Build ID `77d1d6db72053920`, SHA-256 `6de4a5b8…266f`) and M-VAVE's original V15 as the page's own recovery image. The app image is the same 439,092 bytes and every script check passed again.
 - **What it calls itself:** the page is M-VAVE's template, so it says "FM1 Workbench" and "Official Open firmware V14". Tell it from the hosted FM1 Open page by the Build ID under "Firmware details".
 - **Force update:** the page's own rule (`sdk/WebUpdate.js`) accepts any `FM-1_8…` identity as an Open build, so going from `FM-1_8000014` to AJ Box should not ask for force update. If it asks, stop.
 - **Checked on this PC:** the page loads with no script errors, shows "Firmware verified. Waiting for device connection", and its browser panel draws AJ Box's play screen. Connect was not pressed.

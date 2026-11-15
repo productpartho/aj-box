@@ -26,7 +26,25 @@ if (!$cc) {
 }
 if (!$cc -or !(Test-Path -LiteralPath $cc)) { throw 'clang not found: winget install MartinStorsjo.LLVM-MinGW.UCRT, or set AJB_CC.' }
 if (!(Test-Path -LiteralPath (Join-Path $fw 'third_party/synth/drum808.c'))) { throw 'firmware/ submodule is missing: git submodule update --init' }
-if (!(Test-Path -LiteralPath (Join-Path $fw 'app/fm_factory.c'))) { throw 'This old-engine build needs FM1 Open''s own app files (firmware on its main branch). The firmware is on AJ Box''s branch; use dsp/stock/build.sh.' }
+# The firmware folder is on AJ Box's branch, which has dropped FM1 Open's factory
+# voice bank (app/fm_factory.c). This engine uses it, so take FM1 Open V14's app
+# folder from that commit of the submodule into dsp/build/fm1open. Only
+# fm_factory.c is compiled from there; the headers are the submodule's own,
+# which AJ Box's branch has not changed.
+$stockCommit = '4c7496d'
+$stock = Join-Path $out 'fm1open'
+$stamp = Join-Path $stock 'commit.txt'
+if (!(Test-Path -LiteralPath $stamp) -or ([IO.File]::ReadAllText($stamp).Trim() -cne $stockCommit)) {
+    if (Test-Path -LiteralPath $stock) { Remove-Item -LiteralPath $stock -Recurse -Force }
+    [IO.Directory]::CreateDirectory($stock) | Out-Null
+    $archive = Join-Path $out 'fm1open.tar'
+    & git -C $fw archive --format=tar -o $archive $stockCommit app
+    if ($LASTEXITCODE -ne 0) { throw "FM1 Open V14 ($stockCommit) is not in the firmware submodule: git -C firmware fetch origin main" }
+    & tar.exe -xf $archive -C $stock
+    if ($LASTEXITCODE -ne 0) { throw 'Could not unpack FM1 Open''s app files.' }
+    Remove-Item -LiteralPath $archive
+    [IO.File]::WriteAllText($stamp, $stockCommit)
+}
 
 function Run($program, [string[]]$arguments) {
     # Compiler warnings go to stderr; let them through and judge by exit code.
@@ -37,7 +55,7 @@ function Run($program, [string[]]$arguments) {
 }
 
 # Same language flags as FM1 Open's browser build (tools/Build-Web.ps1).
-$flags = @('-std=c11','-O2','-fwrapv','-fno-fast-math','-ffp-contract=off','-DFM1_HOST_TEST','-DFM1_OPEN_WEB',
+$flags = @('-std=c11','-O2','-fwrapv','-fno-fast-math','-ffp-contract=off','-DFM1_HOST_TEST','-DFM1_OPEN_WEB','-DAJB_OWN_ENGINE',
     '-Wall','-Wextra','-Wno-unused-function','-ffunction-sections','-fdata-sections')
 foreach ($dir in @('dsp/include','dsp/src','dsp/host')) { $flags += '-I' + (Join-Path $root $dir) }
 foreach ($dir in @('web/synth','third_party/synth','sdk/include','app/synth','app')) { $flags += '-I' + (Join-Path $fw $dir) }
@@ -46,9 +64,10 @@ $link = @('-Wl,--gc-sections','-lm')
 # FM1 Open engine code, compiled unchanged from the submodule.
 $firmware = @('third_party/synth/drum808.c','web/synth/dx7core.c','web/synth/dx7env.c','web/synth/dx7lfo.c',
     'web/synth/dx7math.c','web/synth/dx7note.c','web/synth/dx7pitchenv.c','web/synth/dx7synth.c',
-    'web/synth/fixed.c','web/synth/adsr.c','web/synth/mixer.c','web/engine/effects.c','app/fm_factory.c',
+    'web/synth/fixed.c','web/synth/adsr.c','web/synth/mixer.c','web/engine/effects.c',
     'third_party/synth/pluck.c','web/synth/psg.c','third_party/synth/emu2149.c','third_party/synth/bass303.c',
     'web/synth/sea_decode.c') | ForEach-Object { Join-Path $fw $_ }
+$firmware += Join-Path $stock 'app/fm_factory.c'
 $engine = @('dsp/src/engine.c','dsp/src/effects.c','dsp/src/sampler.c','dsp/src/sea5.c','dsp/src/fm1_glue.c') | ForEach-Object { Join-Path $root $_ }
 $host_ = @(Join-Path $root 'dsp/host/wav.c')
 

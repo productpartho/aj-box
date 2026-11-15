@@ -49,7 +49,7 @@ Spec: docs/aj-box-PRD.md (cite R numbers). Screens: docs/design/.
 
 1. With the FM-1 still on FM1 Open V14, write `build/ajbox-oneshots.fm1s` to it from the workbench's sample page ("Restore sample bank file"). This replaces all 8 sample slots.
 2. Reinstall M-Flasher's bootloader (see "Flashing rules").
-3. ~~Say yes or no to the 518 MiB download Claude Code needs to build the local update page.~~ Done Nov 15, 2026: Partho said yes, and the page is built at `firmware/build/official-web/FM1-Official-Open-Source.html` (`docs/s2-design.md`, "The update page"). It calls itself "Official Open firmware V14"; the AJ Box build is the one whose Firmware details show Build ID `2013ff28065f2dc6`.
+3. ~~Say yes or no to the 518 MiB download Claude Code needs to build the local update page.~~ Done Nov 15, 2026: Partho said yes, and the page is built at `firmware/build/official-web/FM1-Official-Open-Source.html` (`docs/s2-design.md`, "The update page"). It calls itself "Official Open firmware V14"; the AJ Box build is the one whose Firmware details show Build ID `77d1d6db72053920`.
 4. Read the identity on the update page (expect `FM-1_8000014`), then the one install. Afterwards the identity should read `FM-1_8660001`.
 5. The power-off test, three times.
 
