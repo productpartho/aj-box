@@ -3,7 +3,7 @@
  *
  * Loop manifest (PRD "Loop library and storage"): 6 pages of 8 drum and 8
  * melody loops, 12 kits, 20 instruments, 8 sampled sounds. Written in scale
- * degrees so Mood can re-key them, except three Zelda tunes with fixed notes. The data lives in
+ * degrees so Mood can re-key them, except four Zelda tunes with fixed notes. The data lives in
  * the loops/ folder, one file per page.
  * Drum strings: '.' rest, 'o' soft, 'x' hit, 'X' accent, one per 16th.
  * Melody characters are scale degrees: 0 C, 1 D, 2 E, 3 G, 4 A, 5 C' ...
@@ -49,8 +49,8 @@ static const ajb_page_t pages[] = {
      {&boom_bap, &lazy_sunday, &head_bop, &trap_cat, &dusty, &slow_jam, &scratch, &tip_tap},
      {&laser_tag, &moon_walk, &bloop_bloop, &rocket, &robot_talk, &computer_brain, &star_drift, &ufo}, 2},
     {"Around the World / Animal Choir",
-     {&dhol_party, &reggaeton, &samba, &tabla_talk, &afrobeat, &clave_walk, &carnival, &island},
-     {&saria_song, &song_of_storms, &bird_call, &choir_rise, &frog_hop, &zeldas_lullaby, &sing_along, &owl_night}, 3},
+     {&dhol_party, &reggaeton, &samba, &tabla_talk, &afrobeat, &clave_walk, &goron_drums, &island},
+     {&saria_song, &song_of_storms, &bird_call, &choir_rise, &frog_hop, &zeldas_lullaby, &goron_city, &owl_night}, 3},
     {"Silly Kitchen / Game On",
      {&pots_and_pans, &beatbox, &spoons, &whisk, &pop_corn, &stir_it, &clank, &dish_washer},
      {&level_one, &coin_grab, &boss_fight, &power_up, &pixel_hop, &crunch_time, &warp_zone, &high_score}, 4},

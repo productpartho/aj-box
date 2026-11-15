@@ -43,13 +43,13 @@ static const ajb_drum_loop_t clave_walk = {"Clave Walk", 16, NULL, {
     [AJB_CP] = "o.o.o.o.o.o.o.o.",
 }, GAIN(0.54)};
 
-/* Carnival: marching kick, off-beat snare with rolls, bell, a crash to start. */
-static const ajb_drum_loop_t carnival = {"Carnival", 32, NULL, {
-    [AJB_BD] = "X...X...X...X..." "X...X...X...X...",
-    [AJB_SD] = "..x...x...x..xx." "..x...x...xxxxx.",
-    [AJB_CB] = "x.x..x.x.x..x.x." "x.x..x.x.x..x.x.",
-    [AJB_CY] = "X..............." "................",
-}, GAIN(0.52)};
+/* Goron City drums, from the same score: two toms answering, congas on the
+ * one and the "and" of two. */
+static const ajb_drum_loop_t goron_drums = {"Goron Drums", 16, NULL, {
+    [AJB_MT] = "X.....X.........",
+    [AJB_HT] = "....X.....X.....",
+    [AJB_LT] = "............X.X.",
+}, GAIN(1.99)};   /* as loud as a 16-bit gain goes: toms alone are quiet on the World kit */
 
 /* Island: 3-3-2 kick, rim on 2 and 4, two hand drums. */
 static const ajb_drum_loop_t island = {"Island", 16, NULL, {
@@ -110,10 +110,17 @@ static const ajb_melody_loop_t zeldas_lullaby = {.name = "Zelda's Lullaby", .ste
             "2-------4---"
             "1-----------"};
 
-/* Her voice singing chords up and down. */
-static const ajb_melody_loop_t sing_along = {.name = "Sing Along", .steps = 64,
-    .instrument = &choir, .octave = 0, .velocity = 100,
-    .dir = AJB_ARP_BOUNCE, .rate = 2, .octaves = 1, .chord = {"0235", "0245", "1346", "0235"}};
+/* Goron City: the marimba riff, bars 9 to 12 of the score (4/4, written at
+ * 115 BPM). Notes: G3 A#3 B3 C4 E4. From a MIDI file of a transcription by
+ * Eric Christensen (assets/reference). */
+static const int8_t goron_notes[] = {-5, -2, -1, 0, 4};
+static const ajb_melody_loop_t goron_city = {.name = "Goron City", .steps = 64,
+    .instrument = &toy_guitar, .octave = 0, .velocity = 110,
+    .notes = goron_notes, .note_count = 5,
+    .riff = "4-30..0-1-3-...."
+            "4-30..3-1-3-...2"
+            "4-30..0-1-3-...."
+            "4-303-0-1-3-...."};
 
 /* An owl: hoo-hoooo, then quiet. */
 static const ajb_melody_loop_t owl_night = {.name = "Owl Night", .steps = 64,
