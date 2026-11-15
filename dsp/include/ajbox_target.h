@@ -2,13 +2,14 @@
  * Copyright (c) 2026 Partho Ghosh.
  *
  * What a build of AJ Box leaves out. The FM-1 build has no command line of
- * its own (sdk/Build.ps1 is used unchanged), so it is recognised here.
+ * its own (sdk/Build.ps1 is used unchanged), and neither has FM1 Open's browser
+ * build (tools/Build-Web.ps1, FM1_OPEN_WEB), so both are recognised here.
  *   AJB_FX_STOCK_SENDS  Echo and Sparkle are the stock instrument's sends
  *   AJB_NO_SAMPLES      no recorded samples: the 8 sounds are one-shots in
  *                       the stock sample bank */
 #ifndef AJBOX_TARGET_H
 #define AJBOX_TARGET_H
-#ifdef __GCC_PI32V2__
+#if defined(__GCC_PI32V2__) || defined(FM1_OPEN_WEB)
 #ifndef AJB_FX_STOCK_SENDS
 #define AJB_FX_STOCK_SENDS 1
 #endif

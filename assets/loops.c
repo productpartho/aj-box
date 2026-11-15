@@ -26,6 +26,12 @@ extern const ajb_sample_t ajb_sample_musicbox, ajb_sample_kalimba, ajb_sample_la
  * `dsp/build/ajbox_render levels` after changing a pattern or voice. */
 #define GAIN(x) ((uint16_t)((x) * 32768.0 + 0.5))
 
+/* Loops leave their last, optional fields out and so get zeros. FM1 Open's
+ * browser build treats that as an error; it is meant here. */
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+#endif
+
 #include "loops/kits.inc"
 #include "loops/instruments.inc"
 #include "loops/page1.inc"

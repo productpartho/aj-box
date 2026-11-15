@@ -141,6 +141,21 @@ Every check in the script passed: sound-interrupt code in fast memory, Bluetooth
 
 **The old engine's build** (`dsp/build.ps1`) compiles FM1 Open's `fm_factory.c`, which this firmware branch no longer has, so it does not build while the submodule is on `ajbox`. Its 6,008 checks last passed before this step. It is not what goes on the FM-1.
 
+### The update page (Nov 15, 2026): built, not used
+
+Built with M-VAVE's unchanged `sdk/Build.ps1 -Package`. Nothing has been installed.
+
+- **Page:** `firmware/build/official-web/FM1-Official-Open-Source.html`, 2,453,074 bytes, SHA-256 `35ff59e8…f702`. Open it in Chrome or Edge on the PC.
+- **What it holds:** the AJ Box package (479,796 bytes, identity `FM-1_8660001`, Build ID `2013ff28065f2dc6`, SHA-256 `c40b639b…2851`) and M-VAVE's original V15 as the page's own recovery image. The app image is the same 439,092 bytes and every script check passed again.
+- **What it calls itself:** the page is M-VAVE's template, so it says "FM1 Workbench" and "Official Open firmware V14". Tell it from the hosted FM1 Open page by the Build ID under "Firmware details".
+- **Force update:** the page's own rule (`sdk/WebUpdate.js`) accepts any `FM-1_8…` identity as an Open build, so going from `FM-1_8000014` to AJ Box should not ask for force update. If it asks, stop.
+- **Checked on this PC:** the page loads with no script errors, shows "Firmware verified. Waiting for device connection", and its browser panel draws AJ Box's play screen. Connect was not pressed.
+- **Its other tabs don't apply:** "Play & edit" and "Projects & sounds" are FM1 Open's editor and do nothing useful with AJ Box (`firmware/web/engine/aj_stubs.c` gives them empty answers). Don't use "Save to device" or the sample page from this page; write the one-shot bank from the hosted FM1 Open workbench, before the install.
+- **Tools:** WASI SDK 27 is at `C:\JL\wasi-sdk\wasi-sdk-27.0-x86_64-windows` (outside OneDrive; archive hash matched the one pinned in `tools/Build-Web.ps1`). To rebuild, in `firmware/`: `$env:FM1_WASI_SDK = 'C:\JL\wasi-sdk\wasi-sdk-27.0-x86_64-windows'; .\sdk\Build.ps1 -Package -Toolchain 'C:\JL\pi32' -SourceUrl 'https://github.com/productpartho/fm1_open/tree/ajbox'`. Don't redirect its output with `*>`: PowerShell 5.1 then stops at the first compiler message.
+- **Source link:** the page's licence notice points at branch `ajbox` of the fork, which is not pushed. Push it before giving the page to anyone else (GPL).
+- **Two changes the browser compile needed** (it is stricter than the FM-1 compile): `assets/loops.c` says its left-out fields are meant, and `ajbox_target.h` recognises the browser build like the FM-1 build.
+- **One layout difference from FM1 Open V14:** AJ Box's image is smaller, so M-VAVE's packager starts the FM-1's own settings area (Bluetooth pairings and the like) 12 KiB earlier (458,752 instead of 471,040) and makes it 45,056 bytes instead of 32,768. The user partition, where the sample bank and AJ Box's saves live, starts at the same place (507,904). I expect the FM-1 to forget its Bluetooth pairings at the install; I can't confirm that from the desktop.
+
 ## What I don't know yet, and how I'll find out
 
 1. **Does a pattern swap click or stall?** Edits briefly hold the audio gate. Test on the desktop first, then on the first device build.

@@ -15,7 +15,7 @@ FLAGS="-std=c11 -O2 -fwrapv -fno-fast-math -ffp-contract=off -DFM1_HOST_TEST -DF
   -Wno-unused-function -Wno-array-parameter -Iweb/engine -Iweb/synth -Ithird_party/synth -Isdk/include -Iapp/synth
   -Iapp -Iapp/ajbox -I$R/dsp/host -I$R/dsp/stock"
 SOURCES="app/*.c app/ajbox/*.c web/engine/*.c web/synth/*.c third_party/synth/*.c $R/dsp/host/wav.c
-  $R/dsp/stock/oneshots.c $R/dsp/stock/sim_stubs.c"
+  $R/dsp/stock/oneshots.c"
 "$CC" $FLAGS $SOURCES $R/dsp/stock/ajstock.c -o $R/dsp/build/ajstock.exe -lm -Wl,--error-limit=0 || exit 1
 "$CC" $FLAGS $SOURCES $R/dsp/stock/test_app.c -o $R/dsp/build/ajstock_tests.exe -lm || exit 1
 if [ "$1" = "test" ]; then $R/dsp/build/ajstock_tests.exe || exit 1; fi
