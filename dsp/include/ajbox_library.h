@@ -27,7 +27,7 @@ enum { AJB_BD, AJB_SD, AJB_LT, AJB_MT, AJB_HT, AJB_RS, AJB_CP, AJB_CB, AJB_CY,
  * 'X' accent. A sliced loop ignores `parts` and plays one slice per step. */
 typedef struct {
     const char *name;
-    uint8_t steps;                /* 16, 32 or 64: 1, 2 or 4 bars */
+    uint8_t steps;                /* 16, 32 or 64: 1, 2 or 4 bars (a melody may use 48 for a waltz) */
     const ajb_sample_t *sliced;
     const char *parts[AJB_PARTS];
     uint16_t gain_q15;

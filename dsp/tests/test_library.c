@@ -10,7 +10,7 @@
 
 enum { BANK_BYTES = 466944, LOOPS_MAX = 128 };   /* PRD "Storage math": the stock 456 KiB sample bank */
 
-static int steps_ok(unsigned steps) { return steps == 16 || steps == 32 || steps == 64; }
+static int steps_ok(unsigned steps) { return steps == 16 || steps == 32 || steps == 48 || steps == 64; }
 static int all_in(const char *text, const char *allowed)
 {
     return strspn(text, allowed) == strlen(text);
