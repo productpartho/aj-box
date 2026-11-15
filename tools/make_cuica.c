@@ -6,7 +6,7 @@
  * City cuica rhythm at 115 BPM. No recordings: PRD "The 8 sampled sounds".
  *
  *   make_cuica <out dir>   writes cuica-high.wav, cuica-low.wav (32 kHz mono)
- *                          and cuica-rhythm-preview.wav
+ *                          and cuica-A-rhythm.wav, cuica-B-rhythm.wav, cuica-C-rhythm.wav
  *
  * A cuica is a rubbed stick pulling on a drum skin: a buzzy, voice-like
  * tone whose pitch slides as the player presses the skin. Here: a pulse
@@ -147,6 +147,5 @@ int main(int argc, char **argv)
         normalise(mix, total, 0.7, pcm);
         failed |= save(argv[1], more[v].name, pcm, total);
     }
-|= save(argv[1], "cuica-rhythm-preview.wav", pcm, total);
     return failed;
 }
