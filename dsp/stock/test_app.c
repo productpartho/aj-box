@@ -419,6 +419,144 @@ static void test_memory(void)
           ringing, after);
 }
 
+/* ---- screens (PRD "Screen and look") ---- */
+
+#include "ajdraw.h"
+uint32_t sim_frame_revision(void);
+static uint16_t pixel(unsigned x, unsigned y) { return sim_pixels()[y * 240 + x]; }
+/* Paint the whole screen as it is now. */
+static void look(void) { ajscreen_redraw(); ajscreen_draw(fm1_millis(), 15); }
+static unsigned count_colour(uint16_t colour)
+{
+    unsigned n = 0;
+    for (unsigned i = 0; i < 240 * 240; ++i) n += sim_pixels()[i] == colour;
+    return n;
+}
+
+static void test_screens(void)
+{
+    printf("screens: start-up, play, effects, knob arcs, hearts, Mood, battery and Finish\n");
+    static const uint16_t lit[AJAPP_EFFECTS] = {AJD_PINK, AJD_GOLD, AJD_LILAC, AJD_GRAPE, AJD_MAGENTA, AJD_CREAM};
+    CHECK(ajd_sin(0) == 0 && ajd_sin(64) == 16384 && ajd_sin(128) == 0 && ajd_sin(192) == -16384 && ajd_sin(32) > 11500 &&
+          ajd_sin(32) < 11650, "sine table");
+
+    /* Start-up: "AJ Box" for 1.5 s, then the play screen with nothing playing. */
+    fresh();
+    ajscreen_init(fm1_millis());
+    wait_ms(300); look();
+    CHECK(pixel(2, 2) == AJD_PLUM && count_colour(AJD_PINK) > 2000 && count_colour(AJD_LILAC) > 1500,
+          "start-up should show AJ in pink and Box in lilac on plum: %u pink, %u lilac", count_colour(AJD_PINK), count_colour(AJD_LILAC));
+    wait_ms(1300); look();
+    CHECK(pixel(20, 60) == AJD_DUSK && pixel(220, 60) == AJD_DUSK, "with nothing playing both halves should be dim");
+    CHECK(pixel(97, 20) == AJD_GRAPE && pixel(145, 20) == AJD_GRAPE, "no beat dot should be lit while stopped");
+    for (unsigned k = 0; k < AJAPP_EFFECTS; ++k) CHECK(pixel(30 + 36 * k, 203) == AJD_DUSK, "effect bubble %u should be dark", k);
+
+    /* Playing: pink drums left, purple melody right, a cream ring round each, the beat dot moves. */
+    ajapp_pick(AJAPP_DRUMS, 0); ajapp_pick(AJAPP_MELODY, 0);
+    wait_sixteenth(2); look();
+    CHECK(pixel(20, 60) == AJD_PINK && pixel(220, 60) == AJD_GRAPE, "playing halves should be pink and purple");
+    CHECK(pixel(9, 116) == AJD_CREAM && pixel(231, 116) == AJD_CREAM, "playing halves should have a cream ring");
+    CHECK(pixel(63, 80) == AJD_PLUM && pixel(177, 80) == AJD_PLUM, "each half should have its dark picture circle");
+    for (unsigned beat = 0; beat < 4; ++beat) {
+        run_to_step(beat * 4 + 1); look();
+        for (unsigned dot = 0; dot < 4; ++dot)
+            CHECK(pixel(97 + 16 * dot, 20) == (dot == beat ? AJD_GOLD : AJD_GRAPE), "beat %u: dot %u is the wrong colour", beat, dot);
+    }
+    /* The picture hops on the beat and settles before the next one. */
+    run_to_step(8); look();
+    unsigned up = pixel(63, 73) == AJD_PLUM;
+    run_to_step(11); look();
+    CHECK(up && pixel(63, 73) == AJD_PINK && pixel(63, 137) == AJD_PLUM, "the drum picture should hop up on the beat and come down");
+    /* Page dots follow the shown page. */
+    CHECK(pixel(38, 155) == AJD_CREAM && pixel(48, 155) == AJD_MAGENTA, "page dot 1 should be lit on the drum side");
+    ajapp_page_step(AJAPP_DRUMS, 1); look();
+    CHECK(pixel(38, 155) == AJD_MAGENTA && pixel(48, 155) == AJD_CREAM, "page dot 2 should be lit after a page step");
+    ajapp_page_step(AJAPP_DRUMS, -1);
+
+    /* Effects light their bubbles; muting dims a half; REC draws its frame and dot. */
+    for (unsigned k = 0; k < AJAPP_EFFECTS; ++k) {
+        ajapp_effect(k, 1); look();
+        for (unsigned j = 0; j < AJAPP_EFFECTS; ++j)
+            CHECK(pixel(30 + 36 * j, 203) == (j == k ? lit[j] : AJD_DUSK), "effect %u on: bubble %u is the wrong colour", k, j);
+        ajapp_effect(k, 0);
+    }
+    ajapp_hold(AJAPP_HOLD_MUTE_DRUMS, 1); look();
+    CHECK(pixel(20, 60) == AJD_DUSK && pixel(220, 60) == AJD_GRAPE, "a muted half should dim, the other stay bright");
+    ajapp_hold(AJAPP_HOLD_MUTE_DRUMS, 0);
+    look();
+    CHECK(pixel(0, 0) == AJD_PLUM && pixel(239, 239) == AJD_PLUM, "no frame while not recording");
+    ajapp_record(); look();
+    CHECK(pixel(0, 0) == AJD_MAGENTA && pixel(239, 239) == AJD_MAGENTA && pixel(120, 1) == AJD_MAGENTA && pixel(218, 20) != AJD_PLUM,
+          "REC should draw a magenta frame and its dot");
+    ajapp_record(); look();
+    CHECK(pixel(0, 0) == AJD_PLUM, "the frame should go when REC stops");
+
+    /* A knob draws its arc in the middle for a moment, then it goes. */
+    ajscreen_event(AJSCREEN_KNOB, AJAPP_KNOB_SPEED, 127, fm1_millis()); look();
+    CHECK(pixel(120, 84) == AJD_LILAC && pixel(152, 116) == AJD_LILAC && pixel(88, 116) == AJD_LILAC,
+          "a full turn of the lilac knob should draw a whole lilac circle");
+    ajscreen_event(AJSCREEN_KNOB, AJAPP_KNOB_SPEED, 32, fm1_millis()); look();
+    CHECK(pixel(143, 93) == AJD_LILAC && pixel(88, 116) == AJD_DUSK, "a quarter turn should draw only the first quarter");
+    ajscreen_event(AJSCREEN_KNOB, AJAPP_KNOB_SWOOSH, 64, fm1_millis()); look();
+    CHECK(pixel(120, 84) == AJD_GOLD && pixel(152, 116) == AJD_DUSK && pixel(88, 116) == AJD_DUSK, "the filter knob in the middle should show the clean dot");
+    ajscreen_event(AJSCREEN_KNOB, AJAPP_KNOB_SWOOSH, 0, fm1_millis()); look();
+    CHECK(pixel(88, 116) == AJD_PINK && pixel(152, 116) == AJD_DUSK, "the filter knob turned down should draw to the left");
+    wait_ms(1300); look();
+    CHECK(pixel(120, 84) == AJD_PLUM || pixel(120, 84) == AJD_PINK || pixel(120, 84) == AJD_GRAPE, "the arc should go after about a second");
+    CHECK(pixel(120, 116) == AJD_PLUM, "the gap between the halves should be back");
+
+    /* Hearts: the number, the row, and an empty heart when nothing was saved. */
+    ajapp_save_heart();
+    ajscreen_event(AJSCREEN_HEART, ajapp_save_heart(), 0, fm1_millis()); look();
+    CHECK(pixel(95, 85) == AJD_PINK && pixel(36, 189) == AJD_PINK && pixel(60, 189) == AJD_GOLD && pixel(84, 189) == AJD_DUSK,
+          "heart 2 saved: big pink heart, heart 1 pink, heart 2 gold, heart 3 empty");
+    unsigned digit = 0;
+    for (unsigned y = 91; y < 116; ++y) for (unsigned x = 111; x < 129; ++x) digit += pixel(x, y) == AJD_PLUM;
+    CHECK(digit > 60, "the heart should carry its number: %u dark pixels", digit);
+    ajscreen_event(AJSCREEN_HEART, 0, 0, fm1_millis()); look();
+    CHECK(pixel(95, 85) == AJD_DUSK && pixel(60, 189) == AJD_PINK && pixel(84, 189) == AJD_DUSK,
+          "a heart that was not saved should stay dark and add nothing to the row");
+    wait_ms(1600); look();
+    CHECK(pixel(20, 60) == AJD_PINK, "the play screen should come back after the heart");
+
+    /* Mood: the chosen bubble has the cream ring. */
+    ajapp_set_mood(0); ajscreen_event(AJSCREEN_MOOD, 0, 0, fm1_millis()); look();
+    CHECK(pixel(30, 187) == AJD_CREAM && pixel(94, 187) == AJD_PLUM && pixel(120, 85) == AJD_GOLD, "Happy: first bubble ringed, a gold sun");
+    ajapp_set_mood(3); ajscreen_event(AJSCREEN_MOOD, 0, 0, fm1_millis()); look();
+    CHECK(pixel(30, 187) == AJD_PLUM && pixel(94, 187) == AJD_CREAM, "Magic: the middle bubble ringed");
+    ajapp_set_mood(6); ajscreen_event(AJSCREEN_MOOD, 0, 0, fm1_millis()); look();
+    CHECK(pixel(158, 187) == AJD_CREAM && pixel(94, 187) == AJD_PLUM, "Adventure: the last bubble ringed");
+    ajapp_set_mood(0); ajscreen_event(AJSCREEN_HOME, 0, 0, fm1_millis()); look();
+    CHECK(pixel(20, 60) == AJD_PINK, "HOME should bring the play screen back");
+
+    /* Only what changed is repainted, a few strips at a time. */
+    uint32_t before = sim_frame_revision();
+    CHECK(!ajscreen_draw(fm1_millis(), 15) && sim_frame_revision() == before, "nothing changed, so nothing should be repainted");
+    ajapp_effect(AJAPP_FX_WAH, 1);
+    CHECK(!ajscreen_draw(fm1_millis(), 15) && sim_frame_revision() - before == 3, "an effect should repaint 3 strips, not %u",
+          (unsigned)(sim_frame_revision() - before));
+    ajapp_effect(AJAPP_FX_WAH, 0); ajscreen_draw(fm1_millis(), 15);
+    ajscreen_redraw();
+    before = sim_frame_revision();
+    unsigned calls = 1;
+    while (ajscreen_draw(fm1_millis(), 4) && calls < 10) ++calls;
+    CHECK(calls == 4 && sim_frame_revision() - before == 15, "15 strips at 4 a call should take 4 calls, took %u", calls);
+
+    /* Low battery shows the sleepy face once; Finish shows the star. */
+    ajscreen_battery(0, 1, fm1_millis()); look();
+    CHECK(pixel(70, 120) == AJD_MAGENTA && pixel(120, 100) == AJD_DUSK, "low battery should show the sleepy battery");
+    ajscreen_battery(0, 1, fm1_millis());
+    wait_ms(2600); look();
+    CHECK(pixel(20, 60) == AJD_PINK && pixel(18, 20) == AJD_PLUM, "the play screen should come back, with an empty battery");
+    ajapp_finish();
+    for (unsigned n = 0; n < 4000 && now().finishing != 2; ++n) block();
+    look();
+    CHECK(pixel(120, 95) == AJD_GOLD && count_colour(AJD_CREAM) > 800, "Finish should show the gold star and Ta-da");
+    for (unsigned n = 0; n < 4000 && now().running; ++n) block();
+    wait_ms(1600); look();
+    CHECK(pixel(20, 60) == AJD_DUSK && pixel(120, 95) == AJD_PLUM, "after Finish the play screen should be back and quiet");
+}
+
 int main(void)
 {
     test_keys();
@@ -428,6 +566,7 @@ int main(void)
     test_effects();
     test_memory();
     test_library();
+    test_screens();
     printf("%u checks, %u failed\n", checks, failures);
     return failures != 0;
 }

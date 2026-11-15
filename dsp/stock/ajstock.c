@@ -12,9 +12,12 @@
  *   ajstock tour <dir>             key 1 of every page through the 7 moods, 2 bars each
  *   ajstock demos <dir>            the controls: pages, effects, held keys, kits ...
  *   ajstock oneshots <dir>         the 8 synthesized pad sounds as WAVs
+ *   ajstock screens <dir>          every screen as a 240 x 240 PNG, and one sheet of them all
  *   ajstock levels <file>          measure every loop alone and write the track
  *                                  volumes that put drums and melodies on target */
 #include "ajapp.h"
+#include "ajscreen.h"
+#include "fm1.h"
 #include "instrument.h"
 #include "oneshots.h"
 #include "wav.h"
@@ -358,6 +361,141 @@ static int levels(const char *file, double drum_target, double melody_target)
     return 0;
 }
 
+/* ---- screens ---- */
+
+const uint16_t *sim_pixels(void);
+
+/* A plain PNG (no compression) of RGB bytes. */
+static uint32_t crc32_of(uint32_t crc, const uint8_t *p, size_t n)
+{
+    crc = ~crc;
+    while (n--) { crc ^= *p++; for (int k = 0; k < 8; ++k) crc = crc >> 1 ^ (crc & 1 ? 0xEDB88320U : 0); }
+    return ~crc;
+}
+static void png_chunk(FILE *f, const char *type, const uint8_t *data, uint32_t n)
+{
+    uint8_t head[8] = {(uint8_t)(n >> 24), (uint8_t)(n >> 16), (uint8_t)(n >> 8), (uint8_t)n,
+                       (uint8_t)type[0], (uint8_t)type[1], (uint8_t)type[2], (uint8_t)type[3]};
+    uint32_t crc = crc32_of(crc32_of(0, head + 4, 4), data, n);
+    uint8_t tail[4] = {(uint8_t)(crc >> 24), (uint8_t)(crc >> 16), (uint8_t)(crc >> 8), (uint8_t)crc};
+    fwrite(head, 1, 8, f); fwrite(data, 1, n, f); fwrite(tail, 1, 4, f);
+}
+static int png_write(const char *path, const uint8_t *rgb, unsigned w, unsigned h)
+{
+    static const uint8_t magic[8] = {0x89, 'P', 'N', 'G', 13, 10, 26, 10};
+    FILE *f = fopen(path, "wb");
+    if (!f) { fprintf(stderr, "cannot write %s\n", path); return 1; }
+    size_t line = 1 + 3 * (size_t)w, raw = h * line, pieces = (raw + 65534) / 65535;
+    uint8_t *z = malloc(2 + raw + 5 * pieces + 4), *p = z, *lines = malloc(raw);
+    uint8_t ihdr[13] = {(uint8_t)(w >> 24), (uint8_t)(w >> 16), (uint8_t)(w >> 8), (uint8_t)w,
+                        (uint8_t)(h >> 24), (uint8_t)(h >> 16), (uint8_t)(h >> 8), (uint8_t)h, 8, 2, 0, 0, 0};
+    for (unsigned y = 0; y < h; ++y) { lines[y * line] = 0; memcpy(lines + y * line + 1, rgb + (size_t)y * 3 * w, 3 * w); }
+    uint32_t a = 1, b = 0;
+    for (size_t i = 0; i < raw; ++i) { a = (a + lines[i]) % 65521; b = (b + a) % 65521; }
+    *p++ = 0x78; *p++ = 0x01;
+    for (size_t at = 0; at < raw; at += 65535) {
+        size_t n = raw - at > 65535 ? 65535 : raw - at;
+        *p++ = at + n == raw; *p++ = (uint8_t)n; *p++ = (uint8_t)(n >> 8); *p++ = (uint8_t)~n; *p++ = (uint8_t)(~n >> 8);
+        memcpy(p, lines + at, n); p += n;
+    }
+    *p++ = (uint8_t)(b >> 8); *p++ = (uint8_t)b; *p++ = (uint8_t)(a >> 8); *p++ = (uint8_t)a;
+    fwrite(magic, 1, 8, f);
+    png_chunk(f, "IHDR", ihdr, 13); png_chunk(f, "IDAT", z, (uint32_t)(p - z)); png_chunk(f, "IEND", z, 0);
+    free(z); free(lines);
+    return fclose(f);
+}
+
+enum { SHEET_COLUMNS = 4, SHEET_ROWS = 4, SHEET_GAP = 8, SHEET_W = SHEET_COLUMNS * (240 + SHEET_GAP) + SHEET_GAP,
+       SHEET_H = SHEET_ROWS * (240 + SHEET_GAP) + SHEET_GAP };
+static uint8_t sheet[SHEET_W * SHEET_H * 3];
+static unsigned shots;
+
+static void wait_ms(unsigned ms) { uint32_t end = fm1_millis() + ms; while ((int32_t)(end - fm1_millis()) > 0) block(); }
+/* Play on to the next 16th numbered `sixteenth` within its beat (0 = on the beat). */
+static void wait_sixteenth(unsigned sixteenth)
+{
+    ajapp_status_t st;
+    for (unsigned n = 0; n < 4000; ++n) { block(); ajapp_status(&st); if (st.running && (st.step & 3) == sixteenth) return; }
+}
+/* Draw the whole screen as it is now and save it, true size, and into the sheet. */
+static void shot(const char *dir, const char *name)
+{
+    static uint8_t rgb[240 * 240 * 3];
+    char path[512];
+    ajscreen_redraw();
+    ajscreen_draw(fm1_millis(), 15);
+    const uint16_t *px = sim_pixels();
+    for (unsigned i = 0; i < 240 * 240; ++i) {
+        unsigned r = px[i] >> 11, g = px[i] >> 5 & 63, b = px[i] & 31;
+        rgb[3 * i] = (uint8_t)(r << 3 | r >> 2); rgb[3 * i + 1] = (uint8_t)(g << 2 | g >> 4); rgb[3 * i + 2] = (uint8_t)(b << 3 | b >> 2);
+    }
+    snprintf(path, sizeof path, "%s/%s.png", dir, name);
+    if (!png_write(path, rgb, 240, 240)) printf("%s\n", path);
+    if (shots < SHEET_COLUMNS * SHEET_ROWS) {
+        unsigned x0 = SHEET_GAP + shots % SHEET_COLUMNS * (240 + SHEET_GAP), y0 = SHEET_GAP + shots / SHEET_COLUMNS * (240 + SHEET_GAP);
+        for (unsigned y = 0; y < 240; ++y) memcpy(sheet + ((size_t)(y0 + y) * SHEET_W + x0) * 3, rgb + y * 720, 720);
+    }
+    ++shots;
+}
+
+/* Every screen, in the states the designs show and a few they do not. */
+static void screens(const char *dir)
+{
+    char path[512];
+    memset(sheet, 40, sizeof sheet);
+    shots = 0;
+    boot();
+    ajscreen_init(fm1_millis());
+    wait_ms(400); shot(dir, "01-hello");
+    wait_ms(1300); shot(dir, "02-home-nothing-playing");
+    ajapp_pick(AJAPP_DRUMS, 0); ajapp_pick(AJAPP_MELODY, 0);
+    wait_sixteenth(2); wait_sixteenth(0); shot(dir, "03-play");
+    ajapp_effect(AJAPP_FX_ECHO, 1); ajapp_effect(AJAPP_FX_SPARKLE, 1);
+    ajapp_knob(AJAPP_KNOB_AMOUNT, 89); ajscreen_event(AJSCREEN_KNOB, AJAPP_KNOB_AMOUNT, 89, fm1_millis());
+    wait_sixteenth(2); shot(dir, "04-effects-and-knob");
+    wait_ms(1300);
+    ajapp_effect(AJAPP_FX_ECHO, 0); ajapp_effect(AJAPP_FX_SPARKLE, 0);
+    ajapp_record(); wait_sixteenth(1); shot(dir, "05-recording");
+    ajapp_record();
+    ajapp_save_heart(); ajapp_save_heart();
+    ajscreen_event(AJSCREEN_HEART, ajapp_save_heart(), 0, fm1_millis());
+    wait_ms(500); shot(dir, "06-heart-3-saved");
+    ajscreen_event(AJSCREEN_HEART, 0, 0, fm1_millis());
+    wait_ms(100); shot(dir, "07-heart-not-saved");
+    ajscreen_event(AJSCREEN_HOME, 0, 0, fm1_millis());
+    ajapp_set_mood(0); ajscreen_event(AJSCREEN_MOOD, 0, 0, fm1_millis());
+    wait_ms(300); shot(dir, "08-mood-happy");
+    ajapp_set_mood(5); ajscreen_event(AJSCREEN_MOOD, 0, 0, fm1_millis());
+    wait_ms(300); shot(dir, "09-mood-faraway");
+    ajapp_set_mood(0); ajscreen_event(AJSCREEN_HOME, 0, 0, fm1_millis());
+    ajapp_pick(AJAPP_DRUMS, 3 * 8 + 6); ajapp_pick(AJAPP_MELODY, 3 * 8 + 6);
+    ajapp_effect(AJAPP_FX_WOBBLE, 1); ajapp_effect(AJAPP_FX_WAH, 1); ajapp_effect(AJAPP_FX_CRUNCH, 1); ajapp_effect(AJAPP_FX_STUTTER, 1);
+    ajapp_hold(AJAPP_HOLD_MUTE_DRUMS, 1);
+    ajapp_set_bpm(170);
+    wait_sixteenth(0); wait_sixteenth(3); shot(dir, "10-page4-drums-muted-fast");
+    ajapp_hold(AJAPP_HOLD_MUTE_DRUMS, 0);
+    for (unsigned k = 0; k < AJAPP_EFFECTS; ++k) ajapp_effect(k, 0);
+    ajapp_set_bpm(70);
+    ajapp_set_kit(7); ajscreen_event(AJSCREEN_KIT, 0, 0, fm1_millis());
+    wait_sixteenth(1); shot(dir, "11-kit-picture-slow");
+    ajapp_knob(AJAPP_KNOB_SWOOSH, 30); ajscreen_event(AJSCREEN_KNOB, AJAPP_KNOB_SWOOSH, 30, fm1_millis());
+    ajapp_dice(AJAPP_MELODY); ajscreen_event(AJSCREEN_DICE, AJAPP_MELODY, 0, fm1_millis());
+    wait_ms(150); shot(dir, "12-swoosh-knob-and-dice");
+    ajapp_knob(AJAPP_KNOB_SWOOSH, 64);
+    ajapp_set_instrument(9); ajscreen_event(AJSCREEN_INSTRUMENT, 0, 0, fm1_millis());
+    wait_ms(500); shot(dir, "13-instrument-picture");
+    ajapp_knob(AJAPP_KNOB_BALANCE, 100); ajscreen_event(AJSCREEN_KNOB, AJAPP_KNOB_BALANCE, 100, fm1_millis());
+    wait_ms(200); shot(dir, "14-balance-knob");
+    ajapp_knob(AJAPP_KNOB_BALANCE, 64); ajscreen_event(AJSCREEN_HOME, 0, 0, fm1_millis());
+    ajapp_finish();
+    for (unsigned n = 0; n < 4000; ++n) { ajapp_status_t st; block(); ajapp_status(&st); if (st.finishing == 2) break; }
+    wait_ms(600); shot(dir, "15-finish");
+    ajscreen_battery(0, 1, fm1_millis());
+    wait_ms(2000); shot(dir, "16-battery-low");
+    snprintf(path, sizeof path, "%s/all-screens.png", dir);
+    if (!png_write(path, sheet, SHEET_W, SHEET_H)) printf("%s\n", path);
+}
+
 int main(int argc, char **argv)
 {
     static const unsigned tour[AJAPP_MOODS] = {0, 1, 2, 3, 4, 5, 6};
@@ -405,9 +543,10 @@ int main(int argc, char **argv)
         }
         return 0;
     }
+    if (argc >= 3 && !strcmp(argv[1], "screens")) { screens(argv[2]); return 0; }
     if (argc >= 3 && !strcmp(argv[1], "levels"))
         return levels(argv[2], argc > 3 ? atof(argv[3]) : -12.0, argc > 4 ? atof(argv[4]) : -15.0);
     fprintf(stderr, "usage: ajstock pair <drum> <melody> <out.wav> [bars] [mood] | page <n> <dir> | all <dir>\n"
-                    "       | tour <dir> | demos <dir> | oneshots <dir> | levels <volumes.inc> [drum dBFS] [melody dBFS]\n");
+                    "       | tour <dir> | demos <dir> | oneshots <dir> | screens <dir> | levels <volumes.inc> [drum dBFS] [melody dBFS]\n");
     return 2;
 }
