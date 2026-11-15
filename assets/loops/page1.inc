@@ -71,7 +71,7 @@ static const ajb_melody_loop_t star_steps = {.name = "Star Steps", .steps = 64,
 
 /* The tune: 8th notes with held ends, middle register. */
 static const ajb_melody_loop_t music_box_song = {.name = "Music Box Song", .steps = 64,
-    .instrument = &music_box, .octave = 1, .velocity = 110,
+    .instrument = &toy_piano, .octave = 1, .velocity = 100,
     .riff = "3.5.4.3.2.3.0---"
             "2.3.4.5.4.3.2---"
             "5.7.6.5.4.5.3---"
@@ -95,7 +95,7 @@ static const ajb_melody_loop_t glass_rain = {.name = "Glass Rain", .steps = 64,
 
 /* A music box winding up and back down. */
 static const ajb_melody_loop_t wind_up = {.name = "Wind-Up", .steps = 32,
-    .instrument = &music_box, .octave = 0, .velocity = 110,
+    .instrument = &glass_bell, .octave = 0, .velocity = 76,
     .dir = AJB_ARP_BOUNCE, .rate = 2, .octaves = 2, .chord = {"023", "124"}};
 
 /* Careful little steps on the toy piano. */

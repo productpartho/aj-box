@@ -56,7 +56,7 @@ static const ajb_drum_loop_t slow_snow = {"Slow Snow", 64, NULL, {
 
 /* A rolling kalimba tune. */
 static const ajb_melody_loop_t kalimba_dream = {.name = "Kalimba Dream", .steps = 32,
-    .instrument = &kalimba, .octave = 1, .velocity = 110,
+    .instrument = &toy_guitar, .octave = 1, .velocity = 110,
     .riff = "0.3.5.3.4.3.2.3."
             "0.3.5.3.7.5.4.3."};
 
@@ -80,12 +80,12 @@ static const ajb_melody_loop_t cloud_ride = {.name = "Cloud Ride", .steps = 64,
 
 /* The music box winding down, one note a beat. */
 static const ajb_melody_loop_t sleepy_box = {.name = "Sleepy Box", .steps = 64,
-    .instrument = &music_box, .octave = 1, .velocity = 110,
+    .instrument = &glass_bell, .octave = 1, .velocity = 96,
     .dir = AJB_ARP_BOUNCE, .rate = 4, .octaves = 1, .chord = {"0235", "0245", "1346", "0235"}};
 
 /* Thumbs wandering over the kalimba. */
 static const ajb_melody_loop_t thumb_piano = {.name = "Thumb Piano", .steps = 32,
-    .instrument = &kalimba, .octave = 0, .velocity = 110,
+    .instrument = &harp, .octave = 0, .velocity = 110,
     .dir = AJB_ARP_RANDOM, .rate = 2, .octaves = 2, .chord = {"0234", "1345"}};
 
 /* Two far-apart bells per bar. */

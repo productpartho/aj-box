@@ -59,17 +59,28 @@ static const ajb_drum_loop_t island = {"Island", 16, NULL, {
     [AJB_MT] = "......x.......x.",
 }, GAIN(0.76)};
 
-/* The cat sings a tune. */
-static const ajb_melody_loop_t cat_song = {.name = "Cat Song", .steps = 32,
-    .instrument = &cat, .octave = 0, .velocity = 110,
-    .riff = "5---3---4---2---"
-            "5---3---1-2-0---"};
+/* Tunes from Zelda: Ocarina of Time, at Partho's request for home use. Written
+ * by ear in 4/4; they use fixed notes, so Mood leaves them alone. */
 
-/* Her own voice: la la laaa. */
-static const ajb_melody_loop_t la_la_la = {.name = "La La La", .steps = 32,
-    .instrument = &her_la, .octave = 1, .velocity = 110,
-    .riff = "0.2.3---3.2.0---"
-            "2.3.5---4.3.2---"};
+/* Saria's Song. Notes: D4 E4 F4 G4 A4 B4 C5 D5 E5. */
+static const int8_t saria_notes[] = {2, 4, 5, 7, 9, 11, 12, 14, 16};
+static const ajb_melody_loop_t saria_song = {.name = "Saria's Song", .steps = 64,
+    .instrument = &bird_flute, .octave = 0, .velocity = 70,
+    .notes = saria_notes, .note_count = 9,
+    .riff = "2.4.5---2.4.5---"
+            "2.4.5.8.7---5.6."
+            "5.3.1-------0.1."
+            "3.1---------...."};
+
+/* Song of Storms. Notes: D4 E4 F4 G4 A4 C5 D5 E5 F5. */
+static const int8_t storms_notes[] = {2, 4, 5, 7, 9, 12, 14, 16, 17};
+static const ajb_melody_loop_t song_of_storms = {.name = "Song of Storms", .steps = 64,
+    .instrument = &bird_flute, .octave = 0, .velocity = 70,
+    .notes = storms_notes, .note_count = 9,
+    .riff = "0.2.6---0.2.6---"
+            "7.8.7.8.7.5.4---"
+            "4.0.2.3.4-------"
+            "4.0.2.3.1-------"};
 
 /* Bird calls, high, with gaps to answer in. */
 static const ajb_melody_loop_t bird_call = {.name = "Bird Call", .steps = 32,
@@ -87,14 +98,19 @@ static const ajb_melody_loop_t frog_hop = {.name = "Frog Hop", .steps = 16,
     .instrument = &bloop, .octave = -1, .velocity = 100,
     .riff = "0..0....3..0...."};
 
-/* Kittens running up two octaves. */
-static const ajb_melody_loop_t kitten_chase = {.name = "Kitten Chase", .steps = 32,
-    .instrument = &cat, .octave = 0, .velocity = 110,
-    .dir = AJB_ARP_UP, .rate = 2, .octaves = 2, .chord = {"023", "134"}};
+/* Zelda's Lullaby. Notes: G4 A4 B4 C5 D5 G5 A5. */
+static const int8_t lullaby_notes[] = {7, 9, 11, 12, 14, 19, 21};
+static const ajb_melody_loop_t zeldas_lullaby = {.name = "Zelda's Lullaby", .steps = 64,
+    .instrument = &bird_flute, .octave = 0, .velocity = 100,
+    .notes = lullaby_notes, .note_count = 7,
+    .riff = "2-------4---1---"
+            "2-------4---1---"
+            "2-------4---6---"
+            "5---4---3-2-1---"};
 
 /* Her voice singing chords up and down. */
 static const ajb_melody_loop_t sing_along = {.name = "Sing Along", .steps = 64,
-    .instrument = &her_la, .octave = 0, .velocity = 110,
+    .instrument = &choir, .octave = 0, .velocity = 100,
     .dir = AJB_ARP_BOUNCE, .rate = 2, .octaves = 1, .chord = {"0235", "0245", "1346", "0235"}};
 
 /* An owl: hoo-hoooo, then quiet. */

@@ -50,14 +50,12 @@ FM(choir, "Choir", 67, 0.55);
 FM(dream_strings, "Dream Strings", 70, 0.88);
 
 /* Sampled (PRD "The 8 sampled sounds"); placeholders until the real recordings. */
-SAMPLED(music_box, "Music Box", ajb_sample_musicbox, 0.28);
-SAMPLED(kalimba, "Kalimba", ajb_sample_kalimba, 0.28);
-SAMPLED(her_la, "La", ajb_sample_la, 0.28);
-SAMPLED(cat, "Cat", ajb_sample_cat, 0.28);
+/* The four sampled instruments (Music Box, Kalimba, La, Cat) were retired on
+ * Nov 14, 2026: the stock sampler plays one-shots only. */
 
 /* ALGORITHM order: neighbours come from different engines so each press is a clear change. */
 static const ajb_instrument_t *const instruments[] = {
-    &chip_star, &music_box, &harp, &tub_bells, &bubble_piano, &bouncy_bass, &kalimba, &party_organ,
-    &bloop, &glass_bell, &her_la, &laser, &toy_guitar, &candy_brass, &squelch, &space_pad,
-    &cat, &game_lead, &toy_piano, &bird_flute, &rubber_lead, &choir, &crunchy_chip, &dream_strings,
+    &chip_star, &harp, &tub_bells, &bubble_piano, &bouncy_bass, &party_organ,
+    &bloop, &glass_bell, &laser, &toy_guitar, &candy_brass, &squelch, &space_pad,
+    &game_lead, &toy_piano, &bird_flute, &rubber_lead, &choir, &crunchy_chip, &dream_strings,
 };

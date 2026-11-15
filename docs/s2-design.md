@@ -94,7 +94,7 @@ Keys, swaps and the start-up screen; the full library and one-shots; effects and
 1. The design is approved to build.
 2. No recorded sounds: Claude Code synthesizes the 8 one-shots.
 3. Parent mode sample swapping is dropped for this build.
-4. Asked for: Saria's Song and Song of Storms (from Zelda: Ocarina of Time) in place of two melody loops. Waiting on which two, and on changing PRD "Loop library and storage", which says no copyrighted songs.
+4. Asked for: Saria's Song and Song of Storms (from Zelda: Ocarina of Time) in place of two melody loops. Done for three (Saria's Song, Song of Storms, Zelda's Lullaby, in place of Cat Song, La La La and Kitten Chase on page 4); Zelda's Lullaby and Goron City were added to the request. Goron City waits on its notes. The PRD's no-copyrighted-songs line is removed at Partho's instruction.
 
 ## Decisions I needed from you (answered above)
 

@@ -77,6 +77,10 @@ typedef struct {
     const char *riff;
     uint8_t dir, rate, octaves;
     const char *chord[AJB_ARP_BARS];
+    /* A tune that needs notes outside the 5-note scale: degree d plays
+     * notes[d] semitones above C4 (plus octaves), whatever the Mood. */
+    const int8_t *notes;
+    uint8_t note_count;
 } ajb_melody_loop_t;
 
 /* A page: 8 drum and 8 melody loops (PRD "Loop library and storage").

@@ -22,7 +22,7 @@ static void test_shape(void)
     const ajb_library_t *lib = &ajb_factory_library;
     CHECK(lib->page_count == 6, "%u pages", lib->page_count);
     CHECK(lib->kit_count == 12, "%u kits", lib->kit_count);
-    CHECK(lib->instrument_count == 24, "%u instruments", lib->instrument_count);
+    CHECK(lib->instrument_count == 20, "%u instruments", lib->instrument_count);
     CHECK(lib->sample_count == 8, "%u samples", lib->sample_count);
     CHECK(lib->fill && !lib->fill->sliced && lib->fill->steps == 16, "no one-bar Fill loop");
 
@@ -36,7 +36,7 @@ static void test_shape(void)
         CHECK(in->kind != AJB_INSTRUMENT_FM || in->program < 128, "%s: voice %u", in->name, in->program);
         CHECK(in->knob_count <= AJB_KNOBS_MAX, "%s: %u knobs", in->name, in->knob_count);
     }
-    CHECK(sampled == 4, "%u sampled instruments, PRD says 4", sampled);
+    CHECK(sampled == 0, "%u sampled instruments, PRD says none", sampled);
     for (unsigned i = 0; i < lib->sample_count; ++i) {
         const ajb_sample_t *s = lib->samples[i];
         sliced += s->slices != 0;
@@ -93,6 +93,8 @@ static void test_patterns(void)
                 CHECK(strlen(m->riff) == m->steps && all_in(m->riff, "0123456789abcdef-."), "%s: \"%s\"",
                       m->name, m->riff);
                 CHECK(m->riff[0] != '-' && strpbrk(m->riff, "0123456789abcdef"), "%s: no first note", m->name);
+                for (const char *c = m->riff; m->notes && *c; ++c)   /* a fixed tune stays inside its own notes */
+                    CHECK(*c == '-' || *c == '.' || (unsigned)(*c - '0') < m->note_count, "%s: note '%c'", m->name, *c);
             } else {
                 ++arps;
                 CHECK(m->chord[0] && m->rate && m->octaves && m->dir <= AJB_ARP_RANDOM, "%s: bad arpeggio", m->name);

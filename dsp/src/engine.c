@@ -266,6 +266,8 @@ static const ajb_instrument_t *wanted_instrument(const ajb_engine_t *e, const aj
 
 static int degree_note(const ajb_engine_t *e, const ajb_melody_loop_t *m, int degree)
 {
+    if (m->notes && m->note_count)                          /* a fixed tune: as written, in every Mood */
+        return 60 + 12 * (m->octave + e->octave) + m->notes[degree % m->note_count] + 12 * (degree / m->note_count);
     return mood_root[e->mood] + 12 * (m->octave + e->octave) + mood_scale[e->mood][degree % 5] + 12 * (degree / 5);
 }
 /* A note that lasts `halves` half steps from half step `half`. PRESETS and
