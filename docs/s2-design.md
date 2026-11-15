@@ -91,9 +91,9 @@ CLAUDE.md says new sound code gets a WAV and a test before it touches `firmware/
 3. Re-render the pairs and demos and re-run the behaviour tests against that. These WAVs are then what the device should sound like.
 4. Keep the old engine only until the new renders match what you approved.
 
-## Build order on the device (unchanged from the build plan)
+## One device build (Partho, Nov 14, 2026)
 
-Keys, swaps and the start-up screen; the full library and one-shots; effects and knobs; helper keys; jams, favourites and Mood; final screens; parent mode. Each is a small change on a build that already reaches the update page. Before the first one: reinstall M-Flasher's bootloader, and I ask before the 518 MiB download needed to build the local update page.
+Everything goes onto the FM-1 in a single install: keys, swaps and the start-up screen; the full library and one-shots; effects and knobs; helper keys; jams, favourites and Mood; final screens; parent mode. Claude Code advised three installs; Partho chose one. The order above is kept for building and testing on the desktop. Before the first one: reinstall M-Flasher's bootloader, and I ask before the 518 MiB download needed to build the local update page.
 
 ## Decisions (Partho, Nov 14, 2026)
 
