@@ -24,8 +24,13 @@ enum {
 /* Start-up: shows "AJ Box" for 1.5 s, then the play screen. */
 void ajscreen_init(uint32_t now);
 void ajscreen_event(unsigned event, unsigned a, unsigned b, uint32_t now);
-/* bars 0..3; low shows the sleepy battery once when it first becomes true. */
+/* bars 0..3, or AJSCREEN_BATTERY_UNKNOWN to leave the battery picture out;
+ * low shows the sleepy battery once when it first becomes true. */
+enum { AJSCREEN_BATTERY_UNKNOWN = 255 };
 void ajscreen_battery(unsigned bars, int low, uint32_t now);
+/* Two numbers parent mode shows in its bottom corner, for setting the box up:
+ * the battery reading (0..1023) and how many times the sound fell behind. */
+void ajscreen_readings(unsigned battery, unsigned late);
 /* Redraws what changed, at most max_strips of the 15 strips (16 rows each)
  * per call. Returns 1 while more is waiting. Call about 20 times a second. */
 int ajscreen_draw(uint32_t now, unsigned max_strips);

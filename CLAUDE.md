@@ -7,6 +7,7 @@ Screens: docs/design/*.dc.html, true size 240 x 240 (Icons and Stickers are refe
 ## Layout
 - dsp/       desktop (Windows) renderer that writes WAV files, and the loop logic. The device uses FM1 Open's stock instrument, not AJ Box's own engine (M-VAVE's library seals the sound engines), so dsp/ is being moved onto FM1 Open's portable instrument in firmware/web/engine
 - firmware/  submodule: fork of m-vave/fm1_open V14 (GPLv3 with SDK linking exception)
+             Branch ajbox holds AJ Box's app. firmware/app/ajbox is a copy of the shared code in dsp/stock, dsp/src, dsp/include and assets, made by tools/sync_firmware.sh: edit the originals. dsp/stock/build.sh tests on the same app files the FM-1 build uses
 - assets/    loop manifest, 8 samples, icon sheets
 - tools/     sample encoder, icon packer, size report
 

@@ -8,11 +8,18 @@
  * Drum strings: '.' rest, 'o' soft, 'x' hit, 'X' accent, one per 16th.
  * Melody characters are scale degrees: 0 C, 1 D, 2 E, 3 G, 4 A, 5 C' ...
  * '-' holds, '.' rests. Degree 0 of octave 0 is C4, of octave 1 is C5. */
+#include "ajbox_target.h"
 #include "ajbox_library.h"
 #include <stddef.h>
 
+/* The recorded sounds, for the old engine only. */
+#ifdef AJB_NO_SAMPLES
+#define AJB_SLICED(name) NULL
+#else
 extern const ajb_sample_t ajb_sample_musicbox, ajb_sample_kalimba, ajb_sample_la, ajb_sample_cat,
     ajb_sample_pots, ajb_sample_dhol, ajb_sample_beatbox, ajb_sample_rainstick;
+#define AJB_SLICED(name) (&ajb_sample_##name)
+#endif
 
 /* Gains put each loop alone near -6 dBFS (drums) or -9 dBFS (melody) where
  * it meets the limiter, so a pair rarely needs limiting. Re-check with
@@ -59,14 +66,18 @@ static const ajb_page_t pages[] = {
      {&kalimba_dream, &harp_glow, &toy_piano_tune, &cloud_ride, &sleepy_box, &thumb_piano, &moonbeam, &goodnight}, 5},
 };
 
+#ifndef AJB_NO_SAMPLES
 static const ajb_sample_t *const samples[] = {
     &ajb_sample_musicbox, &ajb_sample_kalimba, &ajb_sample_la, &ajb_sample_cat,
     &ajb_sample_pots, &ajb_sample_dhol, &ajb_sample_beatbox, &ajb_sample_rainstick,
 };
+#endif
 
 #define COUNT(a) (sizeof (a) / sizeof (a)[0])
 const ajb_library_t ajb_factory_library = {
     .pages = pages, .page_count = COUNT(pages), .kits = kits, .kit_count = COUNT(kits),
     .instruments = instruments, .instrument_count = COUNT(instruments), .fill = &fill,
+#ifndef AJB_NO_SAMPLES
     .samples = samples, .sample_count = COUNT(samples),
+#endif
 };

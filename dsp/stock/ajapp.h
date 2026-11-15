@@ -72,6 +72,7 @@ typedef struct {
     uint8_t running, finishing, fill, fast;
     uint8_t step;                       /* 0..63 in the 4-bar cycle */
     uint8_t effects, mood, kit, instrument;
+    uint8_t knob[AJAPP_KNOBS];          /* 0..127 */
     int8_t octave;
     uint16_t bpm;
     uint8_t recording, replaying;

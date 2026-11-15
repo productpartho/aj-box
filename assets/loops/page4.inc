@@ -4,7 +4,7 @@
  * Choir melodies (cat, bird, voices). */
 
 /* The sampled dhol loop, one slice per 16th. */
-static const ajb_drum_loop_t dhol_party = {"Dhol Party", 16, &ajb_sample_dhol, {0}, GAIN(0.37), {
+static const ajb_drum_loop_t dhol_party = {"Dhol Party", 16, AJB_SLICED(dhol), {0}, GAIN(0.37), {
     [0] = "X..x..X...x.X...",      /* dhol bass side */
     [1] = "..x.x..xx.x..xxx",      /* dhol treble side */
 }};

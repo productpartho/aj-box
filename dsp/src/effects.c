@@ -1,18 +1,26 @@
 /* SPDX-License-Identifier: GPL-3.0-only WITH GPL-3.0-linking-exception
  * Copyright (c) 2026 Partho Ghosh. */
+#include "ajbox_target.h"
 #include "effects.h"
+#ifndef AJB_FX_STOCK_SENDS
 #include "mixer.h"
+#endif
 #include "fixed.h"
 #include <string.h>
 
 void fm1_fx_set(int32_t decay, int32_t feedback, int32_t level, unsigned delay);   /* web/engine/effects.c */
 
+/* On the FM-1 the sound interrupt may run while flash is being written, so
+ * ajb_fx_process, everything it calls and its tables live in fast memory. */
+#define AUDIO FM1_DSP_CODE
+#define AUDIO_TABLE FM1_DSP_DATA
+
 enum { RAMP = AJB_FADE_SAMPLES, EDGE = 32, CONTROL = 16 };
 static const float FULL = 16777216.0f;          /* Q24 one */
 static const float CRUNCH_FOLLOW = 1.0f / (0.02f * AJB_RATE);
 
-static float knob(uint8_t value) { return value / 127.0f; }
-static unsigned zone(uint8_t value, unsigned zones) { return value * zones / 128U; }
+static AUDIO float knob(uint8_t value) { return value / 127.0f; }
+static AUDIO unsigned zone(uint8_t value, unsigned zones) { return value * zones / 128U; }
 
 void ajb_fx_init(ajb_fx_t *fx)
 {
@@ -35,7 +43,7 @@ void ajb_fx_init(ajb_fx_t *fx)
 
 /* Samples in one Stutter repeat: the speed knob picks 1/8, 1/16 or 1/32,
  * halved further at slow tempos so it fits the history. */
-static uint32_t stutter_length(const ajb_fx_t *fx, unsigned bpm, unsigned *per_beat)
+static AUDIO uint32_t stutter_length(const ajb_fx_t *fx, unsigned bpm, unsigned *per_beat)
 {
     unsigned division = 2U << zone(fx->speed[AJB_FX_STUTTER], 3);   /* repeats per beat */
     uint32_t length = (uint32_t)(AJB_RATE * 60U / bpm / division);
@@ -80,14 +88,14 @@ void ajb_fx_knob(ajb_fx_t *fx, unsigned which, unsigned value)
 int ajb_fx_swoosh_clean(unsigned value) { return value >= 63 && value <= 65; }
 void ajb_fx_swoosh(ajb_fx_t *fx, unsigned value) { fx->swoosh = (uint8_t)(value > 127 ? 127 : value); }
 
-static float lfo(float beats, float period)
+static AUDIO float lfo(float beats, float period)
 {
     float p = beats / period;
-    p -= (float)(int64_t)p;
+    p -= (float)(int32_t)p;     /* 32 bits: the 64-bit conversion is a flash routine, off limits to the sound interrupt */
     return 0.5f - 0.5f * dsp_cos(2.0f * DSP_PI * p);   /* 0..1, starts at 0 on the bar */
 }
 
-static void swoosh_targets(unsigned v, float *lp, float *hp)
+static AUDIO void swoosh_targets(unsigned v, float *lp, float *hp)
 {
     *lp = 18000.0f;
     *hp = 20.0f;
@@ -99,7 +107,7 @@ static void swoosh_targets(unsigned v, float *lp, float *hp)
     }
 }
 
-void ajb_fx_process(ajb_fx_t *fx, const int32_t *mono, int32_t *left, int32_t *right, unsigned bpm,
+AUDIO void ajb_fx_process(ajb_fx_t *fx, const int32_t *mono, int32_t *left, int32_t *right, unsigned bpm,
                     float beats)
 {
     const float beat_step = (float)bpm / (60.0f * AJB_RATE);
@@ -114,16 +122,14 @@ void ajb_fx_process(ajb_fx_t *fx, const int32_t *mono, int32_t *left, int32_t *r
 
     /* Echo: tempo-synced FM1 delay, feedback at most 60%. Sparkle: FM1
      * reverb, mix at most 50%. */
-    static const float echo_beats[4] = {0.25f, 0.5f, 0.75f, 1.0f};
     float echo = knob(fx->amount[AJB_FX_ECHO]), sparkle = knob(fx->amount[AJB_FX_SPARKLE]);
+#ifndef AJB_FX_STOCK_SENDS
+    static const float echo_beats[4] = {0.25f, 0.5f, 0.75f, 1.0f};
     unsigned delay = (unsigned)(AJB_RATE * 60.0f / bpm * echo_beats[zone(fx->speed[AJB_FX_ECHO], 4)] / 8.0f + 0.5f);
     if (delay >= FM1_FX_DELAY_SAMPLES) delay = FM1_FX_DELAY_SAMPLES - 1U;
     float feedback = 0.15f + 0.45f * echo;
     float decay = 0.88f - 0.33f * knob(fx->speed[AJB_FX_SPARKLE]);
-#ifndef AJB_FX_STOCK_SENDS
     fm1_fx_set((int32_t)(decay * FM_Q30_ONE), (int32_t)(feedback * FM_Q30_ONE), FM_Q30_ONE, delay);
-#else
-    (void)decay; (void)feedback;
 #endif
     float echo_send = 0.25f + 0.35f * echo, sparkle_send = 0.5f * sparkle;
 
@@ -136,8 +142,8 @@ void ajb_fx_process(ajb_fx_t *fx, const int32_t *mono, int32_t *left, int32_t *r
     float levels = dsp_exp2(11.0f - 6.0f * crunch);   /* 12 down to 6 bits */
     unsigned hold = 1U + zone(fx->speed[AJB_FX_CRUNCH], 6);
 
-    static const float wobble_beats[4] = {8.0f, 4.0f, 2.0f, 1.0f};
-    static const float wah_beats[4] = {4.0f, 2.0f, 1.0f, 0.5f};
+    static const float wobble_beats[4] AUDIO_TABLE = {8.0f, 4.0f, 2.0f, 1.0f};
+    static const float wah_beats[4] AUDIO_TABLE = {4.0f, 2.0f, 1.0f, 0.5f};
     float wobble_depth = 1.0f + 3.0f * knob(fx->amount[AJB_FX_WOBBLE]);      /* octaves, capped */
     float wobble_period = wobble_beats[zone(fx->speed[AJB_FX_WOBBLE], 4)];
     float wah_depth = 1.0f + 2.5f * knob(fx->amount[AJB_FX_WAH]);

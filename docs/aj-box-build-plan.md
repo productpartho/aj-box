@@ -45,6 +45,14 @@ Spec: docs/aj-box-PRD.md (cite R numbers). Screens: docs/design/.
 3. **S2 AJ Box on the device.** Built as a new front for FM1 Open's stock instrument, not its own engine (decided Nov 14, 2026; `docs/s0-findings.md`, "S2 design finding"). First: settle the sampled sounds and the effects, rebuild the desktop renderer on FM1 Open's portable instrument (`firmware/web/engine`) so WAVs and tests match the device, and agree the design. Then **one device build with everything in it** (Partho, Nov 14, 2026, against Claude Code's advice to split it into three installs): keys, swaps and the start-up screen; the full library and one-shots; effects and knobs; helper keys; jams, favourites and Mood; final screens; parent mode. Everything is built and tested on the desktop first, in that order, so a fault found on the device can be traced. The build follows "Saving and update-mode rules", and the power-off test is run straight after the install. If that one build misbehaves, the fallback is to rebuild with features switched off until it behaves. *Verify: everything in the PRD works on the FM-1, in time and under budget.*
 4. **S3 Play-test.** 3 sessions with her, fix where she gets stuck, tag v1.0. Play-test builds follow the same saving and update-mode rules; the v1.0 build passes the power-off test and a trip back to stock V15 before the tag. Before AJ Box goes to her, decide whether to put the stock bootloader back: with M-Flasher's bootloader, holding PLAY at power-on lands her in a recovery menu. Default: restore stock and keep the backup. *Verify: the PRD's success measures are met.*
 
+**S2 status, Nov 15, 2026: ready to flash, not flashed.** The single S2 build exists (`docs/s2-design.md`, "The device build"): 439,092 of 453,921 bytes, every build-script check passed, 485 desktop checks pass on the same app files. Before the install, in this order, each done by Partho:
+
+1. With the FM-1 still on FM1 Open V14, write `build/ajbox-oneshots.fm1s` to it from the workbench's sample page ("Restore sample bank file"). This replaces all 8 sample slots.
+2. Reinstall M-Flasher's bootloader (see "Flashing rules").
+3. Say yes or no to the 518 MiB download Claude Code needs to build the local update page.
+4. Read the identity on the update page (expect `FM-1_8000014`), then the one install. Afterwards the identity should read `FM-1_8660001`.
+5. The power-off test, three times.
+
 ## Flashing rules
 
 - Charged battery, a data cable straight into the computer, nothing else holding the MIDI port, and never unplug mid-install.

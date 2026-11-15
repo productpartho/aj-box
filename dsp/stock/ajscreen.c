@@ -51,7 +51,7 @@ struct scene {
     struct { uint8_t art, state, page, lift, spin, deco, phase; } tile[AJAPP_SIDES];
     struct { uint8_t effects; } bottom;
     struct { uint8_t kind, a, b, glyph; } over;
-    struct { uint8_t a, b, phase; } full;       /* the screens that take the whole display */
+    struct { uint8_t a, b, phase, c, d; } full;       /* the screens that take the whole display */
 };
 
 static struct {
@@ -59,7 +59,7 @@ static struct {
     uint16_t pending;
     uint32_t started, mode_until, over_until, finish_until, spin_from[AJAPP_SIDES];
     uint8_t mode, mode_on, heart, over_on, over_kind, over_a, over_b, finish_on, spinning[AJAPP_SIDES];
-    uint8_t effects_seen, last_effect, bars, low;
+    uint8_t effects_seen, last_effect, bars, low, readings, battery, late;
 } scr;
 
 static int before(uint32_t now, uint32_t until) { return (int32_t)(until - now) > 0; }
@@ -84,6 +84,7 @@ static void build(struct scene *s, uint32_t now)
         ajapp_parent_get(&parent);
         s->mode = MODE_PARENT; s->full.a = st.parent_row; s->full.b = parent.default_bpm;
         s->full.phase = (uint8_t)(parent.swap_on_bar | parent.bluetooth << 1 | st.parent_result << 2);
+        if (scr.readings) { s->full.c = scr.battery; s->full.d = (uint8_t)(scr.late + 1); }
         return;
     }
     if (scr.mode_on && scr.mode == MODE_SLEEPY) { s->mode = MODE_SLEEPY; return; }
@@ -235,7 +236,7 @@ static void paint_play(const ajd_canvas_t *c, const struct scene *s)
         {AJD_GRAPE, AJD_CREAM}, {AJD_MAGENTA, AJD_CREAM}, {AJD_CREAM, AJD_PLUM}};
     static const uint8_t *const speed_art[3] = {art_speed1, art_speed2, art_speed3};
     /* Top strip: battery, four beat dots, speed (or the recording dot). */
-    picture(c, art_battery, 12, 13, 24, 0, 256);
+    if (s->top.bars <= 3) picture(c, art_battery, 12, 13, 24, 0, 256);
     for (int i = 0; i < s->top.bars && i < 3; ++i) ajd_box(c, 16 + 5 * i, 17, 4, 6, 1, AJD_GOLD, 256);
     for (int i = 0; i < 4; ++i) {
         if (i == s->top.beat) ajd_disc(c, PX(97 + 16 * i), PX(20), s->top.pulse ? PX(7) : PX(5), AJD_GOLD, 256);
@@ -394,6 +395,20 @@ static void paint_parent(const ajd_canvas_t *c, const struct scene *s)
         ajd_box(c, 218 - wide, y + 8, wide, 24, 12, AJD_LILAC, 256);
         text(c, PX(218 - wide + 10), PX(y + 13), value[r], SMALL, AJD_PLUM);
     }
+    if (s->full.d) {                    /* b: battery reading; l: times the sound fell behind */
+        char readings[16] = "b ";
+        unsigned at = 2, battery = s->full.c * 4U, late = s->full.d - 1U;
+        if (battery >= 1000) readings[at++] = (char)('0' + battery / 1000);
+        if (battery >= 100) readings[at++] = (char)('0' + battery / 100 % 10);
+        if (battery >= 10) readings[at++] = (char)('0' + battery / 10 % 10);
+        readings[at++] = (char)('0' + battery % 10);
+        readings[at++] = ' '; readings[at++] = 'l'; readings[at++] = ' ';
+        if (late >= 100) readings[at++] = (char)('0' + late / 100);
+        if (late >= 10) readings[at++] = (char)('0' + late / 10 % 10);
+        readings[at++] = (char)('0' + late % 10);
+        readings[at] = 0;
+        text(c, PX(226) - text(0, 0, 0, readings, SMALL, 0), PX(199), readings, SMALL, AJD_GRAPE);
+    }
     if (result == AJAPP_PARENT_SAVED) text(c, PX(14), PX(197), "Saved", 256, AJD_LILAC);
     else if (result == AJAPP_PARENT_NOT_SAVED) text(c, PX(14), PX(197), "Not saved", 256, AJD_PINK);
 }
@@ -437,9 +452,16 @@ void ajscreen_event(unsigned event, unsigned a, unsigned b, uint32_t now)
 
 void ajscreen_battery(unsigned bars, int low, uint32_t now)
 {
-    scr.bars = (uint8_t)(bars > 3 ? 3 : bars);
+    scr.bars = (uint8_t)(bars > 3 ? AJSCREEN_BATTERY_UNKNOWN : bars);
     if (low && !scr.low) { scr.mode = MODE_SLEEPY; scr.mode_on = 1; scr.mode_until = now + SLEEPY_MS; }
     scr.low = low != 0;
+}
+
+void ajscreen_readings(unsigned battery, unsigned late)
+{
+    scr.readings = 1;
+    scr.battery = (uint8_t)(battery > 1023 ? 255 : battery >> 2);    /* in fours, so it does not flicker */
+    scr.late = (uint8_t)(late > 250 ? 250 : late);
 }
 
 int ajscreen_draw(uint32_t now, unsigned max_strips)
@@ -452,8 +474,9 @@ int ajscreen_draw(uint32_t now, unsigned max_strips)
     for (int n = 0; n < STRIPS && max_strips; ++n) {
         if (!(scr.pending >> n & 1)) continue;
         const ajd_canvas_t canvas = {strip, 0, n * 16, 240, 16};
+        if (fm1_screen_pending() > 0) break;        /* the last strip is still on its way: next call */
         paint(&canvas, &scr.target);
-        if (fm1_screen_blit(0, (unsigned)n * 16, 240, 16, strip, 240 * 16)) break;      /* try again next call */
+        if (fm1_screen_submit(0, (unsigned)n * 16, 240, 16, strip, 240 * 16)) break;
         scr.pending &= (uint16_t)~(1U << n);
         --max_strips;
     }

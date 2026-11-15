@@ -92,6 +92,55 @@ The first device build reports the real size, and every build after it.
 - Parent mode is in: `ajapp_parent_open`, `_row`, `_change` and `_close` run a three-row menu (default tempo in steps of 5, swap timing, Bluetooth). Each change is saved at once and the screen shows "Saved" or "Not saved"; a value that was not saved is not shown. The screen has small stroke letters for just the words it uses. "Next bar" swaps now work: a new loop waits for the bar line, the first press and the stop key behave as before. Bluetooth on means music and MIDI, off means both off. 421 checks pass.
 - Not done or not known: which buttons move through the parent menu on the FM-1 (HOME + SAVE held 2 s opens it; the rest is for the device step); how long a repaint takes on the FM-1 (the play screen repaints 11 strips on every 16th note); the battery levels that mean 1, 2, 3 bars and "low"; the key LEDs.
 
+## The device build (Nov 15, 2026): ready to flash, not flashed
+
+Built with M-VAVE's unchanged `sdk/Build.ps1 -FirmwareOnly`, on branch `ajbox` of the firmware fork. Nothing has been installed.
+
+**Size report**
+
+| | Bytes |
+| --- | --- |
+| App image | 439,092 of 453,921 allowed: 14,829 to spare |
+| Stock FM1 Open V14, for comparison | 453,576 |
+| Memory left for the library's heap | 192,076 (the script wants at least 49,152) |
+| One-shot sample bank (in the user partition, not in the image) | 51,128 of the 446,464 the stock bank holds |
+
+Every check in the script passed: sound-interrupt code in fast memory, Bluetooth and USB parts present, start-up entry, package fits 1 MiB.
+
+**What is in `firmware/app` now**
+
+- Kept from FM1 Open, unchanged: `board/` (start-up, USB, panel scan, screen driver), `midi_router.c`, `samples.c`, the headers.
+- Changed by one call: `audio_output.c` runs AJ Box's mix effects ahead of the volume and the limiter.
+- Removed: FM1 Open's editor (`screen.c`), projects (`project.c`), presets, workbench transfers, voice library and 128-voice factory bank.
+- New: `screen.c` (AJ Box's front: the library's entry points, the controls, the screen), `transfer.c` (three empty entry points), `aj_fm.c` (the 11 factory DX7 voices AJ Box uses), and `ajbox/`, a copy of AJ Box's shared code made by `tools/sync_firmware.sh`. Edit the originals in `dsp/stock`, `dsp/src`, `dsp/include` and `assets`, never the copies.
+- `version.h`: the identity the update page shows is `FM-1_8660001`, so an AJ Box install can be told from FM1 Open (`FM-1_8000014`).
+
+**The desktop tests now run on those same files.** `dsp/stock/build.sh` builds FM1 Open's simulator with `firmware/app` as the FM-1 build has it. 485 checks pass, 64 of them new ones that press the simulator's keys, buttons and knobs (`dsp/stock/ajpanel.c`).
+
+**Decided while building (say if any is wrong)**
+
+- **Controls not in the PRD:** SELECT moves 4 BPM a click. KNOB 1 to 4 move 4 of 127 a click (32 clicks end to end). HOME and SAVE act when let go, so that holding both for parent mode does neither job. In parent mode SELECT picks the row, any of KNOB 1 to 4 changes it, HOME leaves, and everything else is ignored.
+- **Lights:** the playing loop's key is lit while its page is shown; a Dice pick blinks twice; effect buttons, PLAY, REC and ARP are lit while on; OCT− or OCT+ is lit when the octave is down or up; Fill, Fast and Mute are lit while held.
+- **Battery:** the readings that mean full and low are not known, so the battery picture and the sleepy screen are left out of this build. Parent mode shows the raw reading in its corner (`b 900`), to note at full charge and when nearly flat. Next to it, `l 0` counts how often the sound fell behind, which is the processor-load measurement S0 left open.
+- **No workbench transfers:** AJ Box does not answer the workbench's project, voice or sample pages. Firmware updates are not affected; M-VAVE's library handles those.
+
+**The one-shot sounds have to be put on the FM-1 separately, before the install.** They are 51 KiB, too big for the image, and they belong in the stock sample bank, which a firmware update leaves alone. `ajstock bank build/ajbox-oneshots.fm1s` writes them as a workbench sample bank file. While the FM-1 is still on FM1 Open V14: workbench, sample page, "Restore sample bank file", pick that file, write to device. This replaces all 8 sample slots. If it is skipped, the 5 drum loops that use the one-shots play the FM-1's own samples or nothing.
+
+**Found on the way**
+
+- Code the sound interrupt calls has to sit in the FM-1's fast memory, because it can run while flash is being written (`fm1.h`). AJ Box's mix effects and their tables are placed there (7.7 KiB), and the build was checked by listing every call they make: none leave fast memory. A 64-bit conversion that called a flash routine was changed to 32 bits. The interrupt also no longer asks the instrument for the playing step; `ajapp_tick` hands it over.
+- Pressing ARP while music was playing stopped the clock and never restarted it. Fixed (`ajapp_replay`), with a check.
+- AJ Box's saved records use sectors 4 to 11 of the user partition, where FM1 Open keeps project slots 5 to 12. The two test projects saved during S0 will be overwritten by the first heart or setting saved.
+
+**Not known until it runs on the FM-1**
+
+- Whether the processor keeps up with six engines, five mix effects and the screen (watch `l` in parent mode).
+- How fast the screen repaints. It sends one 16-row strip per pass of the control loop; the play screen needs 11 strips every 16th note.
+- Whether Bluetooth switches as asked, and whether the mix effects glitch when a knob changes them mid-block.
+- The save gap against PRD rule 10, still unmeasured.
+
+**The old engine's build** (`dsp/build.ps1`) compiles FM1 Open's `fm_factory.c`, which this firmware branch no longer has, so it does not build while the submodule is on `ajbox`. Its 6,008 checks last passed before this step. It is not what goes on the FM-1.
+
 ## What I don't know yet, and how I'll find out
 
 1. **Does a pattern swap click or stall?** Edits briefly hold the audio gate. Test on the desktop first, then on the first device build.

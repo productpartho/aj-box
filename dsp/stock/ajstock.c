@@ -12,6 +12,7 @@
  *   ajstock tour <dir>             key 1 of every page through the 7 moods, 2 bars each
  *   ajstock demos <dir>            the controls: pages, effects, held keys, kits ...
  *   ajstock oneshots <dir>         the 8 synthesized pad sounds as WAVs
+ *   ajstock bank <file.fm1s>       the same 8 sounds as a sample bank file for FM1 Open's workbench
  *   ajstock screens <dir>          every screen as a 240 x 240 PNG, and one sheet of them all
  *   ajstock levels <file>          measure every loop alone and write the track
  *                                  volumes that put drums and melodies on target */
@@ -91,16 +92,15 @@ static int wav_open;
 static double peak;
 static const double BAR_BLOCKS = 4.0 * 60.0 / AJAPP_BPM_DEFAULT * FM1_SAMPLE_RATE / FM1_BLOCK_FRAMES;
 
-/* One audio block: the control side ticks, the instrument renders, AJ Box's
- * mix effects run, as on the device. */
+/* One audio block: the control side ticks and the instrument renders,
+ * AJ Box's mix effects included, as on the device. */
 static void block(void)
 {
     ajapp_tick();
     const float *out = sim_render();
-    int32_t q[FM1_BLOCK_WORDS];
+    int32_t q[FM1_BLOCK_WORDS];         /* the mix effects ran in the output stage (firmware/app/audio_output.c) */
     int16_t pcm[FM1_BLOCK_WORDS];
     for (unsigned i = 0; i < FM1_BLOCK_WORDS; ++i) q[i] = (int32_t)lrintf(out[i] * 8388608.0f);
-    ajapp_audio(q, FM1_BLOCK_FRAMES);
     for (unsigned i = 0; i < FM1_BLOCK_WORDS; ++i) {
         double a = fabs(q[i] / 8388608.0);
         if (a > peak) peak = a;
@@ -545,12 +545,23 @@ int main(int argc, char **argv)
             ajb_wav_close(&w);
             printf("%s  %.2f s\n", path, frames / 32000.0);
         }
+        unsigned bank_bytes;
+        (void)oneshot_bank(&bank_bytes);
+        printf("as a sample bank: %u bytes\n", bank_bytes);
+        return 0;
+    }
+    if (argc >= 3 && !strcmp(argv[1], "bank")) {              /* the 8 one-shots as a workbench sample bank file */
+        unsigned bytes;
+        const uint8_t *bank = oneshot_bank(&bytes);
+        FILE *f = fopen(argv[2], "wb");
+        if (!f || fwrite(bank, 1, bytes, f) != bytes || fclose(f)) { fprintf(stderr, "cannot write %s\n", argv[2]); return 1; }
+        printf("%s  %u bytes\n", argv[2], bytes);
         return 0;
     }
     if (argc >= 3 && !strcmp(argv[1], "screens")) { screens(argv[2]); return 0; }
     if (argc >= 3 && !strcmp(argv[1], "levels"))
         return levels(argv[2], argc > 3 ? atof(argv[3]) : -12.0, argc > 4 ? atof(argv[4]) : -15.0);
     fprintf(stderr, "usage: ajstock pair <drum> <melody> <out.wav> [bars] [mood] | page <n> <dir> | all <dir>\n"
-                    "       | tour <dir> | demos <dir> | oneshots <dir> | screens <dir> | levels <volumes.inc> [drum dBFS] [melody dBFS]\n");
+                    "       | tour <dir> | demos <dir> | oneshots <dir> | bank <file.fm1s> | screens <dir> | levels <volumes.inc> [drum dBFS] [melody dBFS]\n");
     return 2;
 }

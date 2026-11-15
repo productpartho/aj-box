@@ -4,6 +4,7 @@
  * run in FM1 Open's simulator: PRD "Playback rules" and "Control map". */
 #define main ajstock_main
 #include "ajstock.c"
+#include "ajpanel.h"
 #undef main
 
 static unsigned checks, failures;
@@ -651,6 +652,175 @@ static void test_parent(void)
     CHECK(now().slot[0] == 1 && now().waiting[0] == -1, "instant swaps should be back");
 }
 
+/* ---- the panel: real keys, buttons and knobs (PRD "Control map") ---- */
+
+void sim_control(unsigned kind, unsigned index, int value);
+const uint8_t *sim_state(void);
+static void button(unsigned b, int down) { sim_control(0, b, down); block(); }
+static void key(unsigned k, int down) { sim_control(1, k, down); block(); }
+static void tap_button(unsigned b) { button(b, 1); button(b, 0); }
+static void tap_key(unsigned k) { key(k, 1); key(k, 0); }
+static void turn(unsigned encoder, int clicks) { sim_control(2, encoder, clicks); block(); }
+static int light(unsigned index) { return sim_state()[168 + index]; }
+
+static void test_panel(void)
+{
+    enum { OCT_DOWN, OCT_UP, FX, SEL, ENV, LFO, EDIT, GLO, HOME, SAVE, ARP, SEQ, PLAY, REC };
+    enum { SELECT, ALGORITHM, KNOB1, KNOB2, KNOB3, KNOB4, PRESETS };
+    enum { KEY_LIGHT = 14 };
+    printf("the panel: keys, buttons, knobs and lights as on the FM-1\n");
+    fresh();
+    ajpanel_init();
+
+    /* White keys: F3 is drum loop 1, G4 is melody loop 1, G3 is drum loop 2. */
+    tap_key(0); tap_key(14);
+    CHECK(now().running && now().slot[0] == 0 && now().slot[1] == 0, "F3 and G4 should start the first pair: %d %d", now().slot[0], now().slot[1]);
+    CHECK(light(KEY_LIGHT + 0) && light(KEY_LIGHT + 14) && light(PLAY) && !light(KEY_LIGHT + 2), "the playing keys and PLAY should be lit");
+    tap_key(2);
+    CHECK(now().slot[0] == 1 && light(KEY_LIGHT + 2) && !light(KEY_LIGHT + 0), "G3 should swap to drum loop 2 and move the light");
+    tap_key(26);
+    CHECK(now().slot[1] == 7 && light(KEY_LIGHT + 26), "G5 should be melody loop 8");
+
+    /* Black keys: pages, held helpers, Dice, Finish. */
+    tap_key(3);
+    CHECK(now().view_page[0] == 1 && !light(KEY_LIGHT + 2), "G#3 should show drum page 2, where the playing key is not");
+    tap_key(1);
+    CHECK(now().view_page[0] == 0 && light(KEY_LIGHT + 2), "F#3 should go back a page");
+    tap_key(17); tap_key(15); tap_key(15);
+    CHECK(now().view_page[1] == 5, "A#4 then G#4 twice should wrap to melody page 6, got %u", now().view_page[1]);
+    tap_key(17);
+    key(5, 1);
+    CHECK(now().fill && light(KEY_LIGHT + 5), "A#3 held should be Fill, and lit");
+    key(5, 0);
+    CHECK(!now().fill && !light(KEY_LIGHT + 5), "Fill should end when let go");
+    key(20, 1); CHECK(now().fast, "C#5 held should be Fast"); key(20, 0);
+    key(8, 1); CHECK(now().muted[0] && !now().muted[1], "C#4 held should mute the drums"); key(8, 0);
+    key(22, 1); CHECK(now().muted[1], "D#5 held should mute the melody"); key(22, 0);
+    CHECK(!now().fast && !now().muted[0] && !now().muted[1], "helpers should all be off again");
+    int before = now().slot[0];
+    tap_key(10);
+    CHECK(now().slot[0] != before && now().view_page[0] == now().slot[0] / 8, "D#4 should be Dice for the drums");
+    before = now().slot[1];
+    tap_key(25);
+    CHECK(now().slot[1] != before, "F#5 should be Dice for the melody");
+
+    /* Effect buttons: five switch on and off with their lights; GLO works while held. */
+    for (unsigned k = 0; k < 5; ++k) {
+        tap_button(FX + k);
+        CHECK((now().effects >> k & 1) && light(FX + k), "effect button %u should switch its effect on and light up", k);
+    }
+    for (unsigned k = 0; k < 5; ++k) tap_button(FX + k);
+    CHECK(now().effects == 0 && !light(FX) && !light(EDIT), "pressing them again should switch them off");
+    button(GLO, 1);
+    CHECK(now().effects == 1U << AJAPP_FX_STUTTER && light(GLO), "GLO held should be Stutter");
+    button(GLO, 0);
+    CHECK(now().effects == 0, "Stutter should end when GLO is let go");
+
+    /* Knobs. KNOB 1's middle three clicks all mean clean. */
+    turn(KNOB1, 5);
+    CHECK(now().knob[AJAPP_KNOB_SWOOSH] == 84, "KNOB 1 five clicks right should be 84, got %u", now().knob[AJAPP_KNOB_SWOOSH]);
+    turn(KNOB1, -4);
+    CHECK(now().knob[AJAPP_KNOB_SWOOSH] == 64, "one click right of the middle should still be clean, got %u", now().knob[AJAPP_KNOB_SWOOSH]);
+    turn(KNOB1, -2);
+    CHECK(now().knob[AJAPP_KNOB_SWOOSH] == 64, "one click left of the middle should still be clean, got %u", now().knob[AJAPP_KNOB_SWOOSH]);
+    turn(KNOB1, -1);
+    CHECK(now().knob[AJAPP_KNOB_SWOOSH] == 56, "two clicks left should be 56, got %u", now().knob[AJAPP_KNOB_SWOOSH]);
+    turn(KNOB1, -40);
+    CHECK(now().knob[AJAPP_KNOB_SWOOSH] == 0, "KNOB 1 should stop at the end");
+    turn(KNOB2, 3); turn(KNOB3, -3); turn(KNOB4, 20);
+    CHECK(now().knob[AJAPP_KNOB_AMOUNT] == 76 && now().knob[AJAPP_KNOB_SPEED] == 52 && now().knob[AJAPP_KNOB_BALANCE] == 127,
+          "KNOB 2, 3 and 4: %u %u %u", now().knob[AJAPP_KNOB_AMOUNT], now().knob[AJAPP_KNOB_SPEED], now().knob[AJAPP_KNOB_BALANCE]);
+    turn(KNOB4, -16);
+    turn(SELECT, 3);
+    CHECK(now().bpm == 122, "SELECT three clicks should be 122 BPM, got %u", now().bpm);
+    turn(SELECT, -100);
+    CHECK(now().bpm == AJAPP_BPM_MIN, "SELECT should stop at 30 BPM, got %u", now().bpm);
+    turn(SELECT, 100);
+    CHECK(now().bpm == AJAPP_BPM_MAX, "SELECT should stop at 200 BPM, got %u", now().bpm);
+    turn(SELECT, -22);
+    turn(PRESETS, 1);
+    CHECK(now().kit == 0, "PRESETS should choose the first kit, got %u", now().kit);
+    turn(PRESETS, -1);
+    CHECK(now().kit == 11, "PRESETS back should wrap to the last kit, got %u", now().kit);
+    turn(ALGORITHM, 1);
+    CHECK(now().instrument == 0, "ALGORITHM should choose the first instrument, got %u", now().instrument);
+    turn(ALGORITHM, -1);
+    CHECK(now().instrument == 19, "ALGORITHM back should wrap to the last instrument, got %u", now().instrument);
+
+    /* OCT buttons: one moves the octave when let go, both reset, held with ALGORITHM they choose the Mood. */
+    button(OCT_UP, 1);
+    CHECK(now().octave == 0, "the octave should wait for the button to be let go");
+    button(OCT_UP, 0);
+    CHECK(now().octave == 1 && light(OCT_UP) && !light(OCT_DOWN), "OCT+ should go up an octave and light");
+    button(OCT_DOWN, 1); button(OCT_UP, 1);
+    CHECK(now().octave == 0, "both OCT buttons should reset the octave");
+    button(OCT_DOWN, 0); button(OCT_UP, 0);
+    CHECK(now().octave == 0, "letting go after a reset should not move the octave");
+    button(OCT_DOWN, 1); turn(ALGORITHM, 1); turn(ALGORITHM, 1); button(OCT_DOWN, 0);
+    CHECK(now().mood == 2 && now().octave == 0 && now().instrument == 19, "OCT- held with ALGORITHM should choose the Mood only: mood %u", now().mood);
+    button(OCT_UP, 1); turn(ALGORITHM, -1); turn(ALGORITHM, -1); button(OCT_UP, 0);
+    CHECK(now().mood == 0, "and back to Happy, got %u", now().mood);
+
+    /* SAVE and SEQ: hearts. HOME: clean slate. */
+    tap_button(FX);
+    tap_button(SAVE);
+    CHECK(now().hearts == 1, "SAVE should keep a heart");
+    tap_button(SEQ);
+    CHECK(now().heart == 1, "SEQ should go to the heart");
+    tap_button(HOME);
+    CHECK(now().effects == 0 && now().knob[AJAPP_KNOB_SWOOSH] == 64 && !light(FX), "HOME should switch every effect off and clean the filter");
+    turn(KNOB1, 1);
+    CHECK(now().knob[AJAPP_KNOB_SWOOSH] == 64, "after HOME, KNOB 1 should start from the middle again, got %u", now().knob[AJAPP_KNOB_SWOOSH]);
+    turn(KNOB1, -1);
+
+    /* HOME + SAVE held 2 s: parent mode. Neither button does its own job. */
+    tap_button(FX);
+    button(HOME, 1); button(SAVE, 1);
+    wait_ms(1500);
+    CHECK(!now().parent_open, "parent mode should not open before 2 s");
+    wait_ms(700);
+    CHECK(now().parent_open, "HOME + SAVE held 2 s should open parent mode");
+    button(SAVE, 0); button(HOME, 0);
+    CHECK(now().parent_open && now().hearts == 1 && (now().effects & 1), "letting go should not save a heart or clear the effects");
+    CHECK(!light(FX) && !light(PLAY), "the lights should be off in parent mode");
+    int drum = now().slot[0];
+    tap_key(4); tap_button(FX); turn(SELECT, 1);
+    CHECK(now().slot[0] == drum && (now().effects & 1) && now().parent_row == AJAPP_PARENT_SWAP, "in parent mode only SELECT and the knobs should work");
+    ajapp_parent_t p;
+    turn(KNOB3, 1);
+    ajapp_parent_get(&p);
+    CHECK(p.swap_on_bar == 1 && now().parent_result == AJAPP_PARENT_SAVED, "a knob should change the chosen setting");
+    turn(KNOB1, -1);
+    ajapp_parent_get(&p);
+    CHECK(p.swap_on_bar == 0, "and change it back");
+    tap_button(HOME);
+    CHECK(!now().parent_open && (now().effects & 1), "HOME should leave parent mode without clearing anything");
+    tap_button(HOME);
+    CHECK(now().effects == 0, "and HOME works again afterwards");
+
+    /* REC, ARP, PLAY and Finish. */
+    tap_button(REC);
+    CHECK(now().recording && light(REC), "REC should start a jam and light");
+    tap_key(4);
+    wait_ms(400);
+    tap_button(REC);
+    CHECK(!now().recording && now().has_jam && !light(REC), "REC again should keep the jam");
+    tap_button(ARP);
+    CHECK(now().replaying && light(ARP), "ARP should replay it");
+    wait_ms(200);
+    CHECK(now().running && now().slot[0] >= 0, "the replay should be playing: running %u, drums %d", now().running, now().slot[0]);
+    tap_button(ARP);
+    CHECK(!now().replaying, "ARP again should stop the replay");
+    tap_button(PLAY); block(); block();
+    CHECK(!now().running && !light(PLAY), "PLAY/STOP should stop");
+    tap_button(PLAY); block(); block();
+    CHECK(now().running && now().slot[0] >= 0, "PLAY/STOP again should bring the pair back");
+    tap_key(13);
+    CHECK(now().finishing, "F#4 should be Finish");
+    for (unsigned n = 0; n < 4000 && now().running; ++n) block();
+    CHECK(!now().running, "and Finish should end the music");
+}
+
 int main(void)
 {
     test_keys();
@@ -662,6 +832,7 @@ int main(void)
     test_library();
     test_screens();
     test_parent();
+    test_panel();
     printf("%u checks, %u failed\n", checks, failures);
     return failures != 0;
 }

@@ -63,6 +63,7 @@ static struct {
     uint8_t dirty;
     ajapp_parent_t parent;
     uint8_t parent_open, parent_row, parent_result, bluetooth_due;
+    volatile uint8_t audio_step;        /* the playing step, for the sound interrupt */
     int16_t swap_to[AJAPP_SIDES];       /* next-bar swaps: the loop waiting, NONE when none */
     uint8_t swap_step[AJAPP_SIDES];
     struct { uint32_t off_at; uint8_t note; } chime[4];
@@ -693,6 +694,9 @@ void ajapp_replay(void)
     if (running) ajapp_play_stop();
     --app.quiet;
     snapshot_apply(&app.jam.start, 1);
+    /* The stop above has not reached the instrument yet, so the loops just put back
+     * did not start the clock themselves: start it, from the top. */
+    if (running && (app.slot[AJAPP_DRUMS] != NONE || app.slot[AJAPP_MELODY] != NONE)) transport(0xfa);
     app.replaying = 1;
     app.replay_at = 0;
     app.replay_began = fm1_millis();
@@ -782,6 +786,7 @@ void ajapp_tick(void)
     if (app.dirty && !app.recording && !app.replaying && ms - app.changed_at >= 30000U) (void)ajapp_save_memory();
     unsigned running, step;
     position(&running, &step);
+    app.audio_step = (uint8_t)step;
     for (unsigned side = 0; side < AJAPP_SIDES; ++side)
         if (app.stopping[side] && (!running || reached(step, app.stop_step[side]))) clear_side(side);
     for (unsigned side = 0; side < AJAPP_SIDES; ++side)
@@ -801,12 +806,13 @@ void ajapp_tick(void)
 }
 
 /* The finished mix: Wobble, Wah, Crunch, Stutter and the Swoosh filter. */
-void ajapp_audio(int32_t *block, unsigned frames)
+/* Called from the sound interrupt: on the FM-1 it must not call anything kept in
+ * flash, so the step comes from ajapp_tick, not from the instrument. */
+FM1_AUDIO_CODE void ajapp_audio(int32_t *block, unsigned frames)
 {
     static int32_t left[AJB_BLOCK], right[AJB_BLOCK], mono[AJB_BLOCK];
-    if (frames != AJB_BLOCK) return;
-    unsigned running, step;
-    position(&running, &step);
+    if (frames != AJB_BLOCK || !app.lib) return;
+    const unsigned step = app.audio_step;
     for (unsigned i = 0; i < AJB_BLOCK; ++i) {         /* the effects work a bit above Q23 */
         left[i] = block[2 * i] * 2; right[i] = block[2 * i + 1] * 2;
         mono[i] = (left[i] >> 1) + (right[i] >> 1);
@@ -822,6 +828,12 @@ void ajapp_audio(int32_t *block, unsigned frames)
 void ajapp_init(const ajb_library_t *library)
 {
     static const uint8_t source[T_USED] = {GROOVE_808, GROOVE_SAMPLE, GROOVE_DX7, GROOVE_PSG, GROOVE_PLUCK, GROOVE_303};
+    if (app.lib)                        /* started before: let go of a chime that is still sounding */
+        for (unsigned i = 0; i < 4; ++i)
+            if (app.chime[i].note) {
+                uint8_t off[3] = {(uint8_t)(0x80 | app.chime_channel), app.chime[i].note, 0};
+                (void)fm1_midi_post(off, 3);
+            }
     memset(&app, 0, sizeof app);
     app.lib = library;
     app.slot[0] = app.slot[1] = app.last[0] = app.last[1] = NONE;
@@ -877,6 +889,7 @@ void ajapp_status(ajapp_status_t *st)
     st->running = (uint8_t)running; st->step = (uint8_t)step;
     st->finishing = app.finishing; st->fill = app.fill; st->fast = app.fast;
     st->effects = app.effects; st->mood = app.mood;
+    memcpy(st->knob, app.knob, sizeof st->knob);
     st->kit = (uint8_t)(app.kit == NONE ? 255 : app.kit);
     st->instrument = (uint8_t)(app.instrument == NONE ? 255 : app.instrument);
     st->octave = app.octave; st->bpm = (uint16_t)app.bpm;

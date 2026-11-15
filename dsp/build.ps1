@@ -26,6 +26,7 @@ if (!$cc) {
 }
 if (!$cc -or !(Test-Path -LiteralPath $cc)) { throw 'clang not found: winget install MartinStorsjo.LLVM-MinGW.UCRT, or set AJB_CC.' }
 if (!(Test-Path -LiteralPath (Join-Path $fw 'third_party/synth/drum808.c'))) { throw 'firmware/ submodule is missing: git submodule update --init' }
+if (!(Test-Path -LiteralPath (Join-Path $fw 'app/fm_factory.c'))) { throw 'This old-engine build needs FM1 Open''s own app files (firmware on its main branch). The firmware is on AJ Box''s branch; use dsp/stock/build.sh.' }
 
 function Run($program, [string[]]$arguments) {
     # Compiler warnings go to stderr; let them through and judge by exit code.
