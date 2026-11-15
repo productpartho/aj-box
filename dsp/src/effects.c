@@ -28,7 +28,9 @@ void ajb_fx_init(ajb_fx_t *fx)
         dsp_svf_set(&fx->swoosh_hp[c], fx->swoosh_hp_hz, 0.8f);
     }
     dsp_svf_set(&fx->wah, 800.0f, 2.5f);
+#ifndef AJB_FX_STOCK_SENDS      /* on the stock instrument Echo and Sparkle are its own delay and reverb */
     fm1_fx_clear();
+#endif
 }
 
 /* Samples in one Stutter repeat: the speed knob picks 1/8, 1/16 or 1/32,
@@ -118,7 +120,11 @@ void ajb_fx_process(ajb_fx_t *fx, const int32_t *mono, int32_t *left, int32_t *r
     if (delay >= FM1_FX_DELAY_SAMPLES) delay = FM1_FX_DELAY_SAMPLES - 1U;
     float feedback = 0.15f + 0.45f * echo;
     float decay = 0.88f - 0.33f * knob(fx->speed[AJB_FX_SPARKLE]);
+#ifndef AJB_FX_STOCK_SENDS
     fm1_fx_set((int32_t)(decay * FM_Q30_ONE), (int32_t)(feedback * FM_Q30_ONE), FM_Q30_ONE, delay);
+#else
+    (void)decay; (void)feedback;
+#endif
     float echo_send = 0.25f + 0.35f * echo, sparkle_send = 0.5f * sparkle;
 
     unsigned per_beat;
@@ -213,7 +219,9 @@ void ajb_fx_process(ajb_fx_t *fx, const int32_t *mono, int32_t *left, int32_t *r
         fx->dly[i] = (int32_t)(q * echo_send * w[AJB_FX_ECHO]);
         fx->rev[i] = (int32_t)(q * sparkle_send * w[AJB_FX_SPARKLE]);
     }
+#ifndef AJB_FX_STOCK_SENDS
     fm1_fx_render(left, right, fx->rev, fx->dly);
+#endif
 
     /* Swoosh (KNOB 1), on everything including echoes. */
     float lp_target, hp_target;
