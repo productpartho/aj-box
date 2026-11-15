@@ -307,6 +307,118 @@ static void test_library(void)
     printf("  pairs peak between %.2f and %.2f dBFS\n", low, high);
 }
 
+/* Switch off and on again: the flash stays, everything else starts fresh. */
+static void power_cycle(void)
+{
+    sim_boot(0);
+    ajapp_init(&ajb_factory_library);
+    peak = 0; played = 0;
+}
+static void test_memory(void)
+{
+    printf("hearts, the jam and memory survive switching off; bad data is ignored\n");
+    fresh();
+    CHECK(now().hearts == 0 && !now().has_jam, "a fresh box should have no hearts and no jam");
+    CHECK(ajapp_next_heart() == 0, "SEQ with no hearts should do nothing");
+    ajapp_pick(AJAPP_DRUMS, 3); ajapp_pick(AJAPP_MELODY, 12);
+    ajapp_set_kit(7); ajapp_effect(AJAPP_FX_ECHO, 1); ajapp_set_bpm(96);
+    blocks(20);
+    CHECK(ajapp_save_heart() == 1, "the first heart should be number 1");
+    ajapp_pick(AJAPP_DRUMS, 20); ajapp_pick(AJAPP_MELODY, 33);
+    ajapp_effect(AJAPP_FX_ECHO, 0); ajapp_set_mood(3); ajapp_set_bpm(130);
+    blocks(20);
+    CHECK(ajapp_save_heart() == 2 && now().hearts == 2, "the second heart should be number 2");
+    CHECK(ajapp_next_heart() == 1, "SEQ should go to heart 1");
+    blocks(20);
+    CHECK(now().slot[0] == 3 && now().slot[1] == 12 && now().kit == 7 && now().bpm == 96 && (now().effects & 1),
+          "heart 1 should bring back its pair, kit, tempo and Echo: %d %d kit %u bpm %u fx %u", now().slot[0], now().slot[1],
+          now().kit, now().bpm, now().effects);
+    CHECK(ajapp_next_heart() == 2, "SEQ should go on to heart 2");
+    blocks(20);
+    CHECK(now().slot[0] == 20 && now().slot[1] == 33 && now().bpm == 130 && !(now().effects & 1), "heart 2 came back wrong");
+    for (unsigned i = 0; i < 7; ++i) { ajapp_set_bpm(100 + i); CHECK(ajapp_save_heart() == (i < 6 ? i + 3 : 1), "heart %u", i + 3); }
+    CHECK(now().hearts == 8, "there should be 8 hearts, the ninth replacing the oldest");
+
+    /* What power-on brings back. */
+    ajapp_pick(AJAPP_DRUMS, 9); ajapp_pick(AJAPP_MELODY, 41);
+    ajapp_page_step(AJAPP_DRUMS, 2); ajapp_set_bpm(88); ajapp_set_mood(2); ajapp_knob(AJAPP_KNOB_SWOOSH, 30);
+    blocks(20);
+    CHECK(ajapp_save_memory() == 0, "memory should save");
+    power_cycle();
+    CHECK(now().hearts == 8, "hearts should survive switching off: %u", now().hearts);
+    CHECK(!now().running && now().slot[0] == -1, "after switching on nothing should play by itself");
+    CHECK(now().bpm == 88 && now().mood == 2 && now().view_page[0] == 2, "tempo, mood and page should come back: %u %u %u",
+          now().bpm, now().mood, now().view_page[0]);
+    ajapp_play_stop();
+    blocks(20);
+    CHECK(now().running && now().slot[0] == 9 && now().slot[1] == 41, "PLAY/STOP should bring back the last pair: %d %d",
+          now().slot[0], now().slot[1]);
+    CHECK(ajapp_next_heart() >= 1, "a heart saved before switching off should still work");
+
+    /* Rule 10: saved by itself 30 s after the last change. */
+    ajapp_set_bpm(77);
+    blocks(31 * FM1_SAMPLE_RATE / FM1_BLOCK_FRAMES);
+    power_cycle();
+    CHECK(now().bpm == 77, "a change should be saved by itself after 30 s, tempo %u", now().bpm);
+
+    /* A jam: record, keep, switch off, replay. */
+    fresh();
+    CHECK(ajapp_record() == 1 && now().recording, "REC should start recording");
+    ajapp_pick(AJAPP_DRUMS, 0); ajapp_pick(AJAPP_MELODY, 2);
+    blocks(32 * STEP_BLOCKS);
+    ajapp_effect(AJAPP_FX_WOBBLE, 1);
+    blocks(16 * STEP_BLOCKS);
+    ajapp_pick(AJAPP_MELODY, 5);
+    blocks(16 * STEP_BLOCKS);
+    ajapp_play_stop();
+    blocks(8 * STEP_BLOCKS);
+    CHECK(ajapp_record() == 0 && now().has_jam && !now().recording, "REC again should stop and keep the jam");
+    power_cycle();
+    CHECK(now().has_jam, "the jam should survive switching off");
+    ajapp_replay();
+    CHECK(now().replaying, "ARP should start the replay");
+    blocks(40 * STEP_BLOCKS);
+    CHECK(now().running && now().slot[0] == 0 && now().slot[1] == 2 && (now().effects & (1U << AJAPP_FX_WOBBLE)),
+          "half way through, the replay should be on the first pair with Wobble: %d %d fx %u", now().slot[0], now().slot[1],
+          now().effects);
+    blocks(20 * STEP_BLOCKS);
+    CHECK(now().slot[1] == 5, "the replay should make the melody swap, has %d", now().slot[1]);
+    blocks(30 * STEP_BLOCKS);
+    CHECK(!now().replaying && !now().running, "the replay should end where the jam ended");
+
+    /* Bad data: damage the newest copy of the hearts, then both. */
+    fresh();
+    ajapp_pick(AJAPP_DRUMS, 1);
+    CHECK(ajapp_save_heart() == 1 && ajapp_save_heart() == 2, "two hearts for the damage test");
+    sim_flash()[5 * 4096 + 40] ^= 0x5a;                 /* hearts, second copy (the newer) */
+    power_cycle();
+    CHECK(now().hearts == 1, "a damaged copy should fall back to the older one: %u hearts", now().hearts);
+    sim_flash()[4 * 4096 + 40] ^= 0x5a;
+    power_cycle();
+    CHECK(now().hearts == 0, "with both copies damaged there should be no hearts, not a crash: %u", now().hearts);
+    memset(sim_flash() + 10 * 4096, 0, 64);             /* memory record: garbage */
+    power_cycle();
+    CHECK(now().bpm == AJAPP_BPM_DEFAULT && !now().running, "garbage memory should give the defaults");
+
+    /* Parent settings. */
+    ajapp_parent_t parent = {96, 1, 1, 0}, read;
+    CHECK(ajapp_parent_set(&parent) == 0, "parent settings should save");
+    power_cycle();
+    ajapp_parent_get(&read);
+    CHECK(read.default_bpm == 96 && read.swap_on_bar == 1 && now().bpm == 96, "parent tempo should come back: %u", now().bpm);
+    parent.default_bpm = 250;
+    CHECK(ajapp_parent_set(&parent) != 0, "an out-of-range parent tempo should be refused");
+
+    /* Hello chime. */
+    fresh();
+    ajapp_chime();
+    double ringing = energy(FM1_SAMPLE_RATE / FM1_BLOCK_FRAMES);
+    blocks(3 * FM1_SAMPLE_RATE / FM1_BLOCK_FRAMES);
+    double after = energy(FM1_SAMPLE_RATE / FM1_BLOCK_FRAMES / 2);
+    CHECK(ringing > 0.01 && after < ringing / 100.0 && !now().running, "the chime should sound for about a second: %.4f then %.5f",
+          ringing, after);
+}
+
 int main(void)
 {
     test_keys();
@@ -314,6 +426,7 @@ int main(void)
     test_holds_finish();
     test_sounds();
     test_effects();
+    test_memory();
     test_library();
     printf("%u checks, %u failed\n", checks, failures);
     return failures != 0;

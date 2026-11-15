@@ -41,6 +41,21 @@ void ajapp_set_instrument(unsigned instrument);
 void ajapp_set_octave(int octave);                   /* -2..+2 */
 void ajapp_set_mood(unsigned mood);
 
+/* Favourites, the jam and memory (PRD "Buttons and knobs", "Playback rules" 10).
+ * Each returns what the screen may show: nothing counts as saved unless the
+ * flash read-back matched (build plan "Saving and update-mode rules"). */
+enum { AJAPP_HEARTS = 8, AJAPP_JAM_EVENTS = 1000, AJAPP_JAM_SECONDS = 120 };
+unsigned ajapp_save_heart(void);     /* SAVE: the heart's number 1..8, or 0 when it could not be saved */
+unsigned ajapp_next_heart(void);     /* SEQ: jump to the next heart; its number, or 0 when there are none */
+int ajapp_record(void);              /* REC: start, or stop and keep; 1 recording, 0 kept, -1 not saved */
+void ajapp_replay(void);             /* ARP: play her last jam; again stops it */
+int ajapp_save_memory(void);         /* what power-on brings back; 0 saved */
+void ajapp_chime(void);              /* the hello chime */
+/* Parent mode settings; set returns 0 when saved. */
+typedef struct { uint8_t default_bpm, swap_on_bar, bluetooth, reserved; } ajapp_parent_t;
+void ajapp_parent_get(ajapp_parent_t *settings);
+int ajapp_parent_set(const ajapp_parent_t *settings);
+
 typedef struct {
     int8_t slot[AJAPP_SIDES];           /* playing loop as page * 8 + slot, -1 none */
     uint8_t view_page[AJAPP_SIDES];
@@ -50,6 +65,9 @@ typedef struct {
     uint8_t effects, mood, kit, instrument;
     int8_t octave;
     uint16_t bpm;
+    uint8_t recording, replaying;
+    uint8_t hearts, heart;              /* how many are saved; the one SEQ is on, 1..8, 0 none */
+    uint8_t has_jam;
 } ajapp_status_t;
 void ajapp_status(ajapp_status_t *status);
 

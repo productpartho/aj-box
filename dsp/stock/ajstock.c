@@ -281,6 +281,38 @@ static void demos(const char *dir)
     until(4, 0); ajapp_play_stop();
     until(7, EARLY); ajapp_finish(); until(10, 0);
     finish(path);
+
+    /* SAVE three hearts from three pages, then SEQ steps through them. */
+    start(FILE_NAME("11-hearts"));
+    ajapp_pick(AJAPP_DRUMS, 0); ajapp_pick(AJAPP_MELODY, 0);
+    until(1, 0); ajapp_save_heart();
+    until(2, EARLY); ajapp_pick(AJAPP_DRUMS, 16); ajapp_pick(AJAPP_MELODY, 16);
+    until(3, 0); ajapp_save_heart();
+    until(4, EARLY); ajapp_pick(AJAPP_DRUMS, 32); ajapp_pick(AJAPP_MELODY, 32);
+    until(5, 0); ajapp_save_heart();
+    for (unsigned i = 0; i < 4; ++i) { until(6 + 2 * i, EARLY); ajapp_next_heart(); }
+    until(14, EARLY); ajapp_finish(); until(17, 0);
+    finish(path);
+
+    /* REC a jam (Echo, a melody swap, a Fill), stop, then ARP plays it back. */
+    start(FILE_NAME("12-jam-replay"));
+    ajapp_record();
+    ajapp_pick(AJAPP_DRUMS, 0); ajapp_pick(AJAPP_MELODY, 2);
+    until(2, EARLY); ajapp_effect(AJAPP_FX_ECHO, 1);
+    until(4, EARLY); ajapp_pick(AJAPP_MELODY, 4);
+    until(5, EARLY); ajapp_hold(AJAPP_HOLD_FILL, 1);
+    until(6, EARLY); ajapp_hold(AJAPP_HOLD_FILL, 0); ajapp_effect(AJAPP_FX_ECHO, 0);
+    until(7, EARLY); ajapp_play_stop();
+    until(7.5, 0); ajapp_record();
+    until(8, 0); ajapp_replay();
+    until(16, 0);
+    finish(path);
+
+    /* The hello chime on its own. */
+    start(FILE_NAME("00-chime"));
+    ajapp_chime();
+    until(1, 0);
+    finish(path);
 #undef FILE_NAME
 }
 

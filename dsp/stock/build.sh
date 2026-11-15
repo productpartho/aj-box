@@ -12,7 +12,7 @@ FLAGS="-std=c11 -O2 -fwrapv -fno-fast-math -ffp-contract=off -DFM1_HOST_TEST -DF
   -Wno-unused-function -Wno-array-parameter -Iweb/engine -Iweb/synth -Ithird_party/synth -Isdk/include -Iapp/synth
   -Iapp -I$R/dsp/host -I$R/dsp/include -I$R/dsp/stock -I$R/dsp/src"
 SOURCES="app/*.c web/engine/*.c web/synth/*.c third_party/synth/*.c $R/dsp/host/wav.c $R/assets/loops.c
-  $R/assets/samples/*.c $R/dsp/stock/ajapp.c $R/dsp/stock/oneshots.c $R/dsp/src/effects.c"
+  $R/assets/samples/*.c $R/dsp/stock/ajapp.c $R/dsp/stock/ajstore.c $R/dsp/stock/oneshots.c $R/dsp/src/effects.c"
 "$CC" $FLAGS $SOURCES $R/dsp/stock/ajstock.c -o $R/dsp/build/ajstock.exe -lm || exit 1
 "$CC" $FLAGS $SOURCES $R/dsp/stock/test_app.c -o $R/dsp/build/ajstock_tests.exe -lm || exit 1
 if [ "$1" = "test" ]; then $R/dsp/build/ajstock_tests.exe || exit 1; fi

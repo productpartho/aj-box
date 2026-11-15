@@ -10,6 +10,8 @@
 #include "drum808.h"
 #include "fm_patch.h"
 #include "effects.h"
+#include "ajstore.h"
+#include "fm1.h"
 #include <string.h>
 
 /* Track use (docs/s2-design.md). Tracks 7 and 8 stay empty. */
@@ -40,7 +42,30 @@ static struct {
     unsigned melody_track, bpm, dice;
     int debug_volume;
     ajb_fx_t fx;
+
+    /* Everything a heart, a jam's start or power-on brings back: 32 bytes, saved as they are. */
+    struct snapshot {
+        uint8_t drum, melody;           /* page * 8 + slot, 255 = silent */
+        uint8_t view_page[AJAPP_SIDES];
+        uint8_t kit, instrument;        /* 255 = the loop's own */
+        uint8_t effects, last_effect;
+        uint8_t knob[AJAPP_KNOBS];
+        uint8_t fx_amount[AJAPP_EFFECTS], fx_speed[AJAPP_EFFECTS];
+        uint8_t bpm, mood, octave;      /* octave + 2 */
+        uint8_t reserved[5];
+    } memory;
+    struct { struct snapshot heart[AJAPP_HEARTS]; uint8_t count, newest; uint8_t reserved[2]; } hearts;
+    uint8_t heart_at;                   /* the heart SEQ is on, 0 = none yet */
+    struct { struct snapshot start; uint16_t count, length; uint32_t event[AJAPP_JAM_EVENTS]; } jam;
+    uint8_t has_jam, recording, replaying, quiet;
+    uint32_t jam_began, replay_began, changed_at;
+    uint16_t replay_at;
+    uint8_t dirty;
+    ajapp_parent_t parent;
+    struct { uint32_t off_at; uint8_t note; } chime[4];
+    uint8_t chime_channel;
 } app;
+_Static_assert(sizeof(struct snapshot) == 32, "snapshot layout");
 
 /* ---- the stock instrument's position ---- */
 
@@ -320,9 +345,25 @@ static void clear_side(unsigned side)
 
 /* ---- controls ---- */
 
+/* Every control is one of these, so a jam can record and replay them: 10 ms
+ * ticks since the jam began in the top 14 bits, then type, a and b. */
+enum { C_PICK, C_PAGE, C_HOLD, C_FINISH, C_PLAY_STOP, C_HOME, C_EFFECT, C_KNOB, C_BPM, C_KIT, C_INSTRUMENT, C_OCTAVE,
+       C_MOOD, C_HEART };
+static void note(unsigned type, unsigned a, unsigned b)
+{
+    if (app.quiet) return;
+    app.changed_at = fm1_millis();
+    app.dirty = 1;
+    if (!app.recording || app.replaying || app.jam.count >= AJAPP_JAM_EVENTS) return;
+    uint32_t tick = (fm1_millis() - app.jam_began) / 10U;
+    if (tick > 16383U) tick = 16383U;
+    app.jam.event[app.jam.count++] = tick << 18 | (type & 31U) << 13 | (a & 31U) << 8 | (b & 255U);
+}
+
 void ajapp_pick(unsigned side, unsigned index)
 {
     if (!app.lib || side >= AJAPP_SIDES || index >= app.lib->page_count * AJB_SLOTS) return;
+    note(C_PICK, side, index);
     unsigned running, step;
     position(&running, &step);
     if (running && app.slot[side] == (int)index && !app.stopping[side]) {
@@ -341,6 +382,7 @@ void ajapp_page_step(unsigned side, int delta)
     if (!app.lib || side >= AJAPP_SIDES) return;
     int pages = (int)app.lib->page_count;
     app.view_page[side] = (uint8_t)(((int)app.view_page[side] + delta % pages + pages) % pages);
+    note(C_PAGE, side, app.view_page[side]);
 }
 void ajapp_dice(unsigned side)
 {
@@ -348,12 +390,15 @@ void ajapp_dice(unsigned side)
     unsigned total = app.lib->page_count * AJB_SLOTS, index;
     do { app.dice = app.dice * 1664525U + 1013904223U; index = (app.dice >> 8) % total; } while ((int)index == app.slot[side]);
     app.view_page[side] = (uint8_t)(index / AJB_SLOTS);
+    note(C_PAGE, side, app.view_page[side]);
+    note(C_PICK, side, index);          /* a replayed jam plays the same surprise */
     if (app.stopping[side]) app.stopping[side] = 0;
     start_side(side, (int)index);
 }
 void ajapp_hold(unsigned hold, int down)
 {
     unsigned on = down != 0;
+    if (hold < AJAPP_HOLDS && hold != AJAPP_HOLD_STUTTER) note(C_HOLD, hold, on);
     switch (hold) {
     case AJAPP_HOLD_FILL:
         if (app.fill != on) { app.fill = (uint8_t)on; write_drums(); }
@@ -380,6 +425,7 @@ void ajapp_finish(void)
     unsigned running, step;
     position(&running, &step);
     if (!running || app.finishing || (app.slot[AJAPP_DRUMS] == NONE && app.slot[AJAPP_MELODY] == NONE)) return;
+    note(C_FINISH, 0, 0);
     unsigned bar = (step / 16U + 1U) * 16U % STEPS, keep = (bar - step) & (STEPS - 1);
     struct groove_step cells[STEPS];
     memset(cells, 0, sizeof cells);
@@ -405,6 +451,7 @@ void ajapp_finish(void)
 }
 void ajapp_play_stop(void)
 {
+    note(C_PLAY_STOP, 0, 0);
     unsigned running, step;
     position(&running, &step);
     if (running) {
@@ -421,6 +468,7 @@ void ajapp_play_stop(void)
 void ajapp_effect(unsigned effect, int on)
 {
     if (effect >= AJAPP_EFFECTS) return;
+    note(C_EFFECT, effect, on != 0);
     unsigned running, step;
     position(&running, &step);
     app.effects = (uint8_t)(on ? app.effects | (1U << effect) : app.effects & ~(1U << effect));
@@ -429,13 +477,17 @@ void ajapp_effect(unsigned effect, int on)
 }
 void ajapp_home(void)
 {
+    note(C_HOME, 0, 0);
+    ++app.quiet;
     for (unsigned k = 0; k < AJAPP_EFFECTS; ++k) ajapp_effect(k, 0);
+    --app.quiet;
     app.knob[AJAPP_KNOB_SWOOSH] = 64;
     ajb_fx_swoosh(&app.fx, 64);
 }
 void ajapp_knob(unsigned knob, unsigned value)
 {
     if (knob >= AJAPP_KNOBS) return;
+    note(C_KNOB, knob, value > 127 ? 127 : value);
     app.knob[knob] = (uint8_t)(value > 127 ? 127 : value);
     if (knob == AJAPP_KNOB_SWOOSH) ajb_fx_swoosh(&app.fx, app.knob[knob]);
     else if (knob == AJAPP_KNOB_BALANCE) { set_side_volume(AJAPP_DRUMS); set_side_volume(AJAPP_MELODY); }
@@ -448,29 +500,34 @@ void ajapp_set_bpm(unsigned bpm)
     groove_get_view(T_DRUMS, 0, &v);
     groove_tempo_edit((int)bpm - (int)v.tempo);
     app.bpm = bpm;
+    note(C_BPM, 0, bpm);
 }
 void ajapp_set_kit(unsigned kit)
 {
     if (!app.lib || kit >= app.lib->kit_count) return;
     app.kit = (int)kit;
+    note(C_KIT, 0, kit);
     set_drum_sound();
 }
 void ajapp_set_instrument(unsigned instrument)
 {
     if (!app.lib || instrument >= app.lib->instrument_count) return;
     app.instrument = (int)instrument;
+    note(C_INSTRUMENT, 0, instrument);
     set_melody_sound();
     write_melody(0, 0);
 }
 void ajapp_set_octave(int octave)
 {
     app.octave = (int8_t)(octave < -2 ? -2 : octave > 2 ? 2 : octave);
+    note(C_OCTAVE, 0, (unsigned)(app.octave + 2));
     write_melody(0, 0);
 }
 /* Mood lands on the next bar line while playing: the rest of this bar keeps its notes. */
 void ajapp_set_mood(unsigned mood)
 {
     if (mood >= AJAPP_MOODS) return;
+    note(C_MOOD, 0, mood);
     unsigned running, step;
     position(&running, &step);
     app.mood_wanted = (uint8_t)mood;
@@ -482,9 +539,207 @@ void ajapp_set_mood(unsigned mood)
     app.mood_waiting = 1;
 }
 
+/* ---- favourites, the jam and memory ---- */
+
+static void snapshot_take(struct snapshot *s)
+{
+    memset(s, 0, sizeof *s);
+    s->drum = (uint8_t)(app.slot[AJAPP_DRUMS] == NONE ? 255 : app.slot[AJAPP_DRUMS]);
+    s->melody = (uint8_t)(app.slot[AJAPP_MELODY] == NONE ? 255 : app.slot[AJAPP_MELODY]);
+    if (s->drum == 255 && s->melody == 255) {          /* stopped: remember the pair PLAY/STOP would bring back */
+        s->drum = (uint8_t)(app.last[AJAPP_DRUMS] == NONE ? 255 : app.last[AJAPP_DRUMS]);
+        s->melody = (uint8_t)(app.last[AJAPP_MELODY] == NONE ? 255 : app.last[AJAPP_MELODY]);
+    }
+    for (unsigned side = 0; side < AJAPP_SIDES; ++side) s->view_page[side] = app.view_page[side];
+    s->kit = (uint8_t)(app.kit == NONE ? 255 : app.kit);
+    s->instrument = (uint8_t)(app.instrument == NONE ? 255 : app.instrument);
+    s->effects = app.effects & (uint8_t)~(1U << AJAPP_FX_STUTTER);      /* Stutter works only while held */
+    s->last_effect = app.fx.last;
+    memcpy(s->knob, app.knob, sizeof s->knob);
+    memcpy(s->fx_amount, app.fx.amount, sizeof s->fx_amount);
+    memcpy(s->fx_speed, app.fx.speed, sizeof s->fx_speed);
+    s->bpm = (uint8_t)app.bpm; s->mood = app.mood; s->octave = (uint8_t)(app.octave + 2);
+}
+/* Saved data is checked before it is used: every index has to be in range. */
+static int snapshot_valid(const struct snapshot *s)
+{
+    unsigned loops = app.lib->page_count * AJB_SLOTS;
+    if ((s->drum != 255 && s->drum >= loops) || (s->melody != 255 && s->melody >= loops)) return 0;
+    if (s->view_page[0] >= app.lib->page_count || s->view_page[1] >= app.lib->page_count) return 0;
+    if ((s->kit != 255 && s->kit >= app.lib->kit_count) || (s->instrument != 255 && s->instrument >= app.lib->instrument_count)) return 0;
+    if (s->effects >= 1U << AJAPP_EFFECTS || s->last_effect >= AJAPP_EFFECTS || s->mood >= AJAPP_MOODS || s->octave > 4) return 0;
+    if (s->bpm < AJAPP_BPM_MIN || s->bpm > AJAPP_BPM_MAX) return 0;
+    for (unsigned k = 0; k < AJAPP_KNOBS; ++k) if (s->knob[k] > 127) return 0;
+    for (unsigned k = 0; k < AJAPP_EFFECTS; ++k) if (s->fx_amount[k] > 127 || s->fx_speed[k] > 127) return 0;
+    return 1;
+}
+/* Bring a snapshot back. `play` starts its pair; otherwise the pair waits for PLAY/STOP. */
+static void snapshot_apply(const struct snapshot *s, int play)
+{
+    if (!snapshot_valid(s)) return;
+    ++app.quiet;
+    unsigned running, step;
+    position(&running, &step);
+    if (!play && running) ajapp_play_stop();
+    for (unsigned side = 0; side < AJAPP_SIDES; ++side) app.view_page[side] = s->view_page[side];
+    app.kit = s->kit == 255 ? NONE : s->kit;
+    memcpy(app.fx.amount, s->fx_amount, sizeof s->fx_amount);
+    memcpy(app.fx.speed, s->fx_speed, sizeof s->fx_speed);
+    for (unsigned k = 0; k < AJAPP_KNOBS; ++k) ajapp_knob(k, s->knob[k]);
+    for (unsigned k = 0; k < AJAPP_EFFECTS; ++k) ajapp_effect(k, (s->effects >> k) & 1U);
+    app.fx.last = s->last_effect;
+    ajapp_set_bpm(s->bpm);
+    app.octave = (int8_t)((int)s->octave - 2);
+    app.mood = app.mood_wanted = s->mood; app.mood_waiting = 0;
+    app.last[AJAPP_DRUMS] = s->drum == 255 ? NONE : s->drum;
+    app.last[AJAPP_MELODY] = s->melody == 255 ? NONE : s->melody;
+    if (play) {
+        for (unsigned side = 0; side < AJAPP_SIDES; ++side) {
+            int want = app.last[side];
+            if (want == NONE && app.slot[side] != NONE) clear_side(side);
+            else if (want != NONE) start_side(side, want);
+        }
+        if (s->instrument != 255) ajapp_set_instrument(s->instrument);
+    } else
+        app.instrument = s->instrument == 255 ? NONE : s->instrument;
+    --app.quiet;
+}
+
+unsigned ajapp_save_heart(void)
+{
+    if (!app.lib) return 0;
+    unsigned index = app.hearts.count < AJAPP_HEARTS ? app.hearts.count : (app.hearts.newest + 1U) % AJAPP_HEARTS;
+    __typeof__(app.hearts) next = app.hearts;          /* a new heart replaces the oldest */
+    snapshot_take(&next.heart[index]);
+    if (next.count < AJAPP_HEARTS) ++next.count;
+    next.newest = (uint8_t)index;
+    if (ajstore_save(AJSTORE_HEARTS, &next, sizeof next)) return 0;     /* not saved: the heart stays empty */
+    app.hearts = next;
+    app.heart_at = (uint8_t)(index + 1U);
+    return index + 1U;
+}
+unsigned ajapp_next_heart(void)
+{
+    if (!app.lib || !app.hearts.count) return 0;
+    unsigned index = app.heart_at % app.hearts.count;
+    app.heart_at = (uint8_t)(index + 1U);
+    note(C_HEART, 0, index);
+    snapshot_apply(&app.hearts.heart[index], 1);
+    return index + 1U;
+}
+int ajapp_record(void)
+{
+    if (!app.lib) return -1;
+    if (!app.recording) {
+        if (app.replaying) ajapp_replay();
+        snapshot_take(&app.jam.start);
+        unsigned running, step;
+        position(&running, &step);
+        if (!running) app.jam.start.drum = app.jam.start.melody = 255;  /* a jam that starts in silence */
+        app.jam.count = app.jam.length = 0;
+        app.jam_began = fm1_millis();
+        app.recording = 1;
+        app.has_jam = 0;
+        return 1;
+    }
+    app.recording = 0;
+    uint32_t ticks = (fm1_millis() - app.jam_began) / 10U;
+    app.jam.length = (uint16_t)(ticks > AJAPP_JAM_SECONDS * 100U ? AJAPP_JAM_SECONDS * 100U : ticks);
+    if (ajstore_save(AJSTORE_JAM, &app.jam, sizeof app.jam)) return -1;  /* not saved: no jam to replay */
+    app.has_jam = 1;
+    return 0;
+}
+static void dispatch(unsigned type, unsigned a, unsigned b)
+{
+    switch (type) {
+    case C_PICK: ajapp_pick(a, b); break;
+    case C_PAGE: if (a < AJAPP_SIDES && b < app.lib->page_count) app.view_page[a] = (uint8_t)b; break;
+    case C_HOLD: ajapp_hold(a, (int)b); break;
+    case C_FINISH: ajapp_finish(); break;
+    case C_PLAY_STOP: ajapp_play_stop(); break;
+    case C_HOME: ajapp_home(); break;
+    case C_EFFECT: ajapp_effect(a, (int)b); break;
+    case C_KNOB: ajapp_knob(a, b); break;
+    case C_BPM: ajapp_set_bpm(b); break;
+    case C_KIT: ajapp_set_kit(b); break;
+    case C_INSTRUMENT: ajapp_set_instrument(b); break;
+    case C_OCTAVE: ajapp_set_octave((int)b - 2); break;
+    case C_MOOD: ajapp_set_mood(b); break;
+    case C_HEART: if (b < app.hearts.count) snapshot_apply(&app.hearts.heart[b], 1); break;
+    default: break;
+    }
+}
+void ajapp_replay(void)
+{
+    if (!app.lib) return;
+    if (app.replaying) { app.replaying = 0; return; }
+    if (!app.has_jam || app.recording) return;
+    unsigned running, step;
+    position(&running, &step);
+    ++app.quiet;
+    if (running) ajapp_play_stop();
+    --app.quiet;
+    snapshot_apply(&app.jam.start, 1);
+    app.replaying = 1;
+    app.replay_at = 0;
+    app.replay_began = fm1_millis();
+}
+int ajapp_save_memory(void)
+{
+    if (!app.lib) return -1;
+    struct snapshot s;
+    snapshot_take(&s);
+    app.dirty = 0;
+    if (!memcmp(&s, &app.memory, sizeof s)) return 0;      /* nothing new: spare the flash */
+    if (ajstore_save(AJSTORE_MEMORY, &s, sizeof s)) return -1;
+    app.memory = s;
+    return 0;
+}
+void ajapp_parent_get(ajapp_parent_t *settings) { *settings = app.parent; }
+int ajapp_parent_set(const ajapp_parent_t *settings)
+{
+    ajapp_parent_t next = *settings;
+    if (next.default_bpm < AJAPP_BPM_MIN || next.default_bpm > AJAPP_BPM_MAX) return -1;
+    next.swap_on_bar = next.swap_on_bar != 0; next.bluetooth = next.bluetooth != 0; next.reserved = 0;
+    if (ajstore_save(AJSTORE_PARENT, &next, sizeof next)) return -1;    /* not saved: the old setting stands */
+    app.parent = next;
+    return 0;
+}
+/* Hello: C5 E5 G5 C6 on the FM track, about a second. */
+void ajapp_chime(void)
+{
+    static const uint8_t notes[4] = {72, 76, 79, 84};
+    if (!app.lib) return;
+    app.chime_channel = (uint8_t)(groove_midi_input_channel(T_FM) & 15U);
+    for (unsigned i = 0; i < 4; ++i) {
+        uint8_t on[3] = {(uint8_t)(0x90 | app.chime_channel), notes[i], (uint8_t)(50 + 10 * i)};
+        (void)fm1_midi_post(on, 3);
+        app.chime[i].note = notes[i];
+        app.chime[i].off_at = fm1_millis() + 700U + 60U * i;
+    }
+}
+
 void ajapp_tick(void)
 {
     if (!app.lib) return;
+    uint32_t ms = fm1_millis();
+    for (unsigned i = 0; i < 4; ++i)
+        if (app.chime[i].note && (int32_t)(ms - app.chime[i].off_at) >= 0) {
+            uint8_t off[3] = {(uint8_t)(0x80 | app.chime_channel), app.chime[i].note, 0};
+            (void)fm1_midi_post(off, 3);
+            app.chime[i].note = 0;
+        }
+    if (app.recording && ms - app.jam_began >= AJAPP_JAM_SECONDS * 1000U) (void)ajapp_record();   /* 2 minutes: stop and keep */
+    if (app.replaying) {
+        uint32_t tick = (ms - app.replay_began) / 10U;
+        while (app.replaying && app.replay_at < app.jam.count && app.jam.event[app.replay_at] >> 18 <= tick) {
+            uint32_t e = app.jam.event[app.replay_at++];
+            dispatch((e >> 13) & 31U, (e >> 8) & 31U, e & 255U);
+        }
+        if (app.replaying && tick >= app.jam.length) app.replaying = 0;
+    }
+    /* PRD "Playback rules" 10: save what power-on brings back 30 s after the last change. */
+    if (app.dirty && !app.recording && !app.replaying && ms - app.changed_at >= 30000U) (void)ajapp_save_memory();
     unsigned running, step;
     position(&running, &step);
     for (unsigned side = 0; side < AJAPP_SIDES; ++side)
@@ -540,7 +795,28 @@ void ajapp_init(const ajb_library_t *library)
         set_mute(t, 0);                 /* the start-up project mutes some tracks */
     }
     set_sends();
-    ajapp_set_bpm(AJAPP_BPM_DEFAULT);
+    /* What was saved, each checked before use; anything missing or bad falls back to the defaults. */
+    app.parent.default_bpm = AJAPP_BPM_DEFAULT;
+    ajapp_parent_t parent;
+    if (!ajstore_load(AJSTORE_PARENT, &parent, sizeof parent) && parent.default_bpm >= AJAPP_BPM_MIN &&
+        parent.default_bpm <= AJAPP_BPM_MAX && parent.swap_on_bar <= 1 && parent.bluetooth <= 1) app.parent = parent;
+    ++app.quiet;
+    ajapp_set_bpm(app.parent.default_bpm);
+    --app.quiet;
+    if (!ajstore_load(AJSTORE_HEARTS, &app.hearts, sizeof app.hearts)) {
+        unsigned good = app.hearts.count <= AJAPP_HEARTS && app.hearts.newest < AJAPP_HEARTS;
+        for (unsigned i = 0; good && i < app.hearts.count; ++i) good = snapshot_valid(&app.hearts.heart[i]);
+        if (!good) memset(&app.hearts, 0, sizeof app.hearts);
+    } else memset(&app.hearts, 0, sizeof app.hearts);
+    if (!ajstore_load(AJSTORE_JAM, &app.jam, sizeof app.jam) && app.jam.count <= AJAPP_JAM_EVENTS &&
+        app.jam.length <= AJAPP_JAM_SECONDS * 100U && snapshot_valid(&app.jam.start)) app.has_jam = 1;
+    else memset(&app.jam, 0, sizeof app.jam);
+    struct snapshot memory;
+    if (!ajstore_load(AJSTORE_MEMORY, &memory, sizeof memory) && snapshot_valid(&memory)) {
+        app.memory = memory;
+        snapshot_apply(&memory, 0);     /* the last pair waits for PLAY/STOP */
+    }
+    app.dirty = 0;
 }
 void ajapp_status(ajapp_status_t *st)
 {
@@ -559,5 +835,7 @@ void ajapp_status(ajapp_status_t *st)
     st->kit = (uint8_t)(app.kit == NONE ? 255 : app.kit);
     st->instrument = (uint8_t)(app.instrument == NONE ? 255 : app.instrument);
     st->octave = app.octave; st->bpm = (uint16_t)app.bpm;
+    st->recording = app.recording; st->replaying = app.replaying;
+    st->hearts = app.hearts.count; st->heart = app.heart_at; st->has_jam = app.has_jam;
 }
 void ajapp_debug_volume(int volume) { app.debug_volume = volume; }
