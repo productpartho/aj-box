@@ -3,8 +3,15 @@
  * Page 5: Silly Kitchen drums (pots, spoons, beatbox), Game On melodies (chiptune). */
 
 /* The two sampled kitchen loops, one slice per 16th. */
-static const ajb_drum_loop_t pots_and_pans = {"Pots and Pans", 16, &ajb_sample_pots, {0}, GAIN(0.36)};
-static const ajb_drum_loop_t beatbox = {"Beatbox", 16, &ajb_sample_beatbox, {0}, GAIN(0.36)};
+static const ajb_drum_loop_t pots_and_pans = {"Pots and Pans", 16, &ajb_sample_pots, {0}, GAIN(0.36), {
+    [2] = "X...x..x..X.x...",      /* pot lid */
+    [3] = "..xx.xx.xx.x.xxx",      /* spoons */
+}};
+static const ajb_drum_loop_t beatbox = {"Beatbox", 16, &ajb_sample_beatbox, {0}, GAIN(0.36), {
+    [4] = "X.....x.X..x....",      /* mouth kick */
+    [5] = "....X.......X..x",      /* "psh" */
+    [3] = "..o...o...o...o.",      /* a tick between */
+}};
 
 /* Spoons clacking on a knee. */
 static const ajb_drum_loop_t spoons = {"Spoons", 16, NULL, {

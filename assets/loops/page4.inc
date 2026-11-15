@@ -4,7 +4,10 @@
  * Choir melodies (cat, bird, voices). */
 
 /* The sampled dhol loop, one slice per 16th. */
-static const ajb_drum_loop_t dhol_party = {"Dhol Party", 16, &ajb_sample_dhol, {0}, GAIN(0.37)};
+static const ajb_drum_loop_t dhol_party = {"Dhol Party", 16, &ajb_sample_dhol, {0}, GAIN(0.37), {
+    [0] = "X..x..X...x.X...",      /* dhol bass side */
+    [1] = "..x.x..xx.x..xxx",      /* dhol treble side */
+}};
 
 /* Reggaeton: four on the floor under the dembow snare, a shaker on top. */
 static const ajb_drum_loop_t reggaeton = {"Reggaeton", 16, NULL, {
@@ -44,15 +47,16 @@ static const ajb_drum_loop_t clave_walk = {"Clave Walk", 16, NULL, {
 }, GAIN(0.54)};
 
 /* Goron City drums, from the same score (bars 5 and 6): two toms answering,
- * congas on the one and the "and" of two, and the cuica. The 808 has no
- * cuica, so its high note is the cowbell and its low note the rim. */
+ * congas on the one and the "and" of two, and the cuica on the sampler's two
+ * cuica pads (high and low). */
 static const ajb_drum_loop_t goron_drums = {"Goron Drums", 32, NULL, {
     [AJB_MT] = "X.....X........." "X.....X.........",
     [AJB_HT] = "....X.....X....." "....X.....X.....",
     [AJB_LT] = "............X.X." "............X.X.",
-    [AJB_CB] = "..o...o........." "..o...o.........",
-    [AJB_RS] = "o.......o.o....." "....o...o.o.....",
-}, GAIN(1.43)};
+}, GAIN(1.99), {
+    [6] = "..x...x........." "..x...x.........",
+    [7] = "x.......x.x....." "....x...x.x.....",
+}};
 
 /* Island: 3-3-2 kick, rim on 2 and 4, two hand drums. */
 static const ajb_drum_loop_t island = {"Island", 16, NULL, {

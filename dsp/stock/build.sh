@@ -8,4 +8,4 @@ mkdir -p $R/dsp/build
 "$CC" -std=c11 -O2 -fwrapv -fno-fast-math -ffp-contract=off -DFM1_HOST_TEST -DFM1_OPEN_WEB -Wno-unused-function \
   -Wno-array-parameter -Iweb/engine -Iweb/synth -Ithird_party/synth -Isdk/include -Iapp/synth -Iapp \
   -I$R/dsp/host -I$R/dsp/include -I$R/dsp/stock app/*.c web/engine/*.c web/synth/*.c third_party/synth/*.c \
-  $R/dsp/host/wav.c $R/assets/loops.c $R/assets/samples/*.c $R/dsp/stock/ajstock.c -o $R/dsp/build/ajstock.exe -lm
+  $R/dsp/host/wav.c $R/assets/loops.c $R/assets/samples/*.c $R/dsp/stock/ajstock.c $R/dsp/stock/oneshots.c -o $R/dsp/build/ajstock.exe -lm

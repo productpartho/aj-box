@@ -4,7 +4,9 @@
  * harp, toy piano). */
 
 /* The sampled rain stick, one slice per 16th. */
-static const ajb_drum_loop_t rain_stick = {"Rain Stick", 16, &ajb_sample_rainstick, {0}, GAIN(0.36)};
+static const ajb_drum_loop_t rain_stick = {"Rain Stick", 16, &ajb_sample_rainstick, {0}, GAIN(0.36), {
+    [5] = "oxooxoooxoooxoox",      /* rain grains */
+}};
 
 /* Brushes: a soft swishing snare, hardly any kick. */
 static const ajb_drum_loop_t brushes = {"Brushes", 32, NULL, {

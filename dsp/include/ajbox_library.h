@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 enum { AJB_SLOTS = 8 };            /* loop keys per side per page */
+enum { AJB_PADS = 8 };             /* one-shot pads on the stock sampler */
 enum { AJB_SAMPLE_RATE_IN = 32000 }; /* PRD "Storage math": SEA5 at 32 kHz, the stock format */
 
 /* One recorded sound: a pitched note (slices = 0) or a loop cut into
@@ -31,6 +32,9 @@ typedef struct {
     const ajb_sample_t *sliced;
     const char *parts[AJB_PARTS];
     uint16_t gain_q15;
+    /* On the stock instrument: step strings for the sampler's 8 one-shot pads
+     * (dsp/stock/oneshots.h), played beside `parts`. The old engine ignores them. */
+    const char *pads[AJB_PADS];
 } ajb_drum_loop_t;
 
 /* A kit is a list of DRUM 808 parameter edits on top of the engine defaults

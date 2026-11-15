@@ -10,12 +10,14 @@
  *   ajstock page <n> <dir>         the 8 same-key pairs of page n
  *   ajstock all <dir>              every page, in <dir>/page1..6
  *   ajstock tour <dir>             key 1 of every page through the 7 moods, 2 bars each
+ *   ajstock oneshots <dir>         the 8 synthesized pad sounds as WAVs
  *   ajstock levels <file>          measure every loop alone and write the track
  *                                  volumes that put drums and melodies on target */
 #include "ajbox_library.h"
 #include "instrument.h"
 #include "drum808.h"
 #include "fm_patch.h"
+#include "oneshots.h"
 #include "wav.h"
 #include <ctype.h>
 #include <math.h>
@@ -25,6 +27,9 @@
 
 void sim_boot(unsigned clear);
 const float *sim_render(void);
+uint8_t *sim_flash(void);
+int sim_sample_bank(unsigned bytes);
+uint8_t *sampledrum_encode(const int16_t *pcm, unsigned frames, unsigned *bytes);
 
 /* Track use (docs/s2-design.md). Tracks 7 and 8 stay off. */
 enum { T_DRUMS, T_SAMPLER, T_FM, T_PSG, T_PLUCK, T_BASS, T_USED };
@@ -168,11 +173,53 @@ static void set_volume(unsigned track, unsigned volume)
     groove_control_edit(track, 0, (int)volume - (int)v.volume, 0);
 }
 
+/* The 8 one-shots as a stock sample bank (firmware/app/samples.c): a 512-byte
+ * header, then each sound as SEA5 chunks. Built once. */
+static const uint8_t *oneshot_bank(unsigned *bytes)
+{
+    static uint8_t bank[GROOVE_SAMPLE_BYTES];
+    static unsigned total;
+    if (!total) {
+        struct { uint32_t offset, frames, bytes; char name[16]; } entry[16];
+        uint32_t head[8] = {0x53314d46U, 1, 0, 0, 0, 32000, 0, 0};
+        static int16_t pcm[AJB_ONESHOT_FRAMES + 320];
+        unsigned at = 512;
+        memset(entry, 0, sizeof entry);
+        for (unsigned pad = 0; pad < 16; ++pad) {
+            entry[pad].offset = at;
+            if (pad >= AJB_ONESHOTS) continue;
+            memset(pcm, 0, sizeof pcm);
+            unsigned frames = ajb_oneshot(pad, pcm), size = 0;
+            uint8_t *data = sampledrum_encode(pcm, frames, &size);
+            if (!data || at + size > sizeof bank) { free(data); continue; }
+            memcpy(bank + at, data, size);
+            free(data);
+            entry[pad].frames = frames;
+            entry[pad].bytes = size;
+            strncpy(entry[pad].name, ajb_oneshot_names[pad], 15);
+            at += size;
+            for (unsigned later = pad + 1; later < 16; ++later) entry[later].offset = at;
+        }
+        head[2] = at;
+        memcpy(bank, head, sizeof head);
+        memcpy(bank + 32, entry, sizeof entry);
+        uint32_t crc = ~groove_crc32(~0U, bank, at);      /* the crc and commit words are still zero here */
+        memcpy(bank + 12, &crc, 4);
+        total = at;
+    }
+    *bytes = total;
+    return bank;
+}
+
 static void boot(void)
 {
     static const uint8_t source[T_USED] = {GROOVE_808, GROOVE_SAMPLE, GROOVE_DX7, GROOVE_PSG, GROOVE_PLUCK, GROOVE_303};
     static const struct groove_step empty[STEPS];
     sim_boot(1);
+    unsigned bank_bytes;
+    const uint8_t *bank = oneshot_bank(&bank_bytes);
+    memcpy(sim_flash() + GROOVE_SAMPLE_OFFSET, bank, bank_bytes);
+    if (sim_sample_bank(bank_bytes)) fprintf(stderr, "the one-shot bank did not load\n");
     for (unsigned t = 0; t < GROOVE_TRACKS; ++t) {
         if (t < T_USED && groove_source_type(t) != source[t]) groove_source_set(t, source[t]);
         groove_sequence_replace(t, 0, empty, STEPS);
@@ -192,12 +239,25 @@ static void set_drums(int index, int volume)
     const ajb_library_t *lib = &ajb_factory_library;
     const ajb_page_t *page = &lib->pages[index / AJB_SLOTS];
     const ajb_drum_loop_t *d = page->drums[index % AJB_SLOTS];
-    if (!d || d->sliced) return;                     /* the one-shot loops come with the sampler pads */
+    if (!d) return;
     struct groove_step cells[STEPS];
     drum_cells(d, cells);
     apply_kit(T_DRUMS, lib->kits[page->kit]);
     set_volume(T_DRUMS, volume < 0 ? loop_volume[0][index] : (unsigned)volume);
     groove_sequence_replace(T_DRUMS, 0, cells, STEPS);
+    /* The one-shot pads: the same loop's other half, on the sampler track. */
+    static const uint8_t level[3] = {57, 99, 127};
+    memset(cells, 0, sizeof cells);
+    for (unsigned s = 0; s < STEPS; ++s)
+        for (unsigned p = 0; p < AJB_PADS; ++p) {
+            char c = d->pads[p] ? d->pads[p][s % d->steps] : '.';
+            int rank = c == 'o' ? 0 : c == 'x' ? 1 : c == 'X' ? 2 : -1;
+            if (rank < 0) continue;
+            cells[s].drums |= (uint16_t)(1U << p);
+            if (level[rank] > cells[s].velocity) cells[s].velocity = level[rank];
+        }
+    set_volume(T_SAMPLER, volume < 0 ? loop_volume[0][index] : (unsigned)volume);
+    groove_sequence_replace(T_SAMPLER, 0, cells, STEPS);
 }
 /* Put a melody loop in its engine's track. `first` also sets its sound and level. */
 static void set_melody(int index, unsigned mood, int volume, int first)
@@ -357,6 +417,20 @@ int main(int argc, char **argv)
             printf("%-60s %.1fs  peak %6.2f dBFS\n", path, r.seconds, r.peak);
         }
         return failed;
+    }
+    if (argc >= 3 && !strcmp(argv[1], "oneshots")) {          /* each pad's sound as its own 32 kHz WAV */
+        static int16_t pcm[AJB_ONESHOT_FRAMES + 320];
+        for (unsigned pad = 0; pad < AJB_ONESHOTS; ++pad) {
+            char path[512];
+            snprintf(path, sizeof path, "%s/pad%u-%s.wav", argv[2], pad + 1, ajb_oneshot_names[pad]);
+            unsigned frames = ajb_oneshot(pad, pcm);
+            ajb_wav_writer_t w;
+            if (ajb_wav_open(&w, path, 1, 32000)) return 1;
+            ajb_wav_write(&w, pcm, frames);
+            ajb_wav_close(&w);
+            printf("%s  %.2f s\n", path, frames / 32000.0);
+        }
+        return 0;
     }
     if (argc >= 3 && !strcmp(argv[1], "levels"))
         return levels(argv[2], argc > 3 ? atof(argv[3]) : -9.0, argc > 4 ? atof(argv[4]) : -12.0);
