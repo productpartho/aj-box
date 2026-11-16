@@ -142,21 +142,15 @@ void ajpanel_step(const struct fm1_controls *c, uint32_t now)
         }
 
         /* OCT- and OCT+: one alone moves the melody an octave when let go; both
-         * together reset it; held while ALGORITHM turns, they choose the Mood. */
+         * together reset it. */
         const uint32_t octs = BIT(B_OCT_DOWN) | BIT(B_OCT_UP);
         if ((down & octs) && (buttons & octs) == octs) { ajapp_set_octave(0); pan.octave_used = 1; }
         if (c->encoders[E_ALGORITHM]) {
             int turn = c->encoders[E_ALGORITHM] > 0 ? 1 : -1;
-            if (buttons & octs) {
-                ajapp_set_mood((unsigned)wrap((int)st.mood + turn, AJAPP_MOODS));
-                ajscreen_event(AJSCREEN_MOOD, 0, 0, now);
-                pan.octave_used = 1;
-            } else {
-                int count = (int)ajb_factory_library.instrument_count;
-                int at = st.instrument == 255 ? (turn > 0 ? -1 : 0) : st.instrument;
-                ajapp_set_instrument((unsigned)wrap(at + turn, count));
-                ajscreen_event(AJSCREEN_INSTRUMENT, 0, 0, now);
-            }
+            int count = (int)ajb_factory_library.instrument_count;
+            int at = st.instrument == 255 ? (turn > 0 ? -1 : 0) : st.instrument;
+            ajapp_set_instrument((unsigned)wrap(at + turn, count));
+            ajscreen_event(AJSCREEN_INSTRUMENT, 0, 0, now);
         }
         if (up & octs) {
             if (!pan.octave_used) {
@@ -166,7 +160,9 @@ void ajpanel_step(const struct fm1_controls *c, uint32_t now)
             if (!(buttons & octs)) pan.octave_used = 0;
         }
 
-        /* SELECT: speed. PRESETS: drum kit. KNOB 1 to 4: Swoosh, how much, how fast, balance. */
+        /* SELECT: speed. PRESETS: drum kit. KNOB 1 to 3: Swoosh, how much, balance. KNOB 4: Mood,
+         * one step a pass whichever way it turns (Partho, Nov 15, 2026; how fast the effects
+         * go is a parent setting now). */
         if (c->encoders[E_SELECT]) ajapp_set_bpm((unsigned)((int)st.bpm + c->encoders[E_SELECT] * BPM_STEP < AJAPP_BPM_MIN
                                                                ? AJAPP_BPM_MIN : (int)st.bpm + c->encoders[E_SELECT] * BPM_STEP));
         if (c->encoders[E_PRESETS]) {
@@ -175,10 +171,16 @@ void ajpanel_step(const struct fm1_controls *c, uint32_t now)
             ajapp_set_kit((unsigned)wrap(at + turn, count));
             ajscreen_event(AJSCREEN_KIT, 0, 0, now);
         }
-        for (unsigned k = 0; k < AJAPP_KNOBS; ++k) {
+        if (c->encoders[E_KNOB4]) {
+            ajapp_set_mood((unsigned)wrap((int)st.mood + (c->encoders[E_KNOB4] > 0 ? 1 : -1), AJAPP_MOODS));
+            ajscreen_event(AJSCREEN_MOOD, 0, 0, now);
+        }
+        static const uint8_t knob_of[3] = {AJAPP_KNOB_SWOOSH, AJAPP_KNOB_AMOUNT, AJAPP_KNOB_BALANCE};
+        for (unsigned e = 0; e < 3; ++e) {
+            const unsigned k = knob_of[e];
             /* Something else may have moved the setting (HOME, a heart, a replay): start from there. */
             if (knob_value(k, pan.turned[k]) != st.knob[k]) pan.turned[k] = st.knob[k];
-            int steps = c->encoders[E_KNOB1 + k];
+            int steps = c->encoders[E_KNOB1 + e];
             if (!steps) continue;
             int turned = (int)pan.turned[k] + steps * KNOB_STEP;
             pan.turned[k] = (uint8_t)(turned < 0 ? 0 : turned > 127 ? 127 : turned);

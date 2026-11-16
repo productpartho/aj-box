@@ -637,6 +637,7 @@ static int snapshot_valid(const struct snapshot *s)
     return 1;
 }
 /* Bring a snapshot back. `play` starts its pair; otherwise the pair waits for PLAY/STOP. */
+static void fx_speed_apply(void);
 static void snapshot_apply(const struct snapshot *s, int play)
 {
     if (!snapshot_valid(s)) return;
@@ -648,6 +649,7 @@ static void snapshot_apply(const struct snapshot *s, int play)
     app.kit = s->kit == 255 ? NONE : s->kit;
     memcpy(app.fx.amount, s->fx_amount, sizeof s->fx_amount);
     memcpy(app.fx.speed, s->fx_speed, sizeof s->fx_speed);
+    fx_speed_apply();                   /* the parent setting wins over speeds saved before it existed */
     for (unsigned k = 0; k < AJAPP_KNOBS; ++k) ajapp_knob(k, s->knob[k]);
     for (unsigned k = 0; k < AJAPP_EFFECTS; ++k) ajapp_effect(k, (s->effects >> k) & 1U);
     app.fx.last = s->last_effect;
@@ -767,14 +769,26 @@ static void bluetooth_apply(void)
     app.bluetooth_due = fm1_bluetooth_configure(app.parent.bluetooth ? FM1_BT_AUDIO | FM1_BT_MIDI : 0) == -2;
 }
 void ajapp_parent_get(ajapp_parent_t *settings) { *settings = app.parent; }
+/* How fast the effects go is a parent setting (it was KNOB 3 until Nov 15, 2026).
+ * Normal is each effect's own speed: Stutter an 8th note (PRD "Effects"), the
+ * rest the middle. Slow and Fast move them all to one end. */
+static void fx_speed_apply(void)
+{
+    for (unsigned k = 0; k < AJAPP_EFFECTS; ++k)
+        app.fx.speed[k] = app.parent.fx_speed == AJAPP_SPEED_SLOW ? 16 : app.parent.fx_speed == AJAPP_SPEED_FAST ? (k == AJAPP_FX_STUTTER ? 64 : 112)
+                        : k == AJAPP_FX_STUTTER ? 20 : 64;
+    app.knob[AJAPP_KNOB_SPEED] = app.fx.speed[app.fx.last];
+}
 int ajapp_parent_set(const ajapp_parent_t *settings)
 {
     ajapp_parent_t next = *settings;
     if (next.default_bpm < AJAPP_BPM_MIN || next.default_bpm > AJAPP_BPM_MAX) return -1;
-    next.swap_on_bar = next.swap_on_bar != 0; next.bluetooth = next.bluetooth != 0; next.reserved = 0;
+    next.swap_on_bar = next.swap_on_bar != 0; next.bluetooth = next.bluetooth != 0;
+    if (next.fx_speed >= AJAPP_SPEEDS) return -1;
     if (ajstore_save(AJSTORE_PARENT, &next, sizeof next)) return -1;    /* not saved: the old setting stands */
     app.parent = next;
     bluetooth_apply();
+    fx_speed_apply();
     return 0;
 }
 void ajapp_parent_open(void) { app.parent_open = 1; app.parent_row = 0; app.parent_result = AJAPP_PARENT_UNCHANGED; }
@@ -792,7 +806,13 @@ int ajapp_parent_change(int delta)
         int bpm = (int)next.default_bpm + (delta > 0 ? 5 : -5);
         next.default_bpm = (uint8_t)(bpm < AJAPP_BPM_MIN ? AJAPP_BPM_MIN : bpm > AJAPP_BPM_MAX ? AJAPP_BPM_MAX : bpm);
     } else if (app.parent_row == AJAPP_PARENT_SWAP) next.swap_on_bar = !next.swap_on_bar;
-    else next.bluetooth = !next.bluetooth;
+    else if (app.parent_row == AJAPP_PARENT_BLUETOOTH) next.bluetooth = !next.bluetooth;
+    else {                              /* Slow, Normal, Fast, stopping at the ends */
+        static const uint8_t order[AJAPP_SPEEDS] = {AJAPP_SPEED_SLOW, AJAPP_SPEED_NORMAL, AJAPP_SPEED_FAST};
+        int at = next.fx_speed == AJAPP_SPEED_SLOW ? 0 : next.fx_speed == AJAPP_SPEED_FAST ? 2 : 1;
+        at += delta > 0 ? 1 : -1;
+        next.fx_speed = order[at < 0 ? 0 : at > 2 ? 2 : at];
+    }
     int failed = ajapp_parent_set(&next);
     app.parent_result = failed ? AJAPP_PARENT_NOT_SAVED : AJAPP_PARENT_SAVED;
     if (!failed && app.parent_row == AJAPP_PARENT_TEMPO) ajapp_set_bpm(next.default_bpm);    /* hear the new speed now */
@@ -904,7 +924,8 @@ void ajapp_init(const ajb_library_t *library)
     app.parent.default_bpm = AJAPP_BPM_DEFAULT;
     ajapp_parent_t parent;
     if (!ajstore_load(AJSTORE_PARENT, &parent, sizeof parent) && parent.default_bpm >= AJAPP_BPM_MIN &&
-        parent.default_bpm <= AJAPP_BPM_MAX && parent.swap_on_bar <= 1 && parent.bluetooth <= 1) app.parent = parent;
+        parent.default_bpm <= AJAPP_BPM_MAX && parent.swap_on_bar <= 1 && parent.bluetooth <= 1 && parent.fx_speed < AJAPP_SPEEDS) app.parent = parent;
+    fx_speed_apply();
     ++app.quiet;
     ajapp_set_bpm(app.parent.default_bpm);
     app.swap_to[AJAPP_DRUMS] = app.swap_to[AJAPP_MELODY] = NONE;

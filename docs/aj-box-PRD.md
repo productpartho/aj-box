@@ -18,7 +18,7 @@ Synthesized drums use FM1 Open's built-in DRUM 808 engine, so AJ Box doesn't wai
 | Effects controls | Buttons switch an effect on, knobs set how much | Top-row function buttons plus KNOB 1 to 4 |
 | Drum engine | FM1 Open's built-in DRUM 808 | No waiting on the Volca Drum-style project |
 | Firmware | AJ Box is its own firmware | Separate from the drum synth; no mode switch to build |
-| Parent mode | Included | Default tempo, swap timing, Bluetooth and sample swaps, behind HOME + SAVE |
+| Parent mode | Included | Default tempo, swap timing, Bluetooth, effect speed and sample swaps, behind HOME + SAVE |
 
 **Also decided**
 
@@ -58,7 +58,7 @@ AJ Box uses every physical control on the FM-1; the tight limit is storage, not 
 | Function buttons, top row | FX, SEL, ENV, LFO, EDIT, GLO | 6 effect switches |
 | Function buttons, bottom row | HOME, SAVE, ARP, SEQ, PLAY/STOP, REC | Clean slate, favourites, jam record and replay, stop and resume |
 | Octave buttons | OCT−, OCT+ | Melody octave down and up |
-| Encoders | KNOB 1 to 4 on the right; SELECT, PRESETS, ALGORITHM on the left; 7 endless encoders in total | Effects and balance; tempo, drum kit, melody instrument |
+| Encoders | KNOB 1 to 4 on the right; SELECT, PRESETS, ALGORITHM on the left; 7 endless encoders in total | Effects, balance and Mood; tempo, drum kit, melody instrument |
 | Volume | MASTER potentiometer (300° turn) | Volume, full range |
 | Screen | 1.54-inch TFT (thin-film transistor) colour display | Pink and purple play screen |
 | Audio out | Built-in speaker; plugging into the 3.5 mm jack mutes it | Mix tuned for the small speaker first |
@@ -97,8 +97,8 @@ The black keys carry printed labels (OP1 to OP6, PIT, GLO, MONO, POLY) for the s
 | FX, SEL, ENV, LFO, EDIT, GLO | The 6 effect switches (see Effects) |
 | KNOB 1 (pink) | Swoosh: a filter on the whole mix. Left sounds underwater, right sounds like a tiny radio, the middle is clean |
 | KNOB 2 (purple) | How much: strength of the effect switched on last |
-| KNOB 3 (lilac) | How fast: speed of the effect switched on last, locked to the beat |
-| KNOB 4 (magenta) | Drums ↔ melody balance |
+| KNOB 3 (lilac) | Drums ↔ melody balance |
+| KNOB 4 (magenta) | Mood: each click steps to the next or the last of the 7 Moods, round and round, and shows its picture. Happy (C major pentatonic), Dreamy (F major pentatonic), Spooky (C minor pentatonic), Magic (C D E F♯ G♯), Floaty (C D F G B♭), Faraway (C D E♭ G A♭) or Adventure (C D♭ E G A♭), changing on the next bar |
 | SELECT | Speed: turtle to rabbit, 30 to 200 BPM (beats per minute) |
 | PRESETS | Drum kit swap: same pattern, new sounds (Robot, Kitchen, Space and more). Its stock job is scrolling sounds, so the habit carries over |
 | ALGORITHM | Melody instrument swap: same tune, new instrument |
@@ -109,7 +109,7 @@ The black keys carry printed labels (OP1 to OP6, PIT, GLO, MONO, POLY) for the s
 | ARP | Replay: plays her last jam back |
 | SAVE | Save a favourite: the current drum, melody, sounds and effects become a heart (8 hearts; a new one replaces the oldest) |
 | SEQ | Favourites: each tap jumps to the next heart |
-| Hold OCT− or OCT+ and turn ALGORITHM | Mood: Happy (C major pentatonic), Dreamy (F major pentatonic), Spooky (C minor pentatonic), Magic (C D E F♯ G♯), Floaty (C D F G B♭), Faraway (C D E♭ G A♭) or Adventure (C D♭ E G A♭), changing on the next bar. Every mood has 5 notes, so every melody plays in every mood |
+| (Mood, on KNOB 4) | Every mood has 5 notes, so every melody plays in every mood |
 | HOME + SAVE held 2 s | Parent mode, hard for a 6-year-old to hit by accident |
 
 ## Loop library and storage
@@ -171,7 +171,7 @@ Parent mode can switch swaps to "next bar" for a classic DJ feel once she's olde
 
 ## Effects
 
-The 6 top-row buttons each switch one effect on or off for the whole mix; KNOB 2 (how much) and KNOB 3 (how fast) then shape whichever effect was switched on last.
+The 6 top-row buttons each switch one effect on or off for the whole mix; KNOB 2 (how much) then shapes whichever effect was switched on last. How fast the effects go is a parent-mode setting (Slow, Normal or Fast for all of them; Normal is each effect's own speed), not a knob: KNOB 3 and 4 were given to balance and Mood on Nov 15, 2026.
 
 | Button | Name on screen | What she hears | Built from | Kid-safe limit |
 | --- | --- | --- | --- | --- |
@@ -242,6 +242,7 @@ Nothing she does can distort the sound, delete anything, or leave her stuck; the
 - Default tempo (110 BPM to start)
 - Swap timing: phase-locked (default) or next bar
 - Bluetooth on or off
+- Effect speed: Slow, Normal (default) or Fast
 - Swap any of the 8 sampled sounds over USB (Universal Serial Bus) from the browser workbench, for example new recordings of her voice
 
 The tempo range (30 to 200 BPM) is fixed in the build.

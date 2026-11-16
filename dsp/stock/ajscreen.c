@@ -84,7 +84,7 @@ static void build(struct scene *s, uint32_t now)
         ajapp_parent_t parent;
         ajapp_parent_get(&parent);
         s->mode = MODE_PARENT; s->full.a = st.parent_row; s->full.b = parent.default_bpm;
-        s->full.phase = (uint8_t)(parent.swap_on_bar | parent.bluetooth << 1 | st.parent_result << 2);
+        s->full.phase = (uint8_t)(parent.swap_on_bar | parent.bluetooth << 1 | st.parent_result << 2 | parent.fx_speed << 4);
         if (scr.readings) { s->full.c = scr.battery; s->full.d = (uint8_t)(scr.late + 1); }
         return;
     }
@@ -362,11 +362,11 @@ static void paint_sleepy(const ajd_canvas_t *c)
 }
 
 /* Words, for parent mode only: the letters it needs and the digits. */
-static const char letters[] = "PDSBINOMabdefghilmnoprstuvwx";
+static const char letters[] = "PDSBINOMabdefghilmnoprstuvwxEFc";
 static const uint8_t *const letter_art[] = {
     art_ch_P, art_ch_D, art_ch_S, art_ch_B, art_ch_I, art_ch_N, art_ch_O, art_ch_M, art_ch_a, art_ch_b, art_ch_d, art_ch_e,
     art_ch_f, art_ch_g, art_ch_h, art_ch_i, art_ch_l, art_ch_m, art_ch_n, art_ch_o, art_ch_p, art_ch_r, art_ch_s, art_ch_t,
-    art_ch_u, art_ch_v, art_ch_w, art_ch_x,
+    art_ch_u, art_ch_v, art_ch_w, art_ch_x, art_ch_E, art_ch_F, art_ch_c,
 };
 static const uint8_t *const number_art[10] = {
     art_digit0, art_digit1, art_digit2, art_digit3, art_digit4, art_digit5, art_digit6, art_digit7, art_digit8, art_digit9,
@@ -393,25 +393,26 @@ static int text(const ajd_canvas_t *c, int x16, int y16, const char *s, unsigned
 /* Parent mode (docs/design, Parent): a title, three rows, and whether the last change was saved. */
 static void paint_parent(const ajd_canvas_t *c, const struct scene *s)
 {
-    static const char *const label[AJAPP_PARENT_ROWS] = {"Default tempo", "Swap timing", "Bluetooth"};
+    static const char *const label[AJAPP_PARENT_ROWS] = {"Default tempo", "Swap timing", "Bluetooth", "Effect speed"};
     enum { SMALL = 218 };
-    const unsigned bpm = s->full.b, flags = s->full.phase, result = flags >> 2;
+    const unsigned bpm = s->full.b, flags = s->full.phase, result = flags >> 2 & 3, speed = flags >> 4;
     char tempo[12];
     unsigned n = 0;
     if (bpm >= 100) tempo[n++] = (char)('0' + bpm / 100);
     tempo[n++] = (char)('0' + bpm / 10 % 10); tempo[n++] = (char)('0' + bpm % 10);
     memcpy(tempo + n, " BPM", 5);
-    const char *const value[AJAPP_PARENT_ROWS] = {tempo, flags & 1 ? "Next bar" : "Instant", flags & 2 ? "On" : "Off"};
+    const char *const value[AJAPP_PARENT_ROWS] = {tempo, flags & 1 ? "Next bar" : "Instant", flags & 2 ? "On" : "Off",
+        speed == AJAPP_SPEED_SLOW ? "Slow" : speed == AJAPP_SPEED_FAST ? "Fast" : "Normal"};
     picture(c, art_gear, 12, 24, 20, 0, 256);
     text(c, PX(40), PX(25), "Parent mode", 256, AJD_CREAM);
     for (unsigned r = 0; r < AJAPP_PARENT_ROWS; ++r) {
-        const int y = 55 + 46 * (int)r, chosen = r == s->full.a;
-        ajd_box(c, 12, y, 216, 40, 10, chosen ? AJD_LILAC : AJD_DUSK, 256);
-        ajd_box(c, 14, y + 2, 212, 36, 8, chosen ? AJD_DUSK : AJD_PLUM, 256);
-        text(c, PX(22), PX(y + 13), label[r], SMALL, AJD_CREAM);
+        const int y = 50 + 36 * (int)r, chosen = r == s->full.a;      /* four rows: 50, 86, 122, 158 */
+        ajd_box(c, 12, y, 216, 32, 10, chosen ? AJD_LILAC : AJD_DUSK, 256);
+        ajd_box(c, 14, y + 2, 212, 28, 8, chosen ? AJD_DUSK : AJD_PLUM, 256);
+        text(c, PX(22), PX(y + 9), label[r], SMALL, AJD_CREAM);
         const int wide = text(0, 0, 0, value[r], SMALL, 0) / 16 + 20;
-        ajd_box(c, 218 - wide, y + 8, wide, 24, 12, AJD_LILAC, 256);
-        text(c, PX(218 - wide + 10), PX(y + 13), value[r], SMALL, AJD_PLUM);
+        ajd_box(c, 218 - wide, y + 5, wide, 22, 11, AJD_LILAC, 256);
+        text(c, PX(218 - wide + 10), PX(y + 9), value[r], SMALL, AJD_PLUM);
     }
     if (s->full.d) {                    /* b: battery reading; l: times the sound fell behind */
         char readings[16] = "b ";

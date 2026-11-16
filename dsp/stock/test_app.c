@@ -577,8 +577,8 @@ static void test_parent(void)
     /* The menu: the chosen row is outlined, values sit in lilac pills. */
     ajapp_parent_open(); look();
     CHECK(now().parent_open && now().parent_row == AJAPP_PARENT_TEMPO && now().parent_result == AJAPP_PARENT_UNCHANGED, "the menu should open on the first row");
-    CHECK(pixel(120, 55) == AJD_LILAC && pixel(120, 101) == AJD_DUSK && pixel(120, 147) == AJD_DUSK, "the first row should be outlined");
-    CHECK(pixel(200, 60) == AJD_DUSK && pixel(205, 65) == AJD_LILAC && pixel(120, 205) == AJD_PLUM, "values should sit in lilac pills, and nothing is saved yet");
+    CHECK(pixel(120, 50) == AJD_LILAC && pixel(120, 86) == AJD_DUSK && pixel(120, 122) == AJD_DUSK && pixel(120, 158) == AJD_DUSK, "the first of four rows should be outlined");
+    CHECK(pixel(200, 53) == AJD_DUSK && pixel(205, 56) == AJD_LILAC && pixel(120, 205) == AJD_PLUM, "values should sit in lilac pills, and nothing is saved yet");
     unsigned title = 0;
     for (unsigned y = 25; y < 42; ++y) for (unsigned x = 40; x < 150; ++x) title += pixel(x, y) == AJD_CREAM;
     CHECK(title > 150, "the title should be written in cream: %u pixels", title);
@@ -599,19 +599,34 @@ static void test_parent(void)
 
     /* Rows wrap; the other two settings flip. */
     ajapp_parent_row(1); look();
-    CHECK(now().parent_row == AJAPP_PARENT_SWAP && pixel(120, 101) == AJD_LILAC && pixel(120, 55) == AJD_DUSK, "the second row should be outlined");
+    CHECK(now().parent_row == AJAPP_PARENT_SWAP && pixel(120, 86) == AJD_LILAC && pixel(120, 50) == AJD_DUSK, "the second row should be outlined");
     unsigned instant = 0, next_bar = 0;
-    for (unsigned y = 109; y < 133; ++y) for (unsigned x = 100; x < 218; ++x) instant += pixel(x, y) == AJD_LILAC;
+    for (unsigned y = 91; y < 113; ++y) for (unsigned x = 100; x < 218; ++x) instant += pixel(x, y) == AJD_LILAC;
     CHECK(ajapp_parent_change(1) == 0, "swap timing should save");
     look();
-    for (unsigned y = 109; y < 133; ++y) for (unsigned x = 100; x < 218; ++x) next_bar += pixel(x, y) == AJD_LILAC;
+    for (unsigned y = 91; y < 113; ++y) for (unsigned x = 100; x < 218; ++x) next_bar += pixel(x, y) == AJD_LILAC;
     CHECK(next_bar > instant + 100, "Next bar should need a wider pill than Instant: %u then %u", instant, next_bar);
     ajapp_parent_row(1);
     CHECK(ajapp_parent_change(-1) == 0, "Bluetooth should save");
+    /* The fourth row: how fast the effects go (KNOB 3's old job). Slow, Normal, Fast, stopping at the ends. */
+    ajapp_parent_row(1); look();
+    CHECK(now().parent_row == AJAPP_PARENT_SPEED && pixel(120, 158) == AJD_LILAC, "the fourth row should be outlined");
+    ajapp_parent_get(&p);
+    CHECK(p.fx_speed == AJAPP_SPEED_NORMAL, "effect speed should start at Normal");
+    CHECK(ajapp_parent_change(1) == 0 && ajapp_parent_change(1) == 0, "effect speed should save");
+    ajapp_parent_get(&p);
+    CHECK(p.fx_speed == AJAPP_SPEED_FAST, "up from Normal is Fast, and it stops there: %u", p.fx_speed);
+    ajapp_parent_change(-1); ajapp_parent_change(-1); ajapp_parent_change(-1);
+    ajapp_parent_get(&p);
+    CHECK(p.fx_speed == AJAPP_SPEED_SLOW, "down twice is Slow, and it stops there: %u", p.fx_speed);
+    ajapp_parent_change(1);
+    ajapp_parent_get(&p);
+    CHECK(p.fx_speed == AJAPP_SPEED_NORMAL, "and back to Normal");
     ajapp_parent_row(1);
     CHECK(now().parent_row == AJAPP_PARENT_TEMPO, "rows should wrap round");
     ajapp_parent_row(-1);
-    CHECK(now().parent_row == AJAPP_PARENT_BLUETOOTH, "and back");
+    CHECK(now().parent_row == AJAPP_PARENT_SPEED, "and back");
+    ajapp_parent_row(-1);
     ajapp_parent_get(&p);
     CHECK(p.default_bpm == 110 && p.swap_on_bar == 1 && p.bluetooth == 1, "settings after the menu: %u %u %u", p.default_bpm, p.swap_on_bar, p.bluetooth);
     ajapp_parent_close(); look();
@@ -730,10 +745,20 @@ static void test_panel(void)
     CHECK(now().knob[AJAPP_KNOB_SWOOSH] == 56, "two clicks left should be 56, got %u", now().knob[AJAPP_KNOB_SWOOSH]);
     turn(KNOB1, -40);
     CHECK(now().knob[AJAPP_KNOB_SWOOSH] == 0, "KNOB 1 should stop at the end");
-    turn(KNOB2, 3); turn(KNOB3, -3); turn(KNOB4, 20);
-    CHECK(now().knob[AJAPP_KNOB_AMOUNT] == 76 && now().knob[AJAPP_KNOB_SPEED] == 52 && now().knob[AJAPP_KNOB_BALANCE] == 127,
-          "KNOB 2, 3 and 4: %u %u %u", now().knob[AJAPP_KNOB_AMOUNT], now().knob[AJAPP_KNOB_SPEED], now().knob[AJAPP_KNOB_BALANCE]);
-    turn(KNOB4, -16);
+    /* KNOB 2 how much, KNOB 3 balance, KNOB 4 Mood (one step a turn, wrapping). */
+    turn(KNOB2, 3); turn(KNOB3, -3);
+    CHECK(now().knob[AJAPP_KNOB_AMOUNT] == 76 && now().knob[AJAPP_KNOB_BALANCE] == 52,
+          "KNOB 2 and 3: %u %u", now().knob[AJAPP_KNOB_AMOUNT], now().knob[AJAPP_KNOB_BALANCE]);
+    turn(KNOB3, 40);
+    CHECK(now().knob[AJAPP_KNOB_BALANCE] == 127, "KNOB 3 should stop at the end");
+    turn(KNOB3, -16);
+    int instrument_before = now().instrument;
+    turn(KNOB4, 1); turn(KNOB4, 3);
+    CHECK(now().mood == 2 && now().instrument == instrument_before && now().knob[AJAPP_KNOB_BALANCE] == 63, "KNOB 4 should step the Mood only: mood %u", now().mood);
+    turn(KNOB4, -1); turn(KNOB4, -1); turn(KNOB4, -1);
+    CHECK(now().mood == AJAPP_MOODS - 1, "KNOB 4 back past Happy should wrap to the last Mood, got %u", now().mood);
+    turn(KNOB4, 1);
+    CHECK(now().mood == 0, "and forward again to Happy, got %u", now().mood);
     turn(SELECT, 3);
     CHECK(now().bpm == 122, "SELECT three clicks should be 122 BPM, got %u", now().bpm);
     turn(SELECT, -100);
@@ -750,7 +775,7 @@ static void test_panel(void)
     turn(ALGORITHM, -1);
     CHECK(now().instrument == 19, "ALGORITHM back should wrap to the last instrument, got %u", now().instrument);
 
-    /* OCT buttons: one moves the octave when let go, both reset, held with ALGORITHM they choose the Mood. */
+    /* OCT buttons: one moves the octave when let go, both reset. They no longer choose the Mood. */
     button(OCT_UP, 1);
     CHECK(now().octave == 0, "the octave should wait for the button to be let go");
     button(OCT_UP, 0);
@@ -759,10 +784,10 @@ static void test_panel(void)
     CHECK(now().octave == 0, "both OCT buttons should reset the octave");
     button(OCT_DOWN, 0); button(OCT_UP, 0);
     CHECK(now().octave == 0, "letting go after a reset should not move the octave");
-    button(OCT_DOWN, 1); turn(ALGORITHM, 1); turn(ALGORITHM, 1); button(OCT_DOWN, 0);
-    CHECK(now().mood == 2 && now().octave == 0 && now().instrument == 19, "OCT- held with ALGORITHM should choose the Mood only: mood %u", now().mood);
-    button(OCT_UP, 1); turn(ALGORITHM, -1); turn(ALGORITHM, -1); button(OCT_UP, 0);
-    CHECK(now().mood == 0, "and back to Happy, got %u", now().mood);
+    button(OCT_DOWN, 1); turn(ALGORITHM, 1); button(OCT_DOWN, 0);
+    CHECK(now().mood == 0 && now().octave == -1 && now().instrument == 0, "OCT- held with ALGORITHM is just an octave down and the next instrument: mood %u", now().mood);
+    button(OCT_UP, 1); button(OCT_UP, 0); turn(ALGORITHM, -1);
+    CHECK(now().octave == 0 && now().instrument == 19, "and back");
 
     /* SAVE and SEQ: hearts. HOME: clean slate. */
     tap_button(FX);

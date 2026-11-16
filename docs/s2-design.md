@@ -190,6 +190,19 @@ Partho installed the second build (`8e19300bcf4417d1`) and reported five things.
 
 **Third build:** app image 439,732 of 453,921 bytes (14,189 to spare), heap 192,044, every script check passed, Build ID `daaa1eb6f784f553`, page SHA-256 `98406133…ae9a`, package SHA-256 `ef4dbe9d…3fce`. 1,119 desktop checks pass. Not installed yet. The old engine's tests were not rerun.
 
+### Knobs changed at Partho's request (Nov 15, 2026), and the fourth build
+
+Partho didn't like holding OCT- or OCT+ and turning ALGORITHM for Mood. His choice, now in the PRD's control map:
+
+- **KNOB 3:** drums and melody balance (was KNOB 4).
+- **KNOB 4:** Mood. Each pass that the knob turns steps one Mood, either way, wrapping round, with the Mood picture shown.
+- **How fast the effects go** (was KNOB 3) is a fourth row in parent mode, "Effect speed": Slow, Normal or Fast for all effects at once. Normal is each effect's own speed, as before (Stutter an 8th note, the rest the middle). It is stored in the parent record's spare byte, so settings saved by earlier builds still load, as Normal.
+- **OCT- and OCT+** only move the octave now; both together still reset it.
+
+The parent screen has four rows (36 pixels apart instead of 46), and three letters were added to the screen's letters for the new words (E, F, c). Speeds saved in hearts and jams by earlier builds are overridden by the parent setting.
+
+**Fourth build:** app image 440,308 of 453,921 bytes (13,613 to spare), heap 192,044, every script check passed, Build ID `8db777a7c5fc3d43`, page SHA-256 `d430c956…b043`, package SHA-256 `12211cf9…c3b6`. 1,129 desktop checks pass. Not installed yet; it also carries the third build's fixes, which Partho has not installed either.
+
 ## What I don't know yet, and how I'll find out
 
 1. **Does a pattern swap click or stall?** Edits briefly hold the audio gate. Test on the desktop first, then on the first device build.

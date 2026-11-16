@@ -45,7 +45,7 @@ my @pictures = (
            sun_rays sun_face mood_sun mood_cloud mood_moon mood_balloon mood_lantern mood_map sleepy_battery zed
            word_aj word_box word_tada digit0 digit1 digit2 digit3 digit4 digit5 digit6 digit7 digit8 digit9 gear
            ch_P ch_D ch_S ch_B ch_I ch_N ch_O ch_M ch_a ch_b ch_d ch_e ch_f ch_g ch_h ch_i ch_l ch_m ch_n ch_o ch_p
-           ch_r ch_s ch_t ch_u ch_v ch_w ch_x)),
+           ch_r ch_s ch_t ch_u ch_v ch_w ch_x ch_E ch_F ch_c)),
 );
 
 my %files;

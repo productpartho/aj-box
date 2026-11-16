@@ -52,13 +52,16 @@ void ajapp_replay(void);             /* ARP: play her last jam; again stops it *
 int ajapp_save_memory(void);         /* what power-on brings back; 0 saved */
 void ajapp_chime(void);              /* the hello chime */
 /* Parent mode settings; set returns 0 when saved. */
-typedef struct { uint8_t default_bpm, swap_on_bar, bluetooth, reserved; } ajapp_parent_t;
+/* fx_speed: how fast the effects go, AJAPP_SPEED_NORMAL, _SLOW or _FAST. It took the
+ * place of a spare byte, so Normal is 0 and settings saved before it still read. */
+enum { AJAPP_SPEED_NORMAL, AJAPP_SPEED_SLOW, AJAPP_SPEED_FAST, AJAPP_SPEEDS };
+typedef struct { uint8_t default_bpm, swap_on_bar, bluetooth, fx_speed; } ajapp_parent_t;
 void ajapp_parent_get(ajapp_parent_t *settings);
 int ajapp_parent_set(const ajapp_parent_t *settings);
-/* The parent menu (PRD "Parent mode": HOME + SAVE held 2 s opens it). Three rows:
- * default tempo, swap timing, Bluetooth. A change is saved at once; the menu
+/* The parent menu (PRD "Parent mode": HOME + SAVE held 2 s opens it). Four rows:
+ * default tempo, swap timing, Bluetooth, effect speed. A change is saved at once; the menu
  * shows the new value only when the save was read back. */
-enum { AJAPP_PARENT_TEMPO, AJAPP_PARENT_SWAP, AJAPP_PARENT_BLUETOOTH, AJAPP_PARENT_ROWS };
+enum { AJAPP_PARENT_TEMPO, AJAPP_PARENT_SWAP, AJAPP_PARENT_BLUETOOTH, AJAPP_PARENT_SPEED, AJAPP_PARENT_ROWS };
 enum { AJAPP_PARENT_UNCHANGED, AJAPP_PARENT_SAVED, AJAPP_PARENT_NOT_SAVED };
 void ajapp_parent_open(void);
 void ajapp_parent_close(void);
