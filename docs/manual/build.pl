@@ -42,7 +42,7 @@ my %shot_file = (hello => '01-hello', home => '02-home-nothing-playing', play =>
     recording => '05-recording', heart => '06-heart-3-saved', mood => '08-mood-happy', muted => '10-page4-drums-muted-fast',
     kit => '11-kit-picture-slow', dice => '12-swoosh-knob-and-dice', swoosh => '12-swoosh-knob-and-dice',
     instrument => '13-instrument-picture', balance => '14-balance-knob', finish => '15-finish', battery => '16-battery-low',
-    parent => '17-parent-mode');
+    parent => '17-parent-mode', tempo => '19-tempo-pop-up', nosave => '07-heart-not-saved');
 my (%shots, %packed);
 for my $key (sort keys %shot_file) {
     my $f = $shot_file{$key};

@@ -130,7 +130,7 @@ td.n { font: 600 15px var(--display); color: var(--gold); width: 2.2em; font-var
 <header>
   <h1><span class="aj">AJ</span> <span class="box">Box</span> manual</h1>
   <p class="lede">A loop toy that lives on an M-VAVE FM-1. One hand picks a drum beat, the other picks a tune, and whatever she presses stays in time. Tap any key, button or knob on the picture to see its job.</p>
-  <p class="note"><b>Where this stands (15 Nov 2026).</b> This describes AJ Box as it runs in the desktop simulator. It is not on the FM-1 yet, so the last section lists what can still change once it is.</p>
+  <p class="note"><b>Where this stands (15 Nov 2026, evening).</b> AJ Box is on the FM-1. This describes the fifth build (Build ID 254d09ae…). The fourth build is the last one recorded as installed; the fifth adds the speed pop-up on SELECT and nothing else. The screen pictures come from the desktop simulator running the same code.</p>
 </header>
 
 <section id="box">
@@ -164,14 +164,14 @@ td.n { font: 600 15px var(--display); color: var(--gold); width: 2.2em; font-var
 
 <section id="loops">
   <h2>The loops</h2>
-  <p class="sub">96 loops: 6 pages, each with 8 drum loops and 8 melodies. The numbers are the white keys, counted from the left on each side. The Back and Next keys turn the page for one side only, so any drum page can go with any melody page.</p>
+  <p class="sub">96 loops: 6 pages, each with 8 drum loops and 8 melodies. The numbers are the white keys, counted from the left on each side. The Back and Next keys turn the page for one side only, so any drum page can go with any melody page. Around the World and Animal Choir, with the four Zelda tunes, are page 1.</p>
   <div class="chips" role="tablist" aria-label="Page" id="pages"></div>
   <div class="two" id="page"></div>
 </section>
 
 <section id="oneshots">
   <h2>The 8 one-shots</h2>
-  <p class="sub">Most drums are made by the FM-1's drum machine. These 8 are short sounds of their own, made by synthesis (nothing was recorded), and five drum loops are built from them. Press play to hear each one.</p>
+  <p class="sub">Most drums are made by the FM-1's drum machine. These 8 are short sounds of their own, made by synthesis (nothing was recorded), and five drum loops are built from them. Press play to hear each one. They sit in the FM-1's sample bank, apart from the firmware, so installing a new build leaves them alone.</p>
   <div class="pads" id="pads"></div>
 </section>
 
@@ -193,14 +193,45 @@ td.n { font: 600 15px var(--display); color: var(--gold); width: 2.2em; font-var
 
 <section id="moods">
   <h2>Moods</h2>
-  <p class="sub">Hold OCT− or OCT+ and turn ALGORITHM. The melody moves to a different set of 5 notes on the next bar, so every tune works in every mood. The four Zelda tunes stay as written.</p>
+  <p class="sub">Turn KNOB 4. Each click steps to the next Mood, or the one before, round and round, and shows its picture. The melody moves to a different set of 5 notes on the next bar, so every tune works in every mood. The four Zelda tunes stay as written.</p>
   <div class="scroll"><table id="moodtable"><tr><th>Mood</th><th>Picture</th><th>Notes</th><th>Sounds like</th></tr></table></div>
+</section>
+
+<section id="parent">
+  <h2>Parent mode</h2>
+  <p class="sub">The only screen with words. Hold HOME and SAVE together for 2 seconds to open it. The music carries on; the keys and other buttons do nothing until it is shut.</p>
+  <div class="two">
+    <div class="scroll"><table>
+      <tr><th>Do this</th><th>To</th></tr>
+      <tr><td>Turn SELECT</td><td>Move to another row</td></tr>
+      <tr><td>Turn any of KNOB 1 to 4</td><td>Change that row. It is saved straight away.</td></tr>
+      <tr><td>Tap HOME, or hold HOME + SAVE for 2 seconds again</td><td>Leave</td></tr>
+    </table></div>
+    <div class="scroll"><table>
+      <tr><th>Row</th><th>Choices</th></tr>
+      <tr><td>Default tempo</td><td>30 to 200 BPM in steps of 5. Starts at 110. The speed changes as it is turned.</td></tr>
+      <tr><td>Swap timing</td><td>Instant (a new loop joins on the step the beat is on) or Next bar.</td></tr>
+      <tr><td>Bluetooth</td><td>On or Off.</td></tr>
+      <tr><td>Effect speed</td><td>Slow, Normal or Fast, for all the effects at once. Normal is each effect's own speed.</td></tr>
+    </table></div>
+  </div>
+  <p class="sub">"Saved" at the bottom left means the setting was written and read back. "Not saved" means it was not, and the old setting stands. The small figures at the bottom right are for testing: <b>b</b> is the raw battery reading and <b>l</b> counts how often the sound fell behind (0 is good).</p>
+</section>
+
+<section id="lights">
+  <h2>The lights</h2>
+  <div class="rules">
+    <div><h3>White keys</h3><p>The key of the loop that is playing is lit, while its page is the one shown. A Dice pick blinks twice first.</p></div>
+    <div><h3>Black keys</h3><p>Fill, Fast and the two Mute keys are lit while held.</p></div>
+    <div><h3>Buttons</h3><p>An effect button is lit while its effect is on. PLAY/STOP is lit while music plays, REC while recording, ARP while the jam replays.</p></div>
+    <div><h3>OCT− and OCT+</h3><p>One is lit when the melody is below or above its normal octave.</p></div>
+  </div>
 </section>
 
 <section id="rules">
   <h2>Good to know</h2>
   <div class="rules">
-    <div><h3>It always lands in time</h3><p>A new loop joins on the step the beat is on. Nothing waits for the next bar unless parent mode says so.</p></div>
+    <div><h3>It always lands in time</h3><p>A new loop joins on the step the beat is on. Nothing waits for the next bar unless parent mode says so. A new Mood always starts on the next bar.</p></div>
     <div><h3>Two at most</h3><p>One drum loop and one melody. A new key on the same side swaps; the playing key again stops that side on the next beat.</p></div>
     <div><h3>Hearts</h3><p>SAVE keeps the drum, melody, sounds, speed and effects as a heart. There are 8; a ninth replaces the oldest. SEQ steps through them.</p></div>
     <div><h3>Her jam</h3><p>REC records everything she presses and turns for up to 2 minutes. ARP plays it back. A new jam replaces the old one.</p></div>
@@ -212,14 +243,15 @@ td.n { font: 600 15px var(--display); color: var(--gold); width: 2.2em; font-var
 </section>
 
 <section id="open">
-  <h2>Not settled until it is on the FM-1</h2>
+  <h2>Still open</h2>
   <ul class="todo">
-    <li><b>Moving around parent mode.</b> HOME + SAVE held for 2 seconds opens it. Which controls step through the rows and change them is still to be decided.</li>
-    <li><b>The battery picture.</b> The readings that mean 1, 2 or 3 bars and "low" have to be measured on the unit.</li>
-    <li><b>Key lights.</b> The plan is: the playing key stays lit, a Dice pick blinks twice.</li>
-    <li><b>How fast SELECT moves.</b> The plan is 2 BPM a click, more when turned quickly.</li>
+    <li><b>The battery picture and the sleepy screen</b> are left out on the FM-1. The readings that mean full and nearly flat are not known yet; only one has been noted (b 612). The pictures in this manual still show a battery.</li>
+    <li><b>The power-off test</b> was reported as working. Which build it was run on, and whether it was the three rounds the plan asks for, is not recorded.</li>
+    <li><b>The sound while saving.</b> Whether a save makes a gap in the music has not been measured.</li>
+    <li><b>Two pictures are not drawn:</b> "the jam didn't save" and "the setting didn't save" (parent mode says "Not saved" in words).</li>
+    <li><b>Hearts and jams from the first build.</b> Pages 1 and 4 changed places after it, so anything saved from either page back then plays the other page's loop.</li>
     <li><b>Stickers and knob caps.</b> A picture strip over the black keys and coloured caps for KNOB 1 to 4 are planned, not made.</li>
-    <li><b>Timing and loudness on the real speaker.</b> Checked on the desktop only so far.</li>
+    <li><b>Play-testing with her</b> (three sessions) comes next.</li>
   </ul>
 </section>
 </div>
@@ -230,18 +262,18 @@ const SOUNDS = %%SOUNDS%%;
 const ICONS = %%ICONS%%;
 
 const PAGES = [
-  { drum: 'Bouncy Pop', melody: 'Twinkle', di: 'Bouncy Pop', mi: 'Twinkle',
-    drums: ['Bounce', 'Stomp', 'Skippy', 'Cowbell Party', 'Clap Along', 'Hop Scotch', 'Big Parade', 'Tick Tock'],
-    tunes: ['Star Steps', 'Music Box Song', 'Harp Hop', 'Bell Tower', 'Glass Rain', 'Wind-Up', 'Tiptoe', 'Lullabell'] },
+  { drum: 'Around the World', melody: 'Animal Choir', di: 'Around the World', mi: 'Animal Choir',
+    drums: ['Dhol Party', 'Reggaeton', 'Samba', 'Tabla Talk', 'Afrobeat', 'Clave Walk', 'Goron Drums', 'Island'],
+    tunes: ["Saria's Song", 'Song of Storms', 'Bird Call', 'Choir', 'Frog Hop', "Zelda's Lullaby", 'Goron City', 'Owl Night'] },
   { drum: 'Disco Dance', melody: 'Bubblegum', di: 'Disco Dance', mi: 'Bubblegum',
     drums: ['Glitter Ball', 'Roller Skate', 'Funky Chicken', 'Hand Clap Hustle', 'Tom Tom Club', 'Shimmy', 'Mirror Ball', 'Cha-Ching'],
     tunes: ['Bubble Pop', 'Gumdrop', 'Disco Strut', 'Fizzy Pop', 'Sugar Rush', 'Roller Rink', 'Sparkle Stairs', 'Jelly Wobble'] },
   { drum: 'Head-Nod', melody: 'Space', di: 'Head-Nod', mi: 'Space',
     drums: ['Boom Bap', 'Lazy Sunday', 'Head Bop', 'Trap Cat', 'Dusty', 'Slow Jam', 'Scratch', 'Tip Tap'],
     tunes: ['Laser Tag', 'Moon Walk', 'Bloop Bloop', 'Rocket', 'Robot Talk', 'Computer Brain', 'Star Drift', 'UFO'] },
-  { drum: 'Around the World', melody: 'Animal Choir', di: 'Around the World', mi: 'Animal Choir',
-    drums: ['Dhol Party', 'Reggaeton', 'Samba', 'Tabla Talk', 'Afrobeat', 'Clave Walk', 'Goron Drums', 'Island'],
-    tunes: ["Saria's Song", 'Song of Storms', 'Bird Call', 'Choir', 'Frog Hop', "Zelda's Lullaby", 'Goron City', 'Owl Night'] },
+  { drum: 'Bouncy Pop', melody: 'Twinkle', di: 'Bouncy Pop', mi: 'Twinkle',
+    drums: ['Bounce', 'Stomp', 'Skippy', 'Cowbell Party', 'Clap Along', 'Hop Scotch', 'Big Parade', 'Tick Tock'],
+    tunes: ['Star Steps', 'Music Box Song', 'Harp Hop', 'Bell Tower', 'Glass Rain', 'Wind-Up', 'Tiptoe', 'Lullabell'] },
   { drum: 'Silly Kitchen', melody: 'Game On', di: 'Silly Kitchen', mi: 'Game On',
     drums: ['Pots and Pans', 'Beatbox', 'Spoons', 'Whisk', 'Pop Corn', 'Stir It', 'Clank', 'Dish Washer'],
     tunes: ['Level One', 'Coin Grab', 'Boss Fight', 'Power Up', 'Pixel Hop', 'Crunch Time', 'Warp Zone', 'High Score'] },
@@ -280,8 +312,10 @@ const SCREENS = [
   ['heart', 'A heart saved', 'The number of the heart, and the row of 8.'],
   ['mood', 'Mood', 'The chosen mood, big, with its two neighbours below.'],
   ['finish', 'Ta-da!', 'Confetti and a star when Finish lands.'],
-  ['battery', 'Sleepy battery', 'Time to charge.'],
-  ['parent', 'Parent mode', 'The only screen with words.'],
+  ['tempo', 'Speed pop-up', 'Turning SELECT shows the beats a minute for a moment (fifth build).'],
+  ['nosave', 'Heart not saved', 'A dark, empty heart: it could not be kept.'],
+  ['battery', 'Sleepy battery', 'Time to charge. Drawn, but switched off on the FM-1 for now.'],
+  ['parent', 'Parent mode', 'The only screen with words. Four rows.'],
 ];
 
 /* Controls: x, y are the middle of the control on the 1920 x 1080 photo. */
@@ -293,7 +327,7 @@ const loopKey = (i) => {
     stock: 'White key ' + (i + 1) + ' of 16',
     points: ['Tap: start this loop, or swap to it without losing the beat.',
       'Tap the one that is playing: that side stops on the next beat.',
-      'Which loop it is depends on the page that side is on.'],
+      'Which loop it is depends on the page that side is on.', 'The key is lit while its loop plays and its page is shown.'],
     list: PAGES.map((p, k) => ['Page ' + (k + 1), (drum ? p.drums : p.tunes)[n - 1]]) };
 };
 const FX = [
@@ -307,15 +341,15 @@ const FX = [
 const CONTROLS = [
   ...WHITE.map((_, i) => loopKey(i)),
   { id: 'dback', kind: 'helper', layer: 3, x: 443, y: 680, w: 66, h: 122, tag: 'Helper key, drum side', title: 'Drum page back', stock: 'Printed OP1',
-    points: ['Shows the previous page of 8 drum loops.', 'The loop that is playing carries on until she taps a new key.', 'After page 1 comes page 6.'] },
+    points: ['Shows the previous page of 8 drum loops.', 'The loop that is playing carries on until she taps a new key.', 'After page 1 comes page 6.', 'The picture and the dots change to the new page straight away.'] },
   { id: 'dnext', kind: 'helper', layer: 3, x: 519, y: 680, w: 66, h: 122, tag: 'Helper key, drum side', title: 'Drum page next', stock: 'Printed OP2',
     points: ['Shows the next page of 8 drum loops.', 'The 6 dots under the drum picture show which page she is on.'] },
   { id: 'fill', kind: 'helper', layer: 3, x: 595, y: 680, w: 66, h: 122, tag: 'Helper key, drum side', title: 'Fill', stock: 'Printed OP3',
-    points: ['Hold: a drum fill plays instead of the beat.', 'Let go: the beat comes straight back, still in time.'] },
+    points: ['Hold: a drum fill plays instead of the beat.', 'Let go: the beat comes straight back, still in time.', 'The key is lit while held.'] },
   { id: 'dmute', kind: 'helper', layer: 3, x: 748, y: 680, w: 66, h: 122, tag: 'Helper key, drum side', title: 'Mute drums', stock: 'Printed OP4',
-    points: ['Hold: the drums drop out.', 'Let go: they come back on the beat.', 'The drum half of the screen goes dark while held.'], shot: 'muted' },
+    points: ['Hold: the drums drop out.', 'Let go: they come back on the beat.', 'The drum half of the screen goes dark while held.', 'The key is lit while held.'], shot: 'muted' },
   { id: 'ddice', kind: 'helper', layer: 3, x: 823, y: 680, w: 66, h: 122, tag: 'Helper key, drum side', title: 'Drum dice', stock: 'Printed OP5',
-    points: ['A surprise drum loop from any page.', 'The screen jumps to that loop\'s page and its picture spins in.'] },
+    points: ['A surprise drum loop from any page.', 'The screen jumps to that loop\'s page and its picture spins in.', 'The white key it picked blinks twice.'] },
   { id: 'finish', kind: 'helper', layer: 3, x: 975, y: 680, w: 66, h: 122, tag: 'Helper key, in the middle', title: 'Finish', stock: 'Printed OP6',
     points: ['A big ending: on the next bar a cymbal crashes and the melody holds its last note.', 'Then everything stops, with confetti and "Ta-da!".'], shot: 'finish' },
   { id: 'mback', kind: 'helper', layer: 3, x: 1051, y: 680, w: 66, h: 122, tag: 'Helper key, melody side', title: 'Melody page back', stock: 'Printed PIT',
@@ -323,53 +357,55 @@ const CONTROLS = [
   { id: 'mnext', kind: 'helper', layer: 3, x: 1127, y: 680, w: 66, h: 122, tag: 'Helper key, melody side', title: 'Melody page next', stock: 'Printed GLO',
     points: ['Shows the next page of 8 melodies.', 'The 6 dots under the melody picture show which page she is on.'] },
   { id: 'fast', kind: 'helper', layer: 3, x: 1279, y: 680, w: 66, h: 122, tag: 'Helper key, melody side', title: 'Fast', stock: 'Printed MONO',
-    points: ['Hold: the melody plays twice as fast.', 'Let go: back to normal, still in time.'] },
+    points: ['Hold: the melody plays twice as fast.', 'Let go: back to normal, still in time.', 'The key is lit while held.'] },
   { id: 'mmute', kind: 'helper', layer: 3, x: 1355, y: 680, w: 66, h: 122, tag: 'Helper key, melody side', title: 'Mute melody', stock: 'Printed POLY',
-    points: ['Hold: the melody drops out.', 'Let go: it comes back on the beat.'] },
+    points: ['Hold: the melody drops out.', 'Let go: it comes back on the beat.', 'The key is lit while held.'] },
   { id: 'mdice', kind: 'helper', layer: 3, x: 1507, y: 680, w: 66, h: 122, tag: 'Helper key, melody side', title: 'Melody dice', stock: 'The last black key',
-    points: ['A surprise melody from any page.', 'The screen jumps to that tune\'s page and its picture spins in.'], shot: 'dice' },
+    points: ['A surprise melody from any page.', 'The screen jumps to that tune\'s page and its picture spins in.', 'The white key it picked blinks twice.'], shot: 'dice' },
   ...FX.map((f, i) => ({ id: 'fx' + i, kind: 'fx', layer: 2, x: 1079 + 84 * i, y: 416, w: 78, h: 72, tag: 'Effect switch', title: f[1], stock: 'Printed ' + f[0],
     points: [f[2], i === 5 ? f[3] : 'Press to switch it on, press again to switch it off. Any mix of effects can be on.',
-      i === 5 ? 'Its bubble lights at the bottom of the screen while held.' : 'KNOB 2 sets how strong it is and KNOB 3 how fast, for whichever effect was switched on last.',
+      i === 5 ? 'Its bubble lights at the bottom of the screen while held.' : 'KNOB 2 sets how strong it is, for whichever effect was switched on last. The button is lit while the effect is on.',
       ...(i < 5 && f[3] ? [f[3]] : [])], shot: 'effects' })),
   { id: 'home', kind: 'button', layer: 1, x: 1079, y: 500, w: 78, h: 72, tag: 'Button', title: 'Clean slate', stock: 'Printed HOME',
     points: ['Every effect off, the filter back to the middle, back to the play screen.', 'The loops keep playing.',
-      'Held together with SAVE for 2 seconds: parent mode.'] },
+      'It acts when let go.', 'Held together with SAVE for 2 seconds: parent mode. In parent mode, HOME leaves.'] },
   { id: 'save', kind: 'button', layer: 3, x: 1163, y: 500, w: 78, h: 72, tag: 'Button', title: 'Save a heart', stock: 'Printed SAVE',
     points: ['Keeps the drum loop, the melody, their sounds, the speed and the effects as a favourite.', 'There are 8 hearts. A ninth replaces the oldest.',
-      'The screen shows the heart with its number. A dark, empty heart means it could not be saved.'], shot: 'heart' },
+      'The screen shows the heart with its number. A dark, empty heart means it could not be saved.', 'It acts when let go.'], shot: 'heart' },
   { id: 'arp', kind: 'button', layer: 3, x: 1247, y: 500, w: 78, h: 72, tag: 'Button', title: 'Replay her jam', stock: 'Printed ARP',
-    points: ['Plays her last recorded jam back, exactly as she played it.', 'Press again to stop it.'] },
+    points: ['Plays her last recorded jam back, exactly as she played it.', 'Press again to stop it.', 'Lit while it replays.'] },
   { id: 'seq', kind: 'button', layer: 3, x: 1331, y: 500, w: 78, h: 72, tag: 'Button', title: 'Next heart', stock: 'Printed SEQ',
     points: ['Each tap jumps to the next saved heart and plays it.', 'With no hearts saved it shows an empty heart.'], shot: 'heart' },
   { id: 'play', kind: 'button', layer: 1, x: 1415, y: 500, w: 78, h: 72, tag: 'Button', title: 'Stop and go', stock: 'Printed PLAY / STOP',
-    points: ['While playing: everything stops.', 'While silent: the last drum loop and melody come back, at the same speed.'] },
+    points: ['While playing: everything stops.', 'While silent: the last drum loop and melody come back, at the same speed.', 'Lit while music is playing.'] },
   { id: 'rec', kind: 'button', layer: 3, x: 1499, y: 500, w: 78, h: 72, tag: 'Button', title: 'Record a jam', stock: 'Printed REC',
     points: ['Records everything she presses and turns, for up to 2 minutes.', 'Press again to stop and keep it. It stops by itself at 2 minutes.',
-      'A magenta frame and a blinking dot show it is recording.'], shot: 'recording' },
+      'A magenta frame and a blinking dot show it is recording, and the button is lit.'], shot: 'recording' },
   { id: 'k1', kind: 'knob', round: 1, layer: 2, x: 1061, y: 268, w: 88, h: 88, tag: 'Knob', title: 'Swoosh', stock: 'Printed KNOB1 (pink cap planned)',
     points: ['A filter on everything. Left sounds underwater, right sounds like a tiny radio.', 'The middle is clean: the screen shows a gold dot at the top.',
-      'Always there, with no button to switch on.'], shot: 'swoosh' },
+      'Always there, with no button to switch on.', '32 clicks from end to end; the middle three clicks are all clean.'], shot: 'swoosh' },
   { id: 'k2', kind: 'knob', round: 1, layer: 2, x: 1212, y: 268, w: 88, h: 88, tag: 'Knob', title: 'How much', stock: 'Printed KNOB2 (purple cap planned)',
     points: ['The strength of the effect that was switched on last.', 'The screen draws an arc with that effect\'s picture in the middle.'], shot: 'effects' },
-  { id: 'k3', kind: 'knob', round: 1, layer: 2, x: 1362, y: 268, w: 88, h: 88, tag: 'Knob', title: 'How fast', stock: 'Printed KNOB3 (lilac cap planned)',
-    points: ['The speed of the effect that was switched on last, always locked to the beat.'] },
-  { id: 'k4', kind: 'knob', round: 1, layer: 2, x: 1516, y: 268, w: 88, h: 88, tag: 'Knob', title: 'Drums or melody', stock: 'Printed KNOB4 (magenta cap planned)',
+  { id: 'k3', kind: 'knob', round: 1, layer: 2, x: 1362, y: 268, w: 88, h: 88, tag: 'Knob', title: 'Drums or melody', stock: 'Printed KNOB3 (lilac cap planned)',
     points: ['The balance between the two sides.', 'Left: more drums. Right: more melody. The middle is even.'], shot: 'balance' },
+  { id: 'k4', kind: 'knob', round: 1, layer: 2, x: 1516, y: 268, w: 88, h: 88, tag: 'Knob', title: 'Mood', stock: 'Printed KNOB4 (magenta cap planned)',
+    points: ['Each click steps to the next Mood, or the one before: Happy, Dreamy, Spooky, Magic, Floaty, Faraway, Adventure, round and round.',
+      'The Mood\'s picture shows, and the melody changes its notes on the next bar.', 'The four Zelda tunes stay as written.'], shot: 'mood' },
   { id: 'master', kind: 'knob', round: 1, layer: 1, x: 413, y: 268, w: 88, h: 88, tag: 'Knob', title: 'Volume', stock: 'Printed MASTER',
     points: ['Loudness, all the way from silent to full.', 'It is the only knob with a stop at each end.'] },
   { id: 'select', kind: 'knob', round: 1, layer: 2, x: 556, y: 268, w: 88, h: 88, tag: 'Knob', title: 'Speed', stock: 'Printed SELECT',
-    points: ['Slower or faster, from 30 to 200 beats a minute. It starts at 110.', 'The arrows at the top right of the screen show slow, medium or fast.'] },
+    points: ['Slower or faster, from 30 to 200 beats a minute, 4 at a click. It starts at 110.', 'A pop-up shows the number, with a gold arc from slowest to fastest (fifth build).',
+      'The arrows at the top right of the screen show slow, medium or fast.', 'In parent mode it picks the row instead.'], shot: 'tempo' },
   { id: 'presets', kind: 'knob', round: 1, layer: 3, x: 411, y: 408, w: 88, h: 88, tag: 'Knob', title: 'Drum kit', stock: 'Printed PRESETS',
     points: ['Same beat, new drums. 12 kits.', 'The kit\'s picture shows in the middle of the screen for a moment.'], shot: 'kit' },
   { id: 'algorithm', kind: 'knob', round: 1, layer: 3, x: 556, y: 408, w: 88, h: 88, tag: 'Knob', title: 'Instrument', stock: 'Printed ALGORITHM',
-    points: ['Same tune, new instrument. 20 instruments.', 'Held with OCT− or OCT+: changes the Mood instead.'], shot: 'instrument' },
+    points: ['Same tune, new instrument. 20 instruments.', 'A new melody loop goes back to its own instrument.'], shot: 'instrument' },
   { id: 'octdown', kind: 'button', layer: 3, x: 436, y: 519, w: 86, h: 54, tag: 'Button', title: 'Melody lower', stock: 'Printed OCT−',
-    points: ['The melody drops one octave, down to two.', 'Both OCT buttons together: back to normal.', 'Hold either one and turn ALGORITHM: Mood.'], shot: 'mood' },
+    points: ['The melody drops one octave, down to two.', 'Both OCT buttons together: back to normal.', 'Lit while the melody is lower than normal.'] },
   { id: 'octup', kind: 'button', layer: 3, x: 538, y: 519, w: 86, h: 54, tag: 'Button', title: 'Melody higher', stock: 'Printed OCT+',
-    points: ['The melody rises one octave, up to two.', 'Both OCT buttons together: back to normal.', 'Hold either one and turn ALGORITHM: Mood.'], shot: 'mood' },
+    points: ['The melody rises one octave, up to two.', 'Both OCT buttons together: back to normal.', 'Lit while the melody is higher than normal.'] },
   { id: 'screen', kind: 'screen', layer: 1, x: 810, y: 361, w: 236, h: 236, tag: 'Screen', title: 'The play screen', stock: '240 × 240 pixels',
-    points: ['Top: battery, 4 beat dots, speed.', 'Left, pink: the drum loop. Right, purple: the melody.', 'Bottom: one bubble for each effect.'], shot: 'play' },
+    points: ['Top: 4 beat dots and the speed arrows. The battery picture is not shown on the FM-1 yet.', 'Left, pink: the drum loop. Right, purple: the melody.', 'Bottom: one bubble for each effect.'], shot: 'play' },
 ];
 
 const $ = (id) => document.getElementById(id);
@@ -469,7 +505,7 @@ PADS.forEach((pad, i) => {
 
 /* sounds and moods */
 KITS.forEach((k, i) => { const li = el('li'); li.append(el('span', 'n', String(i + 1)), k);
-  if (i < 6) li.append(el('small', '', 'page ' + (i + 1))); $('kits').append(li); });
+  if (i < 6) li.append(el('small', '', 'page ' + [4, 2, 3, 1, 5, 6][i])); $('kits').append(li); });
 INSTRUMENTS.forEach(([name, kind], i) => { const li = el('li'); li.append(el('span', 'n', String(i + 1)), name, el('small', '', kind)); $('instruments').append(li); });
 MOODS.forEach((m) => { const r = el('tr'); m.forEach((t, i) => r.append(el('td', i ? '' : 'n', t))); r.firstChild.style.width = 'auto'; $('moodtable').append(r); });
 </script>
