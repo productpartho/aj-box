@@ -1,0 +1,557 @@
+<title>AJ Box Manual</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap">
+<style>
+/* Layout: the FM-1 photo is the page. Tap a control on it and its job shows beside it;
+   the reference lists (loops, one-shots, sounds, rules) follow underneath.
+   One look only, in AJ Box's own fixed palette, the same eight colours the screen uses. */
+:root {
+  color-scheme: dark;
+  --plum: #2A0A3D; --dusk: #3D1656; --pink: #FF5FA2; --magenta: #E0218A;
+  --grape: #7B2CBF; --lilac: #C9A0FF; --gold: #FFD166; --cream: #FFF4FB;
+  --deep: #1C0629; --muted: #CDB6DD; --line: #57277A;
+  --display: 'Fredoka', 'Trebuchet MS', system-ui, sans-serif;
+  --body: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--plum); color: var(--cream); font: 16px/1.5 var(--body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 44px; }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; line-height: 1.15; }
+h1 { font-size: clamp(34px, 6vw, 54px); font-weight: 700; letter-spacing: .5px; }
+h1 .aj { color: var(--pink); text-shadow: 0 3px 0 var(--magenta); }
+h1 .box { color: var(--lilac); text-shadow: 0 3px 0 var(--grape); }
+h2 { font-size: 26px; font-weight: 600; }
+h3 { font-size: 18px; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--gold); }
+.lede { color: var(--muted); font-size: 17px; }
+.note { border: 2px dashed var(--line); border-radius: 14px; padding: 12px 14px; color: var(--muted); font-size: 14.5px; max-width: 80ch; }
+.note b { color: var(--gold); font-weight: 700; }
+header { display: flex; flex-direction: column; gap: 12px; }
+section { display: flex; flex-direction: column; gap: 16px; }
+.sub { color: var(--muted); }
+
+/* chips and tabs */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 600 14px var(--display); color: var(--cream); background: var(--dusk); border: 2px solid var(--line);
+  border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.chip:hover { border-color: var(--lilac); }
+.chip[aria-pressed="true"], .chip[aria-selected="true"] { background: var(--lilac); border-color: var(--cream); color: var(--plum); }
+button:focus-visible, .hot:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+/* the photo with its hot spots */
+.stage { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.photo { position: relative; aspect-ratio: 1370 / 825; overflow: hidden; overflow: clip; border-radius: 22px; background: var(--deep);
+  border: 2px solid var(--line); max-width: 100%; }
+.photo img { position: absolute; width: 140.146%; max-width: none; left: -21.168%; top: -15.758%; user-select: none; }
+.hot { position: absolute; border: 2px solid transparent; border-radius: 12px; background: transparent; padding: 0; cursor: pointer;
+  color: var(--cream); font: 700 clamp(8px, 1.25vw, 13px) var(--display); display: flex; align-items: flex-end; justify-content: center; }
+.hot span { padding-bottom: 6%; text-shadow: 0 1px 2px #000; pointer-events: none; }
+.hot.round { border-radius: 50%; }
+.hot.drum { background: rgba(255, 95, 162, .26); border-color: rgba(255, 95, 162, .75); }
+.hot.melody { background: rgba(123, 44, 191, .34); border-color: rgba(201, 160, 255, .8); }
+.hot.helper { background: rgba(255, 209, 102, .16); border-color: rgba(255, 209, 102, .7); }
+.hot.fx { background: rgba(201, 160, 255, .16); border-color: rgba(201, 160, 255, .6); }
+.hot.button { background: rgba(255, 244, 251, .08); border-color: rgba(255, 244, 251, .45); }
+.hot.knob { border-color: rgba(255, 244, 251, .5); }
+.hot.screen { border-color: rgba(255, 209, 102, .6); }
+.hot:hover { border-color: var(--cream); }
+.hot.on { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold), 0 0 18px 4px rgba(255, 209, 102, .55); z-index: 2; }
+.photo.filtered .hot:not(.match) { opacity: .12; }
+.credit { font-size: 12.5px; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13.5px; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 6px; vertical-align: -1px; border: 2px solid; }
+.left { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+.panel { background: var(--dusk); border: 2px solid var(--lilac); border-radius: 22px; padding: 18px; display: flex; flex-direction: column;
+  gap: 12px; min-width: 0; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+.panel .tag { font: 600 12.5px var(--display); letter-spacing: .8px; text-transform: uppercase; color: var(--gold); }
+.panel h3 { font-size: 24px; }
+.panel .stock { color: var(--muted); font-size: 14px; }
+.panel ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.panel .shot { width: 160px; border-radius: 14px; border: 2px solid var(--line); image-rendering: pixelated; }
+.panel table { width: 100%; }
+
+/* lists */
+table { border-collapse: collapse; font-size: 15px; }
+th { text-align: left; font: 600 12.5px var(--display); letter-spacing: .8px; text-transform: uppercase; color: var(--muted); padding: 6px 10px 6px 0; }
+td { padding: 7px 10px 7px 0; border-top: 1px solid var(--line); vertical-align: top; }
+td.n { font: 600 15px var(--display); color: var(--gold); width: 2.2em; font-variant-numeric: tabular-nums; }
+.scroll { overflow-x: auto; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.card { border-radius: 18px; padding: 16px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.card.drums { background: rgba(255, 95, 162, .13); border: 2px solid var(--pink); }
+.card.melody { background: rgba(123, 44, 191, .22); border: 2px solid var(--lilac); }
+.card .head { display: flex; align-items: center; gap: 12px; }
+.card .head svg { width: 48px; height: 48px; flex: none; }
+.badge { display: inline-block; font: 600 11.5px var(--display); letter-spacing: .4px; border-radius: 999px; padding: 1px 8px; margin-left: 6px;
+  vertical-align: 1px; white-space: nowrap; }
+.badge.shot { background: var(--gold); color: var(--plum); }
+.badge.tune { background: var(--lilac); color: var(--plum); }
+
+.pads { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.pad { background: var(--dusk); border: 2px solid var(--line); border-radius: 16px; padding: 12px; display: grid;
+  grid-template-columns: 52px minmax(0, 1fr); gap: 12px; align-items: center; }
+.play { width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--cream); background: var(--pink); cursor: pointer; display: grid; place-items: center; }
+.play:hover { background: var(--magenta); }
+.play.ringing { background: var(--gold); }
+.play svg { width: 20px; height: 20px; }
+.pad .name { font: 600 17px var(--display); }
+.pad .what, .pad .where { font-size: 13.5px; color: var(--muted); }
+.pad .where b { color: var(--cream); font-weight: 600; }
+
+.shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+.shots figure { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.shots img { width: 100%; aspect-ratio: 1; border-radius: 14px; border: 2px solid var(--line); image-rendering: pixelated; }
+.shots figcaption { font-size: 13.5px; color: var(--muted); }
+.shots figcaption b { color: var(--cream); font: 600 15px var(--display); display: block; }
+
+.pills { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; list-style: none; }
+.pills li { background: var(--dusk); border: 2px solid var(--line); border-radius: 12px; padding: 5px 11px; font-size: 14.5px; }
+.pills li small { color: var(--muted); margin-left: 6px; }
+.pills li .n { color: var(--gold); font: 600 13px var(--display); margin-right: 6px; }
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.rules div { border-top: 3px solid var(--grape); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.rules p { font-size: 15px; color: var(--muted); }
+.todo { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; color: var(--muted); max-width: 80ch; }
+.todo b { color: var(--cream); }
+
+@media (max-width: 860px) {
+  .stage, .two { grid-template-columns: minmax(0, 1fr); }
+  .panel { position: static; }
+  .hot { font-size: 8px; border-width: 1.5px; border-radius: 7px; }
+}
+@media (prefers-reduced-motion: no-preference) { .hot, .chip, .play { transition: border-color .12s, background .12s, box-shadow .12s, opacity .15s; } }
+/* The printed manual (build.pl makes it with PRINT on): everything laid out, nothing to tap. */
+.ctls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 24px; }
+.ctl { border-top: 3px solid var(--grape); padding-top: 8px; font-size: 13.5px; display: flex; flex-direction: column; gap: 4px; }
+.ctl .tag { font: 600 11px var(--display); letter-spacing: .8px; text-transform: uppercase; color: var(--gold); }
+.ctl h3 { font-size: 17px; }
+.ctl .stock { color: var(--muted); font-size: 12.5px; }
+.ctl ul { margin: 0; padding-left: 18px; }
+.books { display: flex; flex-direction: column; gap: 18px; }
+.book { display: flex; flex-direction: column; gap: 8px; }
+@page { size: Letter; margin: 11mm 0; background: #2A0A3D; }
+html.print { background: var(--plum); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.print .wrap { max-width: none; padding: 0 44px; gap: 30px; }
+.print .chips, .print .panel, .print .play, .print #page { display: none; }
+.print .stage { grid-template-columns: minmax(0, 1fr); }
+.print .two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.print .pad { grid-template-columns: minmax(0, 1fr); }
+.print .card { padding: 12px; }
+.print table { font-size: 13.5px; }
+.print td { padding: 5px 10px 5px 0; }
+.print h2 { break-after: avoid; }
+.print .ctl, .print .card, .print figure, .print .pad, .print .rules div, .print tr, .print .book, .print .photo, .print li { break-inside: avoid; }
+</style>
+
+<div class="wrap">
+<header>
+  <h1><span class="aj">AJ</span> <span class="box">Box</span> manual</h1>
+  <p class="lede">A loop toy that lives on an M-VAVE FM-1. One hand picks a drum beat, the other picks a tune, and whatever she presses stays in time. Tap any key, button or knob on the picture to see its job.</p>
+  <p class="note"><b>Where this stands (15 Nov 2026, night).</b> AJ Box is on the FM-1. This describes the seventh build (Build ID b7fae6f4…), which is not recorded as installed yet. Over the fourth build, the last one recorded as installed, it adds the speed pop-up, the battery picture, saving in silence and a fix for a note that could stick. The screen pictures come from the desktop simulator running the same code.</p>
+</header>
+
+<section id="box">
+  <h2>The box</h2>
+  <div class="chips" role="group" aria-label="Show on the picture">
+    <button class="chip" id="f-all" aria-pressed="true" data-f="all">Everything</button>
+    <button class="chip" id="f-1" aria-pressed="false" data-f="1">Day one</button>
+    <button class="chip" id="f-2" aria-pressed="false" data-f="2">Next: effects and knobs</button>
+    <button class="chip" id="f-3" aria-pressed="false" data-f="3">Later: black keys and sounds</button>
+  </div>
+  <div class="stage">
+    <div class="left">
+      <div class="photo" id="photo"><img src="%%PHOTO%%" alt="An M-VAVE FM-1 seen from above: four knobs and two buttons on the left, a small screen, four knobs and twelve buttons on the right, and two rows of keys along the bottom."></div>
+      <div class="legend">
+        <span><i style="background:rgba(255,95,162,.3);border-color:#FF5FA2"></i>Drum loops</span>
+        <span><i style="background:rgba(123,44,191,.4);border-color:#C9A0FF"></i>Melody loops</span>
+        <span><i style="background:rgba(255,209,102,.2);border-color:#FFD166"></i>Helper keys</span>
+        <span><i style="background:rgba(201,160,255,.2);border-color:#C9A0FF"></i>Effects</span>
+      </div>
+      <p class="credit">Photo: M-VAVE, via <a href="https://synthanatomy.com/2026/06/m-vave-fm-1-a-budget-friendly-dx-7-style-desktop-fm-polysynth.html">Synth Anatomy</a>. The printed labels are the FM-1's own; AJ Box gives each control a new job.</p>
+    </div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+</section>
+
+<section id="screens">
+  <h2>What the screen shows</h2>
+  <p class="sub">Pictures, not words. Pink is drums, purple is melody. These are the real 240 × 240 screens.</p>
+  <div class="shots" id="shots"></div>
+</section>
+
+<section id="loops">
+  <h2>The loops</h2>
+  <p class="sub">96 loops: 6 pages, each with 8 drum loops and 8 melodies. The numbers are the white keys, counted from the left on each side. The Back and Next keys turn the page for one side only, so any drum page can go with any melody page. Around the World and Animal Choir, with the four Zelda tunes, are page 1.</p>
+  <div class="chips" role="tablist" aria-label="Page" id="pages"></div>
+  <div class="two" id="page"></div>
+</section>
+
+<section id="oneshots">
+  <h2>The 8 one-shots</h2>
+  <p class="sub">Most drums are made by the FM-1's drum machine. These 8 are short sounds of their own, made by synthesis (nothing was recorded), and five drum loops are built from them. Press play to hear each one. They sit in the FM-1's sample bank, apart from the firmware, so installing a new build leaves them alone.</p>
+  <div class="pads" id="pads"></div>
+</section>
+
+<section id="sounds">
+  <h2>Swapping sounds</h2>
+  <div class="two">
+    <div class="card drums">
+      <h3>PRESETS: 12 drum kits</h3>
+      <p class="sub">Same beat, new drums. Every page starts on its own kit; turning PRESETS steps through all of them. The one-shots keep their own sound.</p>
+      <ul class="pills" id="kits"></ul>
+    </div>
+    <div class="card melody">
+      <h3>ALGORITHM: 20 instruments</h3>
+      <p class="sub">Same tune, new instrument. A new melody loop goes back to its own instrument.</p>
+      <ul class="pills" id="instruments"></ul>
+    </div>
+  </div>
+</section>
+
+<section id="moods">
+  <h2>Moods</h2>
+  <p class="sub">Turn KNOB 4. Each click steps to the next Mood, or the one before, round and round, and shows its picture. The melody moves to a different set of 5 notes on the next bar, so every tune works in every mood. The four Zelda tunes stay as written.</p>
+  <div class="scroll"><table id="moodtable"><tr><th>Mood</th><th>Picture</th><th>Notes</th><th>Sounds like</th></tr></table></div>
+</section>
+
+<section id="parent">
+  <h2>Parent mode</h2>
+  <p class="sub">The only screen with words. Hold HOME and SAVE together for 2 seconds to open it. The music carries on; the keys and other buttons do nothing until it is shut.</p>
+  <div class="two">
+    <div class="scroll"><table>
+      <tr><th>Do this</th><th>To</th></tr>
+      <tr><td>Turn SELECT</td><td>Move to another row</td></tr>
+      <tr><td>Turn any of KNOB 1 to 4</td><td>Change that row. It is saved straight away.</td></tr>
+      <tr><td>Tap HOME, or hold HOME + SAVE for 2 seconds again</td><td>Leave</td></tr>
+    </table></div>
+    <div class="scroll"><table>
+      <tr><th>Row</th><th>Choices</th></tr>
+      <tr><td>Default tempo</td><td>30 to 200 BPM in steps of 5. Starts at 110. The speed changes as it is turned.</td></tr>
+      <tr><td>Swap timing</td><td>Instant (a new loop joins on the step the beat is on) or Next bar.</td></tr>
+      <tr><td>Bluetooth</td><td>On or Off.</td></tr>
+      <tr><td>Effect speed</td><td>Slow, Normal or Fast, for all the effects at once. Normal is each effect's own speed.</td></tr>
+    </table></div>
+  </div>
+  <p class="sub">"Saved" at the bottom left means the setting was written and read back. "Not saved" means it was not, and the old setting stands. The small figures at the bottom right are for testing: <b>b</b> is the battery from 0 to 100, and <b>l</b> counts how often the sound fell behind (0 is good).</p>
+</section>
+
+<section id="lights">
+  <h2>The lights</h2>
+  <div class="rules">
+    <div><h3>White keys</h3><p>The key of the loop that is playing is lit, while its page is the one shown. A Dice pick blinks twice first.</p></div>
+    <div><h3>Black keys</h3><p>Fill, Fast and the two Mute keys are lit while held.</p></div>
+    <div><h3>Buttons</h3><p>An effect button is lit while its effect is on. PLAY/STOP is lit while music plays, REC while recording, ARP while the jam replays.</p></div>
+    <div><h3>OCT− and OCT+</h3><p>One is lit when the melody is below or above its normal octave.</p></div>
+  </div>
+</section>
+
+<section id="rules">
+  <h2>Good to know</h2>
+  <div class="rules">
+    <div><h3>It always lands in time</h3><p>A new loop joins on the step the beat is on. Nothing waits for the next bar unless parent mode says so. A new Mood always starts on the next bar.</p></div>
+    <div><h3>Two at most</h3><p>One drum loop and one melody. A new key on the same side swaps; the playing key again stops that side on the next beat.</p></div>
+    <div><h3>Hearts</h3><p>SAVE keeps the drum, melody, sounds, speed and effects as a heart. There are 8; a ninth replaces the oldest. SEQ steps through them.</p></div>
+    <div><h3>Her jam</h3><p>REC records everything she presses and turns for up to 2 minutes. ARP plays it back. A new jam replaces the old one.</p></div>
+    <div><h3>It remembers</h3><p>Pages, the last pair, sounds, speed and effects come back after switching off. They are saved 5 seconds after the music stops, so switching off mid-song brings back what was there the last time it stopped. Nothing plays until she presses a key or PLAY/STOP.</p></div>
+    <div><h3>A tiny gap on SAVE</h3><p>Saving cuts the sound for a moment. A heart, and the end of a recording, save straight away, so the gap is heard then. Nothing else saves while music plays.</p></div>
+    <div><h3>The battery</h3><p>Three bars at the top left: three from about two thirds full, two from a third, one when nearly empty. With none left the sleepy battery shows once: time to charge.</p></div>
+    <div><h3>Always a way back</h3><p>PLAY/STOP is silence. HOME switches every effect off and puts the filter back in the middle.</p></div>
+    <div><h3>Never too loud</h3><p>A limiter sits on the output all the time, and each effect has a safe top setting.</p></div>
+    <div><h3>If a save fails</h3><p>A heart that could not be saved shows as a dark, empty heart. Parent mode says "Not saved". Nothing is shown as kept unless it was read back.</p></div>
+  </div>
+</section>
+
+<section id="open">
+  <h2>Still open</h2>
+  <ul class="todo">
+    <li><b>The battery levels are an estimate</b> from one reading on this FM-1. If the bars or the sleepy screen come at the wrong time, note the <b>b</b> number in parent mode at full charge and when nearly flat, and the levels can be set from those.</li>
+    <li><b>The power-off test</b> was reported as working. Which build it was run on, and whether it was the three rounds the plan asks for, is not recorded.</li>
+    <li><b>The seventh build</b> is not recorded as installed, so the battery picture, saving in silence and the stuck-note fix have been checked on the desktop only.</li>
+    <li><b>Two pictures are not drawn:</b> "the jam didn't save" and "the setting didn't save" (parent mode says "Not saved" in words).</li>
+    <li><b>Hearts and jams from the first build.</b> Pages 1 and 4 changed places after it, so anything saved from either page back then plays the other page's loop.</li>
+    <li><b>Stickers and knob caps.</b> A picture strip over the black keys and coloured caps for KNOB 1 to 4 are planned, not made.</li>
+    <li><b>Play-testing with her</b> (three sessions) comes next.</li>
+  </ul>
+</section>
+</div>
+
+<script>
+const PRINT = %%PRINT%%;
+const SHOTS = %%SHOTS%%;
+const SOUNDS = %%SOUNDS%%;
+const ICONS = %%ICONS%%;
+
+const PAGES = [
+  { drum: 'Around the World', melody: 'Animal Choir', di: 'Around the World', mi: 'Animal Choir',
+    drums: ['Dhol Party', 'Reggaeton', 'Samba', 'Tabla Talk', 'Afrobeat', 'Clave Walk', 'Goron Drums', 'Island'],
+    tunes: ["Saria's Song", 'Song of Storms', 'Bird Call', 'Choir', 'Frog Hop', "Zelda's Lullaby", 'Goron City', 'Owl Night'] },
+  { drum: 'Disco Dance', melody: 'Bubblegum', di: 'Disco Dance', mi: 'Bubblegum',
+    drums: ['Glitter Ball', 'Roller Skate', 'Funky Chicken', 'Hand Clap Hustle', 'Tom Tom Club', 'Shimmy', 'Mirror Ball', 'Cha-Ching'],
+    tunes: ['Bubble Pop', 'Gumdrop', 'Disco Strut', 'Fizzy Pop', 'Sugar Rush', 'Roller Rink', 'Sparkle Stairs', 'Jelly Wobble'] },
+  { drum: 'Head-Nod', melody: 'Space', di: 'Head-Nod', mi: 'Space',
+    drums: ['Boom Bap', 'Lazy Sunday', 'Head Bop', 'Trap Cat', 'Dusty', 'Slow Jam', 'Scratch', 'Tip Tap'],
+    tunes: ['Laser Tag', 'Moon Walk', 'Bloop Bloop', 'Rocket', 'Robot Talk', 'Computer Brain', 'Star Drift', 'UFO'] },
+  { drum: 'Bouncy Pop', melody: 'Twinkle', di: 'Bouncy Pop', mi: 'Twinkle',
+    drums: ['Bounce', 'Stomp', 'Skippy', 'Cowbell Party', 'Clap Along', 'Hop Scotch', 'Big Parade', 'Tick Tock'],
+    tunes: ['Star Steps', 'Music Box Song', 'Harp Hop', 'Bell Tower', 'Glass Rain', 'Wind-Up', 'Tiptoe', 'Lullabell'] },
+  { drum: 'Silly Kitchen', melody: 'Game On', di: 'Silly Kitchen', mi: 'Game On',
+    drums: ['Pots and Pans', 'Beatbox', 'Spoons', 'Whisk', 'Pop Corn', 'Stir It', 'Clank', 'Dish Washer'],
+    tunes: ['Level One', 'Coin Grab', 'Boss Fight', 'Power Up', 'Pixel Hop', 'Crunch Time', 'Warp Zone', 'High Score'] },
+  { drum: 'Sleepy Time', melody: 'Dreamy', di: 'Sleepy Time', mi: 'Dreamy',
+    drums: ['Rain Stick', 'Brushes', 'Heartbeat', 'Rocking Chair', 'Tippy Toes', 'Soft Shoe', 'Crickets', 'Slow Snow'],
+    tunes: ['Kalimba Dream', 'Harp Glow', 'Toy Piano Tune', 'Cloud Ride', 'Sleepy Box', 'Thumb Piano', 'Moonbeam', 'Goodnight'] },
+];
+const ONESHOT_LOOPS = { 'Dhol Party': 1, 'Goron Drums': 1, 'Pots and Pans': 1, 'Beatbox': 1, 'Rain Stick': 1 };
+const ZELDA = { "Saria's Song": 1, 'Song of Storms': 1, "Zelda's Lullaby": 1, 'Goron City': 1 };
+const PADS = [
+  { name: 'Dhol low', what: 'The deep side of a dhol drum.', where: ['Dhol Party'] },
+  { name: 'Dhol high', what: 'The snappy side of the dhol.', where: ['Dhol Party'] },
+  { name: 'Pot', what: 'A pot lid, struck and left to ring.', where: ['Pots and Pans'] },
+  { name: 'Spoon', what: 'Two spoons clicked together.', where: ['Pots and Pans', 'Beatbox'] },
+  { name: 'Mouth kick', what: 'A beatbox "boom".', where: ['Beatbox'] },
+  { name: 'Shh', what: 'A beatbox "psh", and the grains of a rain stick.', where: ['Beatbox', 'Rain Stick'] },
+  { name: 'Cuica high', what: 'The squeaky "laughing" drum from Goron City.', where: ['Goron Drums'] },
+  { name: 'Cuica low', what: 'The same drum, lower.', where: ['Goron Drums'] },
+];
+const KITS = ['Pop', 'Disco', 'Head-Nod', 'World', 'Kitchen', 'Sleepy', 'Boom', 'Robot', 'Tiny', 'Fuzzy', 'Bongo', 'Space'];
+const INSTRUMENTS = [['Chip Star', 'chiptune'], ['Harp', 'plucked'], ['Tub Bells', 'FM'], ['Bubble Piano', 'FM'], ['Bouncy Bass', 'acid bass'],
+  ['Party Organ', 'FM'], ['Bloop', 'chiptune'], ['Glass Bell', 'FM'], ['Laser', 'FM'], ['Toy Guitar', 'plucked'], ['Candy Brass', 'FM'],
+  ['Squelch', 'acid bass'], ['Space Pad', 'FM'], ['Game Lead', 'chiptune'], ['Toy Piano', 'FM'], ['Bird Flute', 'FM'], ['Rubber Lead', 'acid bass'],
+  ['Choir', 'FM'], ['Crunchy Chip', 'chiptune'], ['Dream Strings', 'FM']];
+const MOODS = [['Happy', 'Sun', 'C D E G A', 'Bright and simple'], ['Dreamy', 'Cloud', 'F G A C D', 'The same shape, a little higher and softer'],
+  ['Spooky', 'Moon', 'C E♭ F G B♭', 'Minor and mysterious'], ['Magic', 'Wand', 'C D E F♯ G♯', 'Floating, like a spell'],
+  ['Floaty', 'Balloon', 'C D F G B♭', 'Open, never quite landing'], ['Faraway', 'Paper lantern', 'C D E♭ G A♭', 'A distant place'],
+  ['Adventure', 'Treasure map', 'C D♭ E G A♭', 'Bold and a bit dangerous']];
+const SCREENS = [
+  ['hello', 'Hello', 'For 1.5 seconds at switch-on, with a four-note chime.'],
+  ['home', 'Nothing playing', 'Both halves are dark. The pictures show which page each side is on.'],
+  ['play', 'Playing', 'A bright half with a cream ring is playing. The picture hops on the beat; the 6 dots show the page.'],
+  ['effects', 'Effects and a knob', 'A bubble lights for each effect that is on. Turning a knob draws its arc for a moment.'],
+  ['recording', 'Recording', 'A magenta frame and a blinking dot while REC is on.'],
+  ['muted', 'Muted, fast', 'A muted half goes dark. The arrows at top right show the speed: one, two or three.'],
+  ['heart', 'A heart saved', 'The number of the heart, and the row of 8.'],
+  ['mood', 'Mood', 'The chosen mood, big, with its two neighbours below.'],
+  ['finish', 'Ta-da!', 'Confetti and a star when Finish lands.'],
+  ['tempo', 'Speed pop-up', 'Turning SELECT shows the beats a minute for a moment.'],
+  ['nosave', 'Heart not saved', 'A dark, empty heart: it could not be kept.'],
+  ['battery', 'Sleepy battery', 'Time to charge. Shows once each time the battery runs low.'],
+  ['parent', 'Parent mode', 'The only screen with words. Four rows.'],
+];
+
+/* Controls: x, y are the middle of the control on the 1920 x 1080 photo. */
+const WHITE = [405, 481, 557, 633, 709, 785, 861, 937, 1013, 1089, 1165, 1241, 1317, 1393, 1469, 1546];
+const loopKey = (i) => {
+  const drum = i < 8, n = drum ? i + 1 : i - 7;
+  return { id: (drum ? 'd' : 'm') + n, kind: drum ? 'drum' : 'melody', layer: 1, x: WHITE[i], y: 810, w: 68, h: 130, label: String(n),
+    tag: drum ? 'Drum loop key' : 'Melody loop key', title: (drum ? 'Drum loop ' : 'Melody ') + n,
+    stock: 'White key ' + (i + 1) + ' of 16',
+    points: ['Tap: start this loop, or swap to it without losing the beat.',
+      'Tap the one that is playing: that side stops on the next beat.',
+      'Which loop it is depends on the page that side is on.', 'The key is lit while its loop plays and its page is shown.'],
+    list: PAGES.map((p, k) => ['Page ' + (k + 1), (drum ? p.drums : p.tunes)[n - 1]]) };
+};
+const FX = [
+  ['FX', 'Echo', 'Repeats in time with the beat.', 'It can never build up and run away.'],
+  ['SEL', 'Sparkle', 'A big shiny room around the sound.', 'While it is on, sparkles twinkle on the melody side.'],
+  ['ENV', 'Wobble', 'A swirly, wobbly sound.', ''],
+  ['LFO', 'Wah', 'A filter sweeping up and down with the beat.', 'It never whistles.'],
+  ['EDIT', 'Crunch', 'Crunchy robot grit.', 'It gets grittier, not louder.'],
+  ['GLO', 'Stutter', 'Hold it and the last eighth-note repeats; let go and the loop carries on.', 'Works only while held.'],
+];
+const CONTROLS = [
+  ...WHITE.map((_, i) => loopKey(i)),
+  { id: 'dback', kind: 'helper', layer: 3, x: 443, y: 680, w: 66, h: 122, tag: 'Helper key, drum side', title: 'Drum page back', stock: 'Printed OP1',
+    points: ['Shows the previous page of 8 drum loops.', 'The loop that is playing carries on until she taps a new key.', 'After page 1 comes page 6.', 'The picture and the dots change to the new page straight away.'] },
+  { id: 'dnext', kind: 'helper', layer: 3, x: 519, y: 680, w: 66, h: 122, tag: 'Helper key, drum side', title: 'Drum page next', stock: 'Printed OP2',
+    points: ['Shows the next page of 8 drum loops.', 'The 6 dots under the drum picture show which page she is on.'] },
+  { id: 'fill', kind: 'helper', layer: 3, x: 595, y: 680, w: 66, h: 122, tag: 'Helper key, drum side', title: 'Fill', stock: 'Printed OP3',
+    points: ['Hold: a drum fill plays instead of the beat.', 'Let go: the beat comes straight back, still in time.', 'The key is lit while held.'] },
+  { id: 'dmute', kind: 'helper', layer: 3, x: 748, y: 680, w: 66, h: 122, tag: 'Helper key, drum side', title: 'Mute drums', stock: 'Printed OP4',
+    points: ['Hold: the drums drop out.', 'Let go: they come back on the beat.', 'The drum half of the screen goes dark while held.', 'The key is lit while held.'], shot: 'muted' },
+  { id: 'ddice', kind: 'helper', layer: 3, x: 823, y: 680, w: 66, h: 122, tag: 'Helper key, drum side', title: 'Drum dice', stock: 'Printed OP5',
+    points: ['A surprise drum loop from any page.', 'The screen jumps to that loop\'s page and its picture spins in.', 'The white key it picked blinks twice.'] },
+  { id: 'finish', kind: 'helper', layer: 3, x: 975, y: 680, w: 66, h: 122, tag: 'Helper key, in the middle', title: 'Finish', stock: 'Printed OP6',
+    points: ['A big ending: on the next bar a cymbal crashes and the melody holds its last note.', 'Then everything stops, with confetti and "Ta-da!".'], shot: 'finish' },
+  { id: 'mback', kind: 'helper', layer: 3, x: 1051, y: 680, w: 66, h: 122, tag: 'Helper key, melody side', title: 'Melody page back', stock: 'Printed PIT',
+    points: ['Shows the previous page of 8 melodies.', 'The tune that is playing carries on until she taps a new key.'] },
+  { id: 'mnext', kind: 'helper', layer: 3, x: 1127, y: 680, w: 66, h: 122, tag: 'Helper key, melody side', title: 'Melody page next', stock: 'Printed GLO',
+    points: ['Shows the next page of 8 melodies.', 'The 6 dots under the melody picture show which page she is on.'] },
+  { id: 'fast', kind: 'helper', layer: 3, x: 1279, y: 680, w: 66, h: 122, tag: 'Helper key, melody side', title: 'Fast', stock: 'Printed MONO',
+    points: ['Hold: the melody plays twice as fast.', 'Let go: back to normal, still in time.', 'The key is lit while held.'] },
+  { id: 'mmute', kind: 'helper', layer: 3, x: 1355, y: 680, w: 66, h: 122, tag: 'Helper key, melody side', title: 'Mute melody', stock: 'Printed POLY',
+    points: ['Hold: the melody drops out.', 'Let go: it comes back on the beat.', 'The key is lit while held.'] },
+  { id: 'mdice', kind: 'helper', layer: 3, x: 1507, y: 680, w: 66, h: 122, tag: 'Helper key, melody side', title: 'Melody dice', stock: 'The last black key',
+    points: ['A surprise melody from any page.', 'The screen jumps to that tune\'s page and its picture spins in.', 'The white key it picked blinks twice.'], shot: 'dice' },
+  ...FX.map((f, i) => ({ id: 'fx' + i, kind: 'fx', layer: 2, x: 1079 + 84 * i, y: 416, w: 78, h: 72, tag: 'Effect switch', title: f[1], stock: 'Printed ' + f[0],
+    points: [f[2], i === 5 ? f[3] : 'Press to switch it on, press again to switch it off. Any mix of effects can be on.',
+      i === 5 ? 'Its bubble lights at the bottom of the screen while held.' : 'KNOB 2 sets how strong it is, for whichever effect was switched on last. The button is lit while the effect is on.',
+      ...(i < 5 && f[3] ? [f[3]] : [])], shot: 'effects' })),
+  { id: 'home', kind: 'button', layer: 1, x: 1079, y: 500, w: 78, h: 72, tag: 'Button', title: 'Clean slate', stock: 'Printed HOME',
+    points: ['Every effect off, the filter back to the middle, back to the play screen.', 'The loops keep playing.',
+      'It acts when let go.', 'Held together with SAVE for 2 seconds: parent mode. In parent mode, HOME leaves.'] },
+  { id: 'save', kind: 'button', layer: 3, x: 1163, y: 500, w: 78, h: 72, tag: 'Button', title: 'Save a heart', stock: 'Printed SAVE',
+    points: ['Keeps the drum loop, the melody, their sounds, the speed and the effects as a favourite.', 'There are 8 hearts. A ninth replaces the oldest.',
+      'The screen shows the heart with its number. A dark, empty heart means it could not be saved.', 'It acts when let go.'], shot: 'heart' },
+  { id: 'arp', kind: 'button', layer: 3, x: 1247, y: 500, w: 78, h: 72, tag: 'Button', title: 'Replay her jam', stock: 'Printed ARP',
+    points: ['Plays her last recorded jam back, exactly as she played it.', 'Press again to stop it.', 'Lit while it replays.'] },
+  { id: 'seq', kind: 'button', layer: 3, x: 1331, y: 500, w: 78, h: 72, tag: 'Button', title: 'Next heart', stock: 'Printed SEQ',
+    points: ['Each tap jumps to the next saved heart and plays it.', 'With no hearts saved it shows an empty heart.'], shot: 'heart' },
+  { id: 'play', kind: 'button', layer: 1, x: 1415, y: 500, w: 78, h: 72, tag: 'Button', title: 'Stop and go', stock: 'Printed PLAY / STOP',
+    points: ['While playing: everything stops.', 'While silent: the last drum loop and melody come back, at the same speed.', 'Lit while music is playing.'] },
+  { id: 'rec', kind: 'button', layer: 3, x: 1499, y: 500, w: 78, h: 72, tag: 'Button', title: 'Record a jam', stock: 'Printed REC',
+    points: ['Records everything she presses and turns, for up to 2 minutes.', 'Press again to stop and keep it. It stops by itself at 2 minutes.',
+      'A magenta frame and a blinking dot show it is recording, and the button is lit.'], shot: 'recording' },
+  { id: 'k1', kind: 'knob', round: 1, layer: 2, x: 1061, y: 268, w: 88, h: 88, tag: 'Knob', title: 'Swoosh', stock: 'Printed KNOB1 (pink cap planned)',
+    points: ['A filter on everything. Left sounds underwater, right sounds like a tiny radio.', 'The middle is clean: the screen shows a gold dot at the top.',
+      'Always there, with no button to switch on.', '32 clicks from end to end; the middle three clicks are all clean.'], shot: 'swoosh' },
+  { id: 'k2', kind: 'knob', round: 1, layer: 2, x: 1212, y: 268, w: 88, h: 88, tag: 'Knob', title: 'How much', stock: 'Printed KNOB2 (purple cap planned)',
+    points: ['The strength of the effect that was switched on last.', 'The screen draws an arc with that effect\'s picture in the middle.'], shot: 'effects' },
+  { id: 'k3', kind: 'knob', round: 1, layer: 2, x: 1362, y: 268, w: 88, h: 88, tag: 'Knob', title: 'Drums or melody', stock: 'Printed KNOB3 (lilac cap planned)',
+    points: ['The balance between the two sides.', 'Left: more drums. Right: more melody. The middle is even.'], shot: 'balance' },
+  { id: 'k4', kind: 'knob', round: 1, layer: 2, x: 1516, y: 268, w: 88, h: 88, tag: 'Knob', title: 'Mood', stock: 'Printed KNOB4 (magenta cap planned)',
+    points: ['Each click steps to the next Mood, or the one before: Happy, Dreamy, Spooky, Magic, Floaty, Faraway, Adventure, round and round.',
+      'The Mood\'s picture shows, and the melody changes its notes on the next bar.', 'The four Zelda tunes stay as written.'], shot: 'mood' },
+  { id: 'master', kind: 'knob', round: 1, layer: 1, x: 413, y: 268, w: 88, h: 88, tag: 'Knob', title: 'Volume', stock: 'Printed MASTER',
+    points: ['Loudness, all the way from silent to full.', 'It is the only knob with a stop at each end.'] },
+  { id: 'select', kind: 'knob', round: 1, layer: 2, x: 556, y: 268, w: 88, h: 88, tag: 'Knob', title: 'Speed', stock: 'Printed SELECT',
+    points: ['Slower or faster, from 30 to 200 beats a minute, 4 at a click. It starts at 110.', 'A pop-up shows the number, with a gold arc from slowest to fastest.',
+      'The arrows at the top right of the screen show slow, medium or fast.', 'In parent mode it picks the row instead.'], shot: 'tempo' },
+  { id: 'presets', kind: 'knob', round: 1, layer: 3, x: 411, y: 408, w: 88, h: 88, tag: 'Knob', title: 'Drum kit', stock: 'Printed PRESETS',
+    points: ['Same beat, new drums. 12 kits.', 'The kit\'s picture shows in the middle of the screen for a moment.'], shot: 'kit' },
+  { id: 'algorithm', kind: 'knob', round: 1, layer: 3, x: 556, y: 408, w: 88, h: 88, tag: 'Knob', title: 'Instrument', stock: 'Printed ALGORITHM',
+    points: ['Same tune, new instrument. 20 instruments.', 'A new melody loop goes back to its own instrument.'], shot: 'instrument' },
+  { id: 'octdown', kind: 'button', layer: 3, x: 436, y: 519, w: 86, h: 54, tag: 'Button', title: 'Melody lower', stock: 'Printed OCT−',
+    points: ['The melody drops one octave, down to two.', 'Both OCT buttons together: back to normal.', 'Lit while the melody is lower than normal.'] },
+  { id: 'octup', kind: 'button', layer: 3, x: 538, y: 519, w: 86, h: 54, tag: 'Button', title: 'Melody higher', stock: 'Printed OCT+',
+    points: ['The melody rises one octave, up to two.', 'Both OCT buttons together: back to normal.', 'Lit while the melody is higher than normal.'] },
+  { id: 'screen', kind: 'screen', layer: 1, x: 810, y: 361, w: 236, h: 236, tag: 'Screen', title: 'The play screen', stock: '240 × 240 pixels',
+    points: ['Top: battery, 4 beat dots and the speed arrows.', 'Left, pink: the drum loop. Right, purple: the melody.', 'Bottom: one bubble for each effect.'], shot: 'play' },
+];
+
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const X0 = 290, Y0 = 130, W = 1370, H = 825;
+
+/* the photo */
+let chosen = null;
+function show(c) {
+  chosen = c;
+  document.querySelectorAll('.hot').forEach((h) => h.classList.toggle('on', c && h.dataset.id === c.id));
+  const p = $('panel'); p.textContent = '';
+  if (!c) {
+    p.append(el('div', 'tag', 'Start here'), el('h3', '', 'Day one: 16 keys and one button'));
+    const ul = el('ul');
+    ['Tap a white key on the left: a drum beat starts.', 'Tap a white key on the right: a tune joins in, in time.',
+      'Tap a different key to swap. Tap the same key to stop that side.', 'PLAY / STOP stops everything.',
+      'Then tap anything on the picture to see what it does.'].forEach((t) => ul.append(el('li', '', t)));
+    p.append(ul);
+    const img = el('img', 'shot'); img.src = SHOTS.play; img.alt = 'The play screen'; p.append(img);
+    return;
+  }
+  p.append(el('div', 'tag', c.tag), el('h3', '', c.title), el('div', 'stock', c.stock));
+  const ul = el('ul'); c.points.forEach((t) => ul.append(el('li', '', t))); p.append(ul);
+  if (c.list) {
+    const t = el('table');
+    c.list.forEach(([a, b]) => { const r = el('tr'); const name = el('td', '', b);
+      if (ONESHOT_LOOPS[b]) name.append(Object.assign(el('span', 'badge shot', 'one-shots')));
+      if (ZELDA[b]) name.append(Object.assign(el('span', 'badge tune', 'Zelda')));
+      r.append(el('td', 'n', a.replace('Page ', 'P')), name); t.append(r); });
+    p.append(t);
+  }
+  if (c.shot && SHOTS[c.shot]) { const img = el('img', 'shot'); img.src = SHOTS[c.shot]; img.alt = 'The screen: ' + c.title; p.append(img); }
+}
+CONTROLS.forEach((c) => {
+  const b = el('button', 'hot ' + c.kind + (c.round ? ' round' : ''));
+  b.type = 'button'; b.dataset.id = c.id; b.dataset.layer = c.layer; b.setAttribute('aria-label', c.title + ' (' + c.stock + ')');
+  b.style.left = ((c.x - c.w / 2 - X0) / W * 100) + '%'; b.style.top = ((c.y - c.h / 2 - Y0) / H * 100) + '%';
+  b.style.width = (c.w / W * 100) + '%'; b.style.height = (c.h / H * 100) + '%';
+  if (c.label) b.append(el('span', '', c.label));
+  b.addEventListener('click', () => show(chosen === c ? null : c));
+  $('photo').append(b);
+});
+document.querySelectorAll('[data-f]').forEach((chip) => chip.addEventListener('click', () => {
+  document.querySelectorAll('[data-f]').forEach((o) => o.setAttribute('aria-pressed', o === chip));
+  const f = chip.dataset.f;
+  $('photo').classList.toggle('filtered', f !== 'all');
+  document.querySelectorAll('.hot').forEach((h) => h.classList.toggle('match', h.dataset.layer === f));
+}));
+show(null);
+
+/* screens */
+SCREENS.forEach(([key, name, text]) => {
+  if (!SHOTS[key]) return;
+  const f = el('figure'), img = el('img'), cap = el('figcaption');
+  img.src = SHOTS[key]; img.alt = name + ' screen'; cap.append(el('b', '', name), text); f.append(img, cap); $('shots').append(f);
+});
+
+/* loops */
+function page(k) {
+  document.querySelectorAll('#pages .chip').forEach((c, i) => c.setAttribute('aria-selected', i === k));
+  const p = PAGES[k], host = $('page'); host.textContent = '';
+  [['drums', p.drum, p.di, p.drums, 'Left hand'], ['melody', p.melody, p.mi, p.tunes, 'Right hand']].forEach(([cls, theme, icon, names, hand]) => {
+    const card = el('div', 'card ' + cls), head = el('div', 'head'), words = el('div');
+    head.innerHTML = ICONS[icon] || '';
+    words.append(el('h3', '', theme), el('div', 'sub', hand + ', white keys 1 to 8'));
+    head.append(words);
+    const t = el('table');
+    names.forEach((name, i) => { const r = el('tr'), td = el('td', '', name);
+      if (ONESHOT_LOOPS[name]) td.append(el('span', 'badge shot', 'one-shots'));
+      if (ZELDA[name]) td.append(el('span', 'badge tune', 'Zelda'));
+      r.append(el('td', 'n', String(i + 1)), td); t.append(r); });
+    card.append(head, t); host.append(card);
+  });
+}
+PAGES.forEach((p, k) => { const c = el('button', 'chip', 'Page ' + (k + 1)); c.type = 'button'; c.id = 'page-' + (k + 1); c.setAttribute('role', 'tab');
+  c.addEventListener('click', () => page(k)); $('pages').append(c); });
+page(0);
+
+/* one-shots */
+let playing = null;
+PADS.forEach((pad, i) => {
+  const card = el('div', 'pad'), b = el('button', 'play'), words = el('div');
+  b.type = 'button'; b.id = 'pad-' + (i + 1); b.setAttribute('aria-label', 'Play ' + pad.name);
+  b.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 3l12 7-12 7z" fill="#FFF4FB"/></svg>';
+  b.addEventListener('click', () => {
+    if (playing) { playing.audio.pause(); playing.button.classList.remove('ringing'); }
+    const audio = new Audio(SOUNDS[i]);
+    playing = { audio, button: b }; b.classList.add('ringing');
+    audio.addEventListener('ended', () => b.classList.remove('ringing'));
+    audio.play().catch(() => b.classList.remove('ringing'));
+  });
+  const where = el('div', 'where'); where.append('Used in '); pad.where.forEach((w, n) => { if (n) where.append(', '); where.append(el('b', '', w)); });
+  words.append(el('div', 'name', 'Pad ' + (i + 1) + ': ' + pad.name), el('div', 'what', pad.what), where);
+  card.append(b, words); $('pads').append(card);
+});
+
+/* sounds and moods */
+KITS.forEach((k, i) => { const li = el('li'); li.append(el('span', 'n', String(i + 1)), k);
+  if (i < 6) li.append(el('small', '', 'page ' + [4, 2, 3, 1, 5, 6][i])); $('kits').append(li); });
+INSTRUMENTS.forEach(([name, kind], i) => { const li = el('li'); li.append(el('span', 'n', String(i + 1)), name, el('small', '', kind)); $('instruments').append(li); });
+MOODS.forEach((m) => { const r = el('tr'); m.forEach((t, i) => r.append(el('td', i ? '' : 'n', t))); r.firstChild.style.width = 'auto'; $('moodtable').append(r); });
+/* the printed manual */
+if (PRINT) {
+  document.documentElement.classList.add('print');
+  const swap = (sel, from, to) => { const e = document.querySelector(sel); e.textContent = e.textContent.replace(from, to); };
+  swap('.lede', 'Tap any key, button or knob on the picture to see its job.', 'Every key, button and knob is listed under the picture.');
+  swap('#oneshots .sub', ' Press play to hear each one.', ' The web manual plays each one.');
+  const sec = el('section'), grid = el('div', 'ctls'); sec.id = 'controls';
+  sec.append(el('h2', '', 'Every control'), el('p', 'sub', 'From the keys up to the knobs. The name in grey is what is printed on the FM-1.'), grid);
+  CONTROLS.forEach((c) => {
+    const m = /^([dm])(\d)$/.exec(c.id);
+    if (m && m[2] !== '1') return;
+    const card = el('div', 'ctl'), ul = el('ul'), drum = m && m[1] === 'd';
+    card.append(el('div', 'tag', m ? 'White keys' : c.tag), el('h3', '', m ? (drum ? 'Drum loops 1 to 8' : 'Melodies 1 to 8') : c.title),
+      el('div', 'stock', m ? 'The 8 white keys on the ' + (drum ? 'left' : 'right') + ', numbered on the picture' : c.stock));
+    c.points.forEach((t) => ul.append(el('li', '', t))); card.append(ul); grid.append(card);
+  });
+  $('box').after(sec);
+  const books = el('div', 'books');
+  PAGES.forEach((p, k) => { page(k); const b = el('div', 'book'), two = el('div', 'two'); two.innerHTML = $('page').innerHTML;
+    b.append(el('h3', '', 'Page ' + (k + 1)), two); books.append(b); });
+  $('page').after(books);
+}
+</script>

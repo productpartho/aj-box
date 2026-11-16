@@ -18,7 +18,7 @@ Synthesized drums use FM1 Open's built-in DRUM 808 engine, so AJ Box doesn't wai
 | Effects controls | Buttons switch an effect on, knobs set how much | Top-row function buttons plus KNOB 1 to 4 |
 | Drum engine | FM1 Open's built-in DRUM 808 | No waiting on the Volca Drum-style project |
 | Firmware | AJ Box is its own firmware | Separate from the drum synth; no mode switch to build |
-| Parent mode | Included | Default tempo, swap timing, Bluetooth and sample swaps, behind HOME + SAVE |
+| Parent mode | Included | Default tempo, swap timing, Bluetooth, effect speed and sample swaps, behind HOME + SAVE |
 
 **Also decided**
 
@@ -58,14 +58,14 @@ AJ Box uses every physical control on the FM-1; the tight limit is storage, not 
 | Function buttons, top row | FX, SEL, ENV, LFO, EDIT, GLO | 6 effect switches |
 | Function buttons, bottom row | HOME, SAVE, ARP, SEQ, PLAY/STOP, REC | Clean slate, favourites, jam record and replay, stop and resume |
 | Octave buttons | OCT−, OCT+ | Melody octave down and up |
-| Encoders | KNOB 1 to 4 on the right; SELECT, PRESETS, ALGORITHM on the left; 7 endless encoders in total | Effects and balance; tempo, drum kit, melody instrument |
+| Encoders | KNOB 1 to 4 on the right; SELECT, PRESETS, ALGORITHM on the left; 7 endless encoders in total | Effects, balance and Mood; tempo, drum kit, melody instrument |
 | Volume | MASTER potentiometer (300° turn) | Volume, full range |
 | Screen | 1.54-inch TFT (thin-film transistor) colour display | Pink and purple play screen |
 | Audio out | Built-in speaker; plugging into the 3.5 mm jack mutes it | Mix tuned for the small speaker first |
 | Power | 2000 mAh (milliamp-hour) battery, rated 12 hours | Low battery shown as a sleepy face |
 | Storage | 1 MiB of flash in total ([FM-1 Transporter](https://github.com/kurogedelic/FM-1-transporter/wiki)); one sampler firmware gets 500 KiB (kibibytes) usable for audio ([Pigeon 0.5 beta](https://github.com/TheShrimpBlimp/pigeon/releases)) | Sets the 8-sample limit |
 
-- **Stock limit that goes away:** the stock firmware won't run the arpeggiator and sequencer together; it shows "Disable SEQ to enter". AJ Box runs its own clock, so both styles of melody can exist side by side.
+- **Stock limit that goes away:** the stock firmware won't run the arpeggiator and sequencer together; it shows "Disable SEQ to enter". AJ Box drives FM1 Open's instrument, which runs its sequencer and arpeggiator together, so both styles of melody can exist side by side.
 - **Base to build on:** M-VAVE's official [FM1 Open V14](https://github.com/m-vave/fm1_open/releases/tag/V14) (Oct 19, 2026) already has a DX7 engine, sample playback, 8 sample slots, reverb and delay sends, tap tempo with tempo-synced delay, and a browser workbench for managing samples ([Synthtopia](https://synthtopia.com/content/2026/10/20/m-vave-officially-opens-fm-1-firmware-to-developers-with-new-workbench-sdk)). It is licensed GPLv3 (GNU General Public License v3) with an SDK (Software Development Kit) linking exception.
 
 ## Control map
@@ -97,8 +97,8 @@ The black keys carry printed labels (OP1 to OP6, PIT, GLO, MONO, POLY) for the s
 | FX, SEL, ENV, LFO, EDIT, GLO | The 6 effect switches (see Effects) |
 | KNOB 1 (pink) | Swoosh: a filter on the whole mix. Left sounds underwater, right sounds like a tiny radio, the middle is clean |
 | KNOB 2 (purple) | How much: strength of the effect switched on last |
-| KNOB 3 (lilac) | How fast: speed of the effect switched on last, locked to the beat |
-| KNOB 4 (magenta) | Drums ↔ melody balance |
+| KNOB 3 (lilac) | Drums ↔ melody balance |
+| KNOB 4 (magenta) | Mood: each click steps to the next or the last of the 7 Moods, round and round, and shows its picture. Happy (C major pentatonic), Dreamy (F major pentatonic), Spooky (C minor pentatonic), Magic (C D E F♯ G♯), Floaty (C D F G B♭), Faraway (C D E♭ G A♭) or Adventure (C D♭ E G A♭), changing on the next bar |
 | SELECT | Speed: turtle to rabbit, 30 to 200 BPM (beats per minute) |
 | PRESETS | Drum kit swap: same pattern, new sounds (Robot, Kitchen, Space and more). Its stock job is scrolling sounds, so the habit carries over |
 | ALGORITHM | Melody instrument swap: same tune, new instrument |
@@ -109,7 +109,7 @@ The black keys carry printed labels (OP1 to OP6, PIT, GLO, MONO, POLY) for the s
 | ARP | Replay: plays her last jam back |
 | SAVE | Save a favourite: the current drum, melody, sounds and effects become a heart (8 hearts; a new one replaces the oldest) |
 | SEQ | Favourites: each tap jumps to the next heart |
-| Hold OCT− or OCT+ and turn ALGORITHM | Mood: Happy (C major pentatonic), Dreamy (F major pentatonic) or Spooky (C minor pentatonic), changing on the next bar |
+| (Mood, on KNOB 4) | Every mood has 5 notes, so every melody plays in every mood |
 | HOME + SAVE held 2 s | Parent mode, hard for a 6-year-old to hit by accident |
 
 ## Loop library and storage
@@ -118,35 +118,39 @@ The black keys carry printed labels (OP1 to OP6, PIT, GLO, MONO, POLY) for the s
 
 | Page | Drum theme | Melody theme |
 | --- | --- | --- |
-| 1 | Bouncy Pop | Twinkle (music box, bells) |
+| 1 | Around the World (dhol, tabla, samba, reggaeton) | Animal Choir (cat, bird, voices) |
 | 2 | Disco Dance | Bubblegum (bright synth chords) |
 | 3 | Head-Nod (hip-hop, lo-fi) | Space (lasers, bloops, pads) |
-| 4 | Around the World (dhol, tabla, samba, reggaeton) | Animal Choir (cat, bird, voices) |
+| 4 | Bouncy Pop | Twinkle (music box, bells) |
 | 5 | Silly Kitchen (pots, spoons, beatbox) | Game On (chiptune) |
 | 6 | Sleepy Time (brushes, rain stick) | Dreamy (kalimba, harp, toy piano) |
 
 **The 8 sampled sounds**
 
-- **Drums (4),** each stored as a 1-bar loop cut into 16 slices: dhol, pots and pans, beatbox, rain stick. Slices are re-triggered by the clock, so a sampled loop follows any tempo without changing pitch.
-- **Melody (4),** each stored as a single note that the pattern plays at different pitches: her own "la" (recorded at home), cat meow, kalimba, music box. One recording can play any tune in any key.
+Decided Nov 14, 2026: all 8 are **one-shot sounds** on the stock sampler's 8 pads, played in patterns by the clock, so they follow any tempo without changing pitch. (The stock sampler can't slice a recorded loop or play a recording at different pitches, and AJ Box no longer runs its own sampler.)
 
-**How a melody loop is built:** instrument plus pattern. About half are arpeggios (a held chord played Up, Down, Bounce or Random, the same shapes as the stock arpeggiator) and half are 16-step riffs. Melodies use only the 5 notes of one pentatonic scale (default C major pentatonic: C, D, E, G, A), so nothing clashes. All patterns are original or public domain; no copyrighted songs.
+- **No recordings (Partho, Nov 14, 2026):** nothing is recorded at home or anywhere else. Claude Code makes all 8 sounds by synthesis, as single hits in the spirit of the page themes: a dhol-like hit, a pot clang, a spoon tap, a beatbox-like kick and snare, a rain-stick shake and two more.
+- Parent mode's "swap any of the 8 sampled sounds over USB" is dropped for this build. Sampled melodies (music box, kalimba, la, cat as tunes) are dropped for this build; those 8 melody loops move to synthesized instruments.
 
-**Sound swaps:** PRESETS steps through 12 drum kits built on the DRUM 808 engine and ALGORITHM through 24 melody instruments (20 FM, 4 sampled). A sampled drum loop keeps its own sound; turning PRESETS on one just shows a sparkle.
+**How a melody loop is built:** instrument plus pattern. About half are arpeggios (a held chord played Up, Down, Bounce or Random, the same shapes as the stock arpeggiator) and half are 16-step riffs. Melodies use only the 5 notes of one pentatonic scale (default C major pentatonic: C, D, E, G, A), so nothing clashes. Most patterns are original. At Partho's request (Nov 14, 2026; this is a home toy) the library also has tunes from Zelda: Ocarina of Time: Saria's Song, Song of Storms and Zelda's Lullaby, with Goron City to follow. They play as written on Bird Flute and don't follow Mood, because they need notes outside the 5-note scale.
 
-**Storage math** (IMA ADPCM, Interactive Multimedia Association adaptive differential pulse-code modulation: 4 bits per sample, mono)
+**Sound swaps:** PRESETS steps through 12 drum kits built on the DRUM 808 engine and ALGORITHM through 20 melody instruments, all synthesized on FM1 Open's FM, Pluck (plucked string), PSG (chiptune) and 303 (acid bass) engines (24 before Nov 14, 2026, when 4 were sampled). A drum loop made of recorded sounds keeps its own sound; turning PRESETS on one just shows a sparkle.
 
-1. At 16 kHz: 16,000 × 4 ÷ 8 = **8,000 bytes per second**.
-2. 1 bar at 100 BPM = 4 beats × 0.6 s = 2.4 s, so 2.4 × 8,000 = **19,200 bytes** per drum loop.
-3. 4 drum loops: 4 × 19,200 = **76,800 bytes (75 KiB)**.
-4. 4 melody notes at 0.8 s each: 4 × 0.8 × 8,000 = **25,600 bytes (25 KiB)**.
-5. Total audio: 102,400 bytes = **100 KiB, or 20% of a 500 KiB budget**.
-6. That leaves room for 2-bar drum loops: 153,600 + 25,600 = 179,200 bytes = 175 KiB (35%), if the spike confirms the space.
-7. The synthesized side is small: 24 DX7 voices at 128 bytes each = 3,072 bytes (3 KiB); 96 patterns × 64 steps × 4 bytes = 24,576 bytes (24 KiB).
+**Storage math** (SEA5, FM1 Open's stock sample codec, mono at 32 kHz, stored in the stock 456 KiB sample bank; chosen Nov 10, 2026 over 16 kHz IMA ADPCM for brighter sound)
+
+Since Nov 14, 2026 the 8 recordings are one-shots, so steps 2 to 6 below are the old plan and overstate the need: the stock bank holds about 19.5 seconds in total across its 8 pads, and 8 short hits use a fraction of it.
+
+1. SEA5 stores 320 frames in 228 bytes; at 32 kHz that is 100 chunks a second = **22,800 bytes per second**.
+2. 1 bar at 100 BPM = 4 beats × 0.6 s = 2.4 s = 240 chunks = **54,720 bytes** per drum loop.
+3. 4 drum loops: 4 × 54,720 = **218,880 bytes (214 KiB)**.
+4. 4 melody notes at 0.8 s each: 4 × 80 chunks × 228 = **72,960 bytes (71 KiB)**.
+5. Total audio: 291,840 bytes = **285 KiB, or 62.5% of the 466,944-byte (456 KiB) sample bank**.
+6. 2-bar drum loops only fit for some: two 2-bar loops plus two 1-bar loops come to 401,280 bytes (86%); all four at 2 bars (510,720 bytes) would not fit.
+7. The synthesized side is small: 20 synthesized instruments at most 128 bytes each (a DX7 voice; Pluck, PSG and 303 need only a few knob values) = at most 2,560 bytes (2.5 KiB); 96 patterns × 64 steps × 4 bytes = 24,576 bytes (24 KiB).
 
 Her saved jam and favourites are tiny: one jam of up to 2 minutes stored as key and knob events (5 events per second × 120 s × 4 bytes = 2,400 bytes) plus 8 favourites at 32 bytes each (256 bytes) come to 2,656 bytes, under 3 KiB.
 
-16 kHz caps the audio at 8 kHz of treble: fine on the built-in speaker, a little dull on headphones. 22.05 kHz would cost 37.8% more space (22,050 ÷ 16,000 = 1.378).
+32 kHz keeps treble up to 16 kHz, so recordings stay bright on headphones too. The fallback, if the bank is ever needed for something else, is 16 kHz IMA ADPCM at 8,000 bytes per second (100 KiB for the same 8 sounds).
 
 ## Playback rules
 
@@ -161,13 +165,13 @@ Every press answers instantly and still lands in time: a new loop starts from wh
 7. **Finish** (F#4): on the next bar, a crash cymbal plus the melody's final chord, a confetti animation, then stop.
 8. **PLAY/STOP** stops both sides; pressing it again resumes the last pair at the last tempo.
 9. **Sound swaps** (PRESETS, ALGORITHM) change on the next note, never in the middle of one.
-10. **Memory:** last pages, last pair, sounds, tempo and effects survive power-off. Saving happens after 30 s with no changes, to spare the flash.
+10. **Memory:** last pages, last pair, sounds, tempo and effects survive power-off. Saving cuts the sound for a moment, so it happens only while nothing is playing: 5 s after the music stops, or after the last change made in silence (changed Nov 15, 2026, after hearing the cut on the FM-1; it was 30 s after the last change, playing or not). Switching off mid-song brings back what was there the last time the music stopped. Hearts and jams still save at once, on their button.
 
 Parent mode can switch swaps to "next bar" for a classic DJ feel once she's older.
 
 ## Effects
 
-The 6 top-row buttons each switch one effect on or off for the whole mix; KNOB 2 (how much) and KNOB 3 (how fast) then shape whichever effect was switched on last.
+The 6 top-row buttons each switch one effect on or off for the whole mix; KNOB 2 (how much) then shapes whichever effect was switched on last. How fast the effects go is a parent-mode setting (Slow, Normal or Fast for all of them; Normal is each effect's own speed), not a knob: KNOB 3 and 4 were given to balance and Mood on Nov 15, 2026.
 
 | Button | Name on screen | What she hears | Built from | Kid-safe limit |
 | --- | --- | --- | --- | --- |
@@ -195,7 +199,7 @@ The screen splits down the middle to match her hands: pink drums on the left, pu
 - **Bottom strip:** a bubble for each effect that's on. Turning a knob draws an arc in that knob's colour.
 - **States by glow, not words:** playing glows, muted dims, a Dice pick spins in.
 
-While REC is on, a dot pulses in the top strip. SAVE and SEQ show a heart with its number (1 to 8). Mood shows a sun, a cloud or a moon.
+While REC is on, a dot pulses in the top strip. Turning SELECT pops up the tempo in the middle of the screen for a moment: the speed arrows, the BPM in big figures and a gold arc from slowest to fastest. SAVE and SEQ show a heart with its number (1 to 8). Mood shows a sun (Happy), a cloud (Dreamy), a moon (Spooky), a magic wand (Magic), a balloon (Floaty), a paper lantern (Faraway) or a treasure map (Adventure).
 
 | Role | Colour | Hex |
 | --- | --- | --- |
@@ -238,6 +242,7 @@ Nothing she does can distort the sound, delete anything, or leave her stuck; the
 - Default tempo (110 BPM to start)
 - Swap timing: phase-locked (default) or next bar
 - Bluetooth on or off
+- Effect speed: Slow, Normal (default) or Fast
 - Swap any of the 8 sampled sounds over USB (Universal Serial Bus) from the browser workbench, for example new recordings of her voice
 
 The tempo range (30 to 200 BPM) is fixed in the build.
@@ -252,8 +257,8 @@ The tempo range (30 to 200 BPM) is fixed in the build.
 
 **How it fits together**
 
-1. **Engines:** FM1 Open's FM voices for melodies; FM1 Open's DRUM 808 engine for synthesized drums; one ADPCM sample player with 2 voices (1 sliced drum, 1 pitched melody note).
-2. **Clock:** one master clock in 16th-note steps drives both sides; swaps are phase-locked to it.
+1. **Engines:** FM1 Open's FM, Pluck, PSG and 303 engines for melodies; FM1 Open's DRUM 808 engine for synthesized drums; FM1 Open's sampler for recorded sounds. AJ Box does not run its own engine: it is a new front for FM1 Open's stock instrument, with drums on one track and the melody on another, and swaps a track's pattern while it plays (decided Nov 14, 2026; M-VAVE's library seals the sound engines, so the Nov 10 own-engine plan could not be built). **Open:** the stock sampler is 8 one-shot pads, so how the 4 sampled drum loops and the 4 sampled melody notes work is still to be settled; Wobble, Wah, Crunch, Stutter and Swoosh run on the finished mix if the processor allows.
+2. **Clock:** FM1 Open's sequencer clock in 16th-note steps drives both sides; a swap replaces the pattern while the position carries on, so it is phase-locked.
 3. **Library:** one manifest file listing all 96 loops, 12 kits, 24 instruments and their pictures, compiled into the firmware.
 4. **Workflow with Claude Code:** render loops to WAV files on the PC and tune by ear, then run them in the browser preview, then flash the FM-1.
 5. **Licence:** GPLv3 is fine for home use; if you share the firmware publicly, publish the source with it.
@@ -271,7 +276,7 @@ AJ Box is done when she starts a drum and a melody without help on her first try
 
 **Milestones**
 
-1. **Spike:** build FM1 Open; measure free flash, worst-case CPU (8 drum voices + 4 FM voices + 2 sample voices + 6 effects), screen resolution, key LED colours and the supported sample format.
+1. **Spike:** build FM1 Open; measure free flash, worst-case CPU (8 drum voices + 4 melody voices on the heaviest melody engine + 2 sample voices + 6 effects), screen resolution, key LED colours and the supported sample format.
 2. **Core toy:** 8 + 8 keys on one page, phase-locked swaps, PLAY/STOP, synthesized loops only.
 3. **Library:** 48 + 48 loops, paging, sound swaps, the 8 samples.
 4. **Magic:** 6 effects, 4 knobs, Fill, Fast, Mute, Dice, Finish, jam recording, favourites and Mood.
@@ -282,11 +287,13 @@ AJ Box is done when she starts a drum and a melody without help on her first try
 
 | Risk | Fallback |
 | --- | --- |
-| Less than 100 KiB free for audio once code and engines are in | Drop to 12 kHz, or fewer sampled sounds |
+| Less than 285 KiB free in the sample bank once code and engines are in | Drop to 16 kHz IMA ADPCM (100 KiB), or fewer sampled sounds |
 | 6 effects at once overload the CPU | Cap at 3 at a time, oldest drops off |
 | Small speaker loses bass | Mix every loop on the built-in speaker first |
 | Too many controls for a 6-year-old | Introduce the three layers over days, not all at once |
-| Some newer FM-1s ship a different flash chip (UC25HQ80) that some firmwares don't support, losing saves at switch-off ([Drey Andersson](https://dreyandersson.com/blog/m-vave-fm-1-custom-firmware/)) | Check the unit's chip before flashing; confirm support with the base firmware's maintainers |
+| Some newer FM-1s ship a different flash chip (UC25HQ80) that some firmwares don't support, losing saves at switch-off ([Drey Andersson](https://dreyandersson.com/blog/m-vave-fm-1-custom-firmware/)) | Partho's unit has the original Puya chip (0x856014, read by M-Flasher), so this risk doesn't apply to it; AJ Box still supports both chips as a portability rule. FM1 Open's sealed SDK flash driver reads the chip ID and no ID whitelist was found in it; both chips are 1 MiB, so the layout and budget are unchanged. AJ Box saves only through the SDK and reads back every write. If a save fails, the heart stays empty instead of pretending. Stock V15 and Baud Girl FM-1+VA save fine on the UC25HQ80; Melodee failed only because it accepted one chip ID, fixed in 1.6.0 ([Melodee issue #110](https://github.com/keremimo/melodee/issues/110)). Install through M-VAVE's update route; M-Flasher is the rescue route on Partho's unit. The S0 power-off test still checks saving on the device |
+| Saving to flash briefly silences the sound (FM1 Open SDK, `fm1.h`), and "Playback rules" 10 saves 30 s after the last change, which can be while she plays | Measure the gap on the first S2 build that saves (S0 deferred it). If she can hear it, save only while nothing is playing; Partho decides before S2 builds saving |
+| A bad AJ Box build stops the FM-1 answering M-VAVE's update page, and the only way back is a rescue tool (M-Flasher) that a parent has to run | The update handler lives in M-VAVE's sealed SDK, not in AJ Box. AJ Box leaves the SDK start-up untouched, checks saved data before using it, and Partho reads the identity on the update page after every install (build plan "Saving and update-mode rules") |
 
 ## Sources
 

@@ -1,0 +1,11 @@
+# Desktop build outputs and renders (regenerate with dsp/build.ps1 -Render)
+/dsp/build/
+/renders/
+
+# The manual: M-VAVE's photo and the working pages (perl docs/manual/build.pl).
+# docs/manual/aj-box-manual.html and .pdf are kept.
+/docs/manual/cache/
+/docs/manual/out/
+
+# Files made for the FM-1 (the one-shot sample bank: dsp/build/ajstock bank)
+/build/
