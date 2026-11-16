@@ -244,6 +244,8 @@ In his words: "drums are fine now, tearing is better, power off tests work too."
 
 **Seventh build:** app image 441,108 of 453,921 bytes (12,813 to spare), heap 192,044, every script check passed, Build ID `b7fae6f45623d44a`, page SHA-256 `fd553d24…0699`, package SHA-256 `8047ac67…d154`. 1,210 desktop checks pass. Not installed yet; it carries the sixth build's fixes, which Partho has not installed either.
 
+**Seventh build on the FM-1 (Nov 15, 2026).** Partho reports he installed and tested it ("I've tested it") and asked for the branch to be merged. Which checks he ran, the `b` number and the bars he saw were not recorded.
+
 ## What I don't know yet, and how I'll find out
 
 1. **Does a pattern swap click or stall?** Edits briefly hold the audio gate. Test on the desktop first, then on the first device build.
