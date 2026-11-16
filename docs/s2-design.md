@@ -226,6 +226,20 @@ In his words: "drums are fine now, tearing is better, power off tests work too."
 - The PRD's pictures for "the jam didn't save" and "the setting didn't save" are not drawn.
 - The old desktop engine has 1 of 6,008 checks failing since the page swap.
 
+### Final fixes asked for on Nov 15, 2026, and the sixth build
+
+**"Some sounds continue when another loop has been chosen."** Checked across the whole library:
+
+- Every melody loop and every drum loop was stopped mid-play and listened to. Nothing is stuck. Drums are quiet within 0.5 s. Most melodies are quiet within 0.3 s; bells ring on by design (Bell Tower about 2.4 s, the Glass Bell loops 1 to 1.6 s, Toy Piano about 1 s).
+- A stress test (`test_mash`: 2,400 melody presses, Dice, instruments, Fast, Mood, octaves and hearts, some rounds faster than a 16th) found one real fault: **two presses inside one 16th note.** The first press writes a let-go cell for a held note; a second press before that cell had played wrote over it, and the note (a chip note in the failing case) stayed on. Fixed in `melody_put`: a let-go cell that has not played yet survives the next write. The stress test fails without the fix and passes with it.
+- A mistake on the way: the test's own clean-up (`groove_midi_panic`) was first blamed for that fault, wrongly; the replay that "cleared" it had the fix in place.
+
+**Battery picture and sleepy screen: built on an estimate.** FM1 Open's own firmware never shows the battery, so there are no levels to copy, and the only reading from this FM-1 is 612. Taking 612 as about 4.0 V (about 153 counts a volt): three bars from 597, two from 566, one from 536, the sleepy screen below 520. The reading is smoothed over about 8 s with a few counts of slack so a bar does not flicker, the sleepy screen shows once each time the battery first runs low, and "low" clears only when the reading has clearly risen. If the estimate is wrong it errs towards a fuller picture, not a false sleepy screen. Parent mode still shows the raw reading (`b`); a reading at full charge and one near flat would replace the estimate (`AJSCREEN_BATTERY_*` in `ajscreen.h`). The simulator's battery always reads 900, so the FM-1's call is left out of the desktop build and `test_battery` feeds its own readings.
+
+**The sound cuts for a moment when a save happens** (Partho, on the FM-1). The PRD's "Risks" already named the answer. PRD rule 10 changed: what power-on brings back is now saved only while nothing is playing, 5 s after the music stops (it was 30 s after the last change, playing or not, which could cut the sound unasked). Switching off mid-song brings back what was there the last time the music stopped. Hearts and jams still save at once on their buttons, so SAVE and the end of a recording still cut the sound for a moment; that cannot be avoided with the SDK's flash calls.
+
+**Sixth build:** app image 441,108 of 453,921 bytes (12,813 to spare), heap 192,044, every script check passed, Build ID `219861b85b0e4ff5`, page SHA-256 `3aa03b25…5030`, package SHA-256 `4fbed1fc…3a3f`. 1,208 desktop checks pass. Not installed yet.
+
 ## What I don't know yet, and how I'll find out
 
 1. **Does a pattern swap click or stall?** Edits briefly hold the audio gate. Test on the desktop first, then on the first device build.

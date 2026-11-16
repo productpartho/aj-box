@@ -29,6 +29,12 @@ void ajscreen_event(unsigned event, unsigned a, unsigned b, uint32_t now);
  * low shows the sleepy battery once when it first becomes true. */
 enum { AJSCREEN_BATTERY_UNKNOWN = 255 };
 void ajscreen_battery(unsigned bars, int low, uint32_t now);
+/* The FM-1's battery reading (0..1023, about twice a second): smoothed, then turned
+ * into bars and "low" for ajscreen_battery. The levels are an estimate from one
+ * reading on Partho's FM-1 (612, taken as about 4.0 V): see AJSCREEN_BATTERY_* . */
+enum { AJSCREEN_BATTERY_3 = 597, AJSCREEN_BATTERY_2 = 566, AJSCREEN_BATTERY_1 = 536, AJSCREEN_BATTERY_LOW = 520,
+       AJSCREEN_BATTERY_SLACK = 6, AJSCREEN_BATTERY_NONE = 300 };
+void ajscreen_battery_reading(unsigned adc, uint32_t now);
 /* Two numbers parent mode shows in its bottom corner, for setting the box up:
  * the battery reading (0..1023) and how many times the sound fell behind. */
 void ajscreen_readings(unsigned battery, unsigned late);

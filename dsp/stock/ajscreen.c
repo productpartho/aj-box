@@ -60,6 +60,8 @@ static struct {
     uint32_t started, mode_until, over_until, finish_until, spin_from[AJAPP_SIDES];
     uint8_t mode, mode_on, heart, over_on, over_kind, over_a, over_b, finish_on, spinning[AJAPP_SIDES];
     uint8_t effects_seen, last_effect, bars, low, readings, battery, late;
+    uint16_t battery_mean;      /* the smoothed reading, in sixteenths */
+    uint8_t battery_seen;
     uint8_t next, sent;         /* the strip whose turn is next; the one on its way (STRIPS: none) */
 } scr;
 
@@ -496,6 +498,24 @@ void ajscreen_battery(unsigned bars, int low, uint32_t now)
     scr.low = low != 0;
 }
 
+/* About 153 counts a volt if 612 is 4.0 V: three bars from 3.9 V, two from 3.7 V, one from
+ * 3.5 V, sleepy below 3.4 V. A wrong guess errs towards a fuller picture, not a false sleepy
+ * screen. The mean settles in about 8 s; a few counts of slack stop a bar flickering, and
+ * once low it stays low until the reading has clearly risen (charging). */
+void ajscreen_battery_reading(unsigned adc, uint32_t now)
+{
+    if (adc > 1023 || adc < AJSCREEN_BATTERY_NONE) return;      /* no battery reading: leave the picture as it is */
+    static const uint16_t level[3] = {AJSCREEN_BATTERY_1, AJSCREEN_BATTERY_2, AJSCREEN_BATTERY_3};
+    const int first = !scr.battery_seen;
+    scr.battery_mean = (uint16_t)(first ? adc * 16U : (scr.battery_mean * 15U + adc * 16U + 8U) / 16U);
+    scr.battery_seen = 1;
+    const unsigned mean = scr.battery_mean / 16U, slack = first ? 0 : AJSCREEN_BATTERY_SLACK;
+    unsigned bars = first || scr.bars > 3 ? 0 : scr.bars;
+    while (bars < 3 && mean >= level[bars] + slack) ++bars;
+    while (bars > 0 && mean + slack < level[bars - 1]) --bars;
+    const int low = scr.low && !first ? mean < AJSCREEN_BATTERY_LOW + 3U * AJSCREEN_BATTERY_SLACK : mean < AJSCREEN_BATTERY_LOW;
+    ajscreen_battery(low ? 0 : bars, low, now);
+}
 void ajscreen_readings(unsigned battery, unsigned late)
 {
     scr.readings = 1;

@@ -165,7 +165,7 @@ Every press answers instantly and still lands in time: a new loop starts from wh
 7. **Finish** (F#4): on the next bar, a crash cymbal plus the melody's final chord, a confetti animation, then stop.
 8. **PLAY/STOP** stops both sides; pressing it again resumes the last pair at the last tempo.
 9. **Sound swaps** (PRESETS, ALGORITHM) change on the next note, never in the middle of one.
-10. **Memory:** last pages, last pair, sounds, tempo and effects survive power-off. Saving happens after 30 s with no changes, to spare the flash.
+10. **Memory:** last pages, last pair, sounds, tempo and effects survive power-off. Saving cuts the sound for a moment, so it happens only while nothing is playing: 5 s after the music stops, or after the last change made in silence (changed Nov 15, 2026, after hearing the cut on the FM-1; it was 30 s after the last change, playing or not). Switching off mid-song brings back what was there the last time the music stopped. Hearts and jams still save at once, on their button.
 
 Parent mode can switch swaps to "next bar" for a classic DJ feel once she's older.
 

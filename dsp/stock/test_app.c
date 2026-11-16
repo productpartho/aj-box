@@ -359,11 +359,25 @@ static void test_memory(void)
           now().slot[0], now().slot[1]);
     CHECK(ajapp_next_heart() >= 1, "a heart saved before switching off should still work");
 
-    /* Rule 10: saved by itself 30 s after the last change. */
+    /* Rule 10: saved by itself, but never while music plays (a save cuts the sound):
+     * 5 s after the music stops. */
+    CHECK(now().running, "the pair should be playing for this");
     ajapp_set_bpm(77);
     blocks(31 * FM1_SAMPLE_RATE / FM1_BLOCK_FRAMES);
     power_cycle();
-    CHECK(now().bpm == 77, "a change should be saved by itself after 30 s, tempo %u", now().bpm);
+    CHECK(now().bpm != 77, "nothing should be saved while music plays, tempo %u", now().bpm);
+    ajapp_play_stop(); blocks(8);
+    if (!now().running) { ajapp_play_stop(); blocks(8); }
+    ajapp_set_bpm(77);
+    ajapp_play_stop();
+    blocks(4 * FM1_SAMPLE_RATE / FM1_BLOCK_FRAMES);
+    CHECK(!now().running, "PLAY/STOP should have stopped the music");
+    power_cycle();
+    CHECK(now().bpm != 77, "and not before 5 s of silence, tempo %u", now().bpm);
+    ajapp_set_bpm(77);
+    blocks(6 * FM1_SAMPLE_RATE / FM1_BLOCK_FRAMES);
+    power_cycle();
+    CHECK(now().bpm == 77, "a change should be saved by itself 5 s after the music stops, tempo %u", now().bpm);
 
     /* A jam: record, keep, switch off, replay. */
     fresh();
@@ -1000,6 +1014,87 @@ static void test_leaks(void)
     }
 }
 
+/* A child's hands: melody keys, Dice, instruments, Fast, Mood, octaves and
+ * hearts in quick succession, faster than a 16th. Whatever was pressed, the
+ * melody side has to be silent 3 s after it is stopped. */
+static void test_mash(void)
+{
+    printf("mashing: nothing is left sounding after fast, mixed presses\n");
+    fresh();
+    ajapp_pick(AJAPP_DRUMS, 1);
+    ajapp_hold(AJAPP_HOLD_MUTE_DRUMS, 1);
+    blocks(8);
+    unsigned seed = 2026, fast = 0;
+    char trail[8][40];
+    for (unsigned round = 0; round < 60; ++round) {
+        for (unsigned n = 0; n < 40; ++n) {
+            seed = seed * 1664525U + 1013904223U;
+            unsigned r = (seed >> 8) % 100, v = (seed >> 16) & 0xffff;
+            char *line = trail[n & 7];
+            if (r < 55) { ajapp_pick(AJAPP_MELODY, v % 48); snprintf(line, 40, "loop %u", v % 48); }
+            else if (r < 65) { ajapp_dice(AJAPP_MELODY); snprintf(line, 40, "dice"); }
+            else if (r < 75) { ajapp_set_instrument(v % 20); snprintf(line, 40, "instrument %u", v % 20); }
+            else if (r < 82) { fast = !fast; ajapp_hold(AJAPP_HOLD_FAST, (int)fast); snprintf(line, 40, "fast %u", fast); }
+            else if (r < 89) { ajapp_set_mood(v % AJAPP_MOODS); snprintf(line, 40, "mood %u", v % AJAPP_MOODS); }
+            else if (r < 94) { ajapp_set_octave((int)(v % 5) - 2); snprintf(line, 40, "octave %d", (int)(v % 5) - 2); }
+            else if (r < 97) { (void)ajapp_save_heart(); snprintf(line, 40, "save heart"); }
+            else { (void)ajapp_next_heart(); snprintf(line, 40, "next heart"); }
+            blocks(1 + (seed >> 4) % (round % 3 == 0 ? 12 : 70));     /* every third round faster than a 16th */
+        }
+        if (fast) { fast = 0; ajapp_hold(AJAPP_HOLD_FAST, 0); }
+        ajapp_set_octave(0);
+        if (now().slot[1] < 0) ajapp_pick(AJAPP_MELODY, 0);
+        blocks(3);
+        int last = now().slot[1];
+        stop_melody();
+        blocks(1034);
+        double left = energy(170);
+        CHECK(now().slot[1] == -1 && left < 3.0, "round %u: still sounding 3 s after the melody stopped (%.3f); last loop %d; last presses: %s, %s, %s, %s",
+              round, left, last, trail[4], trail[5], trail[6], trail[7]);
+    }
+    ajapp_hold(AJAPP_HOLD_MUTE_DRUMS, 0);
+}
+
+/* The battery picture from the FM-1's reading: bars, slack against flicker, and
+ * the sleepy screen once when it first runs low. */
+static void test_battery(void)
+{
+    printf("battery: bars and the sleepy screen from the FM-1's reading\n");
+    fresh();
+    ajscreen_init(fm1_millis());
+    wait_ms(1600);
+    ajscreen_battery(AJSCREEN_BATTERY_UNKNOWN, 0, fm1_millis()); look();
+    unsigned none = count_colour(AJD_GOLD);
+    ajscreen_battery_reading(0, fm1_millis()); look();
+    CHECK(count_colour(AJD_GOLD) == none, "no reading should leave the battery picture out");
+    ajscreen_battery_reading(612, fm1_millis()); look();
+    CHECK(pixel(17, 19) == AJD_GOLD && pixel(22, 19) == AJD_GOLD && pixel(27, 19) == AJD_GOLD, "612, the reading from Partho's FM-1, should show three bars");
+    for (unsigned n = 0; n < 40; ++n) ajscreen_battery_reading(n & 1 ? 594 : 600, fm1_millis());
+    look();
+    CHECK(pixel(27, 19) == AJD_GOLD, "a reading wobbling round a level should not drop a bar");
+    for (unsigned n = 0; n < 40; ++n) ajscreen_battery_reading(575, fm1_millis());
+    look();
+    CHECK(pixel(22, 19) == AJD_GOLD && pixel(27, 19) != AJD_GOLD, "575 should settle on two bars");
+    for (unsigned n = 0; n < 40; ++n) ajscreen_battery_reading(545, fm1_millis());
+    look();
+    CHECK(pixel(17, 19) == AJD_GOLD && pixel(22, 19) != AJD_GOLD, "545 should settle on one bar");
+    ajscreen_battery_reading(400, fm1_millis()); look();
+    CHECK(pixel(17, 19) == AJD_GOLD && pixel(120, 100) != AJD_DUSK, "one dip (a loud moment) should not bring the sleepy screen");
+    for (unsigned n = 0; n < 40; ++n) ajscreen_battery_reading(510, fm1_millis());
+    look();
+    CHECK(pixel(70, 120) == AJD_MAGENTA && pixel(120, 100) == AJD_DUSK, "a low battery should show the sleepy battery");
+    wait_ms(2600);
+    for (unsigned n = 0; n < 10; ++n) ajscreen_battery_reading(524, fm1_millis());
+    look();
+    CHECK(pixel(120, 100) != AJD_DUSK && pixel(17, 19) != AJD_GOLD, "the sleepy screen shows once, and just above the line it stays low with no bars");
+    for (unsigned n = 0; n < 40; ++n) ajscreen_battery_reading(620, fm1_millis());
+    look();
+    CHECK(pixel(27, 19) == AJD_GOLD, "charged again: three bars");
+    for (unsigned n = 0; n < 40; ++n) ajscreen_battery_reading(505, fm1_millis());
+    look();
+    CHECK(pixel(70, 120) == AJD_MAGENTA, "and the sleepy screen comes again the next time it runs low");
+}
+
 int main(void)
 {
     test_keys();
@@ -1015,6 +1110,8 @@ int main(void)
     test_repaint();
     test_hanging();
     test_leaks();
+    test_mash();
+    test_battery();
     printf("%u checks, %u failed\n", checks, failures);
     return failures != 0;
 }

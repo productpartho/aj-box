@@ -296,12 +296,25 @@ static void melody_put(unsigned track, const struct groove_step *cells, unsigned
 {
     struct groove_step old[STEPS], put[STEPS];
     struct groove_view v;
+    if (track >= 8) return;
     groove_sequence_read(track, 0, old, STEPS);
+    groove_get_view(track, 0, &v);
+    /* A let-go cell from a moment ago that has not played yet (two presses inside
+     * one 16th): the note it is for is still held, so it has to survive this write. */
+    const unsigned waiting = app.tail[track].on && v.playing && v.play_step == app.tail[track].from &&
+                             old[app.tail[track].step].velocity && old[app.tail[track].step].drums == LET_GO;
+    const struct groove_step kept = old[app.tail[track].step];
     write_from(track, cells, count, from, keep);
     groove_get_view(track, 0, &v);
-    if (!v.playing || track >= 8) return;       /* stopped: the sequencer has let everything go */
+    if (!v.playing) return;                     /* stopped: the sequencer has let everything go */
     unsigned length = v.sequence_length ? v.sequence_length : STEPS, p = v.play_step % length, q = (p + 1U) % length;
     groove_sequence_read(track, 0, put, STEPS);
+    if (waiting) {
+        /* A new note on that step lets the old one go by itself; otherwise put the cell back. */
+        if (!put[app.tail[track].step].velocity) groove_sequence_replace(track, app.tail[track].step, &kept, 1);
+        else app.tail[track].on = 0;
+        return;
+    }
     if (!old[p].velocity || !(old[p].drums & TIE) || put[q].velocity) return;
     struct groove_step end = old[p];
     end.drums = LET_GO;
@@ -853,7 +866,14 @@ void ajapp_tick(void)
         if (app.replaying && tick >= app.jam.length) app.replaying = 0;
     }
     /* PRD "Playback rules" 10: save what power-on brings back 30 s after the last change. */
-    if (app.dirty && !app.recording && !app.replaying && ms - app.changed_at >= 30000U) (void)ajapp_save_memory();
+    /* Rule 10. Writing flash cuts the sound for a moment (heard on the FM-1, Nov 15, 2026), so what
+     * power-on brings back is saved only while nothing is playing: 5 s after the music stops or
+     * after the last change made in silence. */
+    if (app.dirty && !app.recording && !app.replaying && ms - app.changed_at >= 5000U) {
+        unsigned running, step;
+        position(&running, &step);
+        if (!running) (void)ajapp_save_memory();
+    }
     unsigned running, step;
     position(&running, &step);
     app.audio_step = (uint8_t)step;
