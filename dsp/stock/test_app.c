@@ -1067,9 +1067,13 @@ static void test_battery(void)
     unsigned none = count_colour(AJD_GOLD);
     ajscreen_battery_reading(0, fm1_millis()); look();
     CHECK(count_colour(AJD_GOLD) == none, "no reading should leave the battery picture out");
+    CHECK(ajscreen_battery_percent(520) == 0 && ajscreen_battery_percent(400) == 0 && ajscreen_battery_percent(643) == 100 && ajscreen_battery_percent(900) == 100,
+          "the battery number should run from 0 to 100 and stop at both ends");
+    CHECK(ajscreen_battery_percent(612) == 74 && ajscreen_battery_percent(581) == 49, "612 should read 74 and half way should read 49 (%u, %u)",
+          ajscreen_battery_percent(612), ajscreen_battery_percent(581));
     ajscreen_battery_reading(612, fm1_millis()); look();
     CHECK(pixel(17, 19) == AJD_GOLD && pixel(22, 19) == AJD_GOLD && pixel(27, 19) == AJD_GOLD, "612, the reading from Partho's FM-1, should show three bars");
-    for (unsigned n = 0; n < 40; ++n) ajscreen_battery_reading(n & 1 ? 594 : 600, fm1_millis());
+    for (unsigned n = 0; n < 40; ++n) ajscreen_battery_reading(n & 1 ? 599 : 605, fm1_millis());
     look();
     CHECK(pixel(27, 19) == AJD_GOLD, "a reading wobbling round a level should not drop a bar");
     for (unsigned n = 0; n < 40; ++n) ajscreen_battery_reading(575, fm1_millis());

@@ -435,10 +435,9 @@ static void paint_parent(const ajd_canvas_t *c, const struct scene *s)
         ajd_box(c, 218 - wide, y + 5, wide, 22, 11, AJD_LILAC, 256);
         text(c, PX(218 - wide + 10), PX(y + 9), value[r], SMALL, AJD_PLUM);
     }
-    if (s->full.d) {                    /* b: battery reading; l: times the sound fell behind */
+    if (s->full.d) {                    /* b: battery, 0 to 100; l: times the sound fell behind */
         char readings[16] = "b ";
-        unsigned at = 2, battery = s->full.c * 4U, late = s->full.d - 1U;
-        if (battery >= 1000) readings[at++] = (char)('0' + battery / 1000);
+        unsigned at = 2, battery = s->full.c, late = s->full.d - 1U;
         if (battery >= 100) readings[at++] = (char)('0' + battery / 100 % 10);
         if (battery >= 10) readings[at++] = (char)('0' + battery / 10 % 10);
         readings[at++] = (char)('0' + battery % 10);
@@ -498,28 +497,38 @@ void ajscreen_battery(unsigned bars, int low, uint32_t now)
     scr.low = low != 0;
 }
 
-/* About 153 counts a volt if 612 is 4.0 V: three bars from 3.9 V, two from 3.7 V, one from
- * 3.5 V, sleepy below 3.4 V. A wrong guess errs towards a fuller picture, not a false sleepy
- * screen. The mean settles in about 8 s; a few counts of slack stop a bar flickering, and
- * once low it stays low until the reading has clearly risen (charging). */
+/* The reading in sixteenths, as 0..100 between EMPTY and FULL. */
+static unsigned percent16(unsigned mean16)
+{
+    const unsigned empty = AJSCREEN_BATTERY_EMPTY * 16U, span = (AJSCREEN_BATTERY_FULL - AJSCREEN_BATTERY_EMPTY) * 16U;
+    if (mean16 <= empty) return 0;
+    return mean16 - empty >= span ? 100 : (mean16 - empty) * 100U / span;
+}
+unsigned ajscreen_battery_percent(unsigned adc) { return percent16((adc > 1023 ? 1023 : adc) * 16U); }
+
+/* About 153 counts a volt if 612 is 4.0 V, so 0 is 3.4 V and 100 is 4.2 V. A wrong guess
+ * errs towards a fuller picture, not a false sleepy screen. The mean settles in about 8 s;
+ * two points of slack stop a bar flickering, and once low it stays low until the battery
+ * has clearly risen (charging). */
 void ajscreen_battery_reading(unsigned adc, uint32_t now)
 {
     if (adc > 1023 || adc < AJSCREEN_BATTERY_NONE) return;      /* no battery reading: leave the picture as it is */
-    static const uint16_t level[3] = {AJSCREEN_BATTERY_1, AJSCREEN_BATTERY_2, AJSCREEN_BATTERY_3};
+    static const uint8_t level[3] = {AJSCREEN_BATTERY_1, AJSCREEN_BATTERY_2, AJSCREEN_BATTERY_3};
     const int first = !scr.battery_seen;
     scr.battery_mean = (uint16_t)(first ? adc * 16U : (scr.battery_mean * 15U + adc * 16U + 8U) / 16U);
     scr.battery_seen = 1;
-    const unsigned mean = scr.battery_mean / 16U, slack = first ? 0 : AJSCREEN_BATTERY_SLACK;
+    const unsigned full = percent16(scr.battery_mean), slack = first ? 0 : AJSCREEN_BATTERY_SLACK;
     unsigned bars = first || scr.bars > 3 ? 0 : scr.bars;
-    while (bars < 3 && mean >= level[bars] + slack) ++bars;
-    while (bars > 0 && mean + slack < level[bars - 1]) --bars;
-    const int low = scr.low && !first ? mean < AJSCREEN_BATTERY_LOW + 3U * AJSCREEN_BATTERY_SLACK : mean < AJSCREEN_BATTERY_LOW;
+    while (bars < 3 && full >= level[bars] + slack) ++bars;
+    while (bars > 0 && full + slack < level[bars - 1]) --bars;
+    const int low = scr.low && !first ? full < AJSCREEN_BATTERY_WAKE : full < AJSCREEN_BATTERY_1;
     ajscreen_battery(low ? 0 : bars, low, now);
 }
+/* Parent mode shows the same smoothed 0..100 the bars come from. */
 void ajscreen_readings(unsigned battery, unsigned late)
 {
     scr.readings = 1;
-    scr.battery = (uint8_t)(battery > 1023 ? 255 : battery >> 2);    /* in fours, so it does not flicker */
+    scr.battery = (uint8_t)(scr.battery_seen ? percent16(scr.battery_mean) : ajscreen_battery_percent(battery));
     scr.late = (uint8_t)(late > 250 ? 250 : late);
 }
 

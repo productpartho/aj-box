@@ -240,6 +240,10 @@ In his words: "drums are fine now, tearing is better, power off tests work too."
 
 **Sixth build:** app image 441,108 of 453,921 bytes (12,813 to spare), heap 192,044, every script check passed, Build ID `219861b85b0e4ff5`, page SHA-256 `3aa03b25…5030`, package SHA-256 `4fbed1fc…3a3f`. 1,208 desktop checks pass. Not installed yet.
 
+**Battery as 0 to 100 (Partho, Nov 15, 2026: "The battery number makes no sense to me").** The smoothed reading is turned into 0 to 100 between 520 (taken as 3.4 V) and 643 (taken as 4.2 V), still the estimate from the one reading; 612 comes out as 74. The bars come from that number: three from 67, two from 34, one from 5, and below 5 no bars and the sleepy screen (it clears again at 15). Parent mode's `b` shows the same 0 to 100, not the raw reading. Earlier notes of `b 612` and `b 900` are raw readings. To replace the estimate, change `AJSCREEN_BATTERY_EMPTY` and `_FULL` in `ajscreen.h`.
+
+**Seventh build:** app image 441,108 of 453,921 bytes (12,813 to spare), heap 192,044, every script check passed, Build ID `b7fae6f45623d44a`, page SHA-256 `fd553d24…0699`, package SHA-256 `8047ac67…d154`. 1,210 desktop checks pass. Not installed yet; it carries the sixth build's fixes, which Partho has not installed either.
+
 ## What I don't know yet, and how I'll find out
 
 1. **Does a pattern swap click or stall?** Edits briefly hold the audio gate. Test on the desktop first, then on the first device build.
