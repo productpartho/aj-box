@@ -50,20 +50,22 @@ static const ajb_drum_loop_t fill = {"Fill", 16, NULL, {
     [AJB_LT] = "............x...",
 }, GAIN(0.58)};
 
-/* Name, drum loops, melody loops, page kit (index into kits). */
+/* Name, drum loops, melody loops, page kit (index into kits). Around the World /
+ * Animal Choir is page 1 and Bouncy Pop / Twinkle page 4 at Partho's request
+ * (Nov 15, 2026); the files in loops/ keep their first numbering. */
 static const ajb_page_t pages[] = {
-    {"Bouncy Pop / Twinkle",
-     {&bounce, &stomp, &skippy, &cowbell_party, &clap_along, &hop_scotch, &big_parade, &tick_tock},
-     {&star_steps, &music_box_song, &harp_hop, &bell_tower, &glass_rain, &wind_up, &tiptoe, &lullabell}, 0},
+    {"Around the World / Animal Choir",
+     {&dhol_party, &reggaeton, &samba, &tabla_talk, &afrobeat, &clave_walk, &goron_drums, &island},
+     {&saria_song, &song_of_storms, &bird_call, &choir_rise, &frog_hop, &zeldas_lullaby, &goron_city, &owl_night}, 3},
     {"Disco Dance / Bubblegum",
      {&glitter_ball, &roller_skate, &funky_chicken, &clap_hustle, &tom_tom_club, &shimmy, &mirror_ball, &cha_ching},
      {&bubble_pop, &gumdrop, &disco_strut, &fizzy_pop, &sugar_rush, &roller_rink, &sparkle_stairs, &jelly_wobble}, 1},
     {"Head-Nod / Space",
      {&boom_bap, &lazy_sunday, &head_bop, &trap_cat, &dusty, &slow_jam, &scratch, &tip_tap},
      {&laser_tag, &moon_walk, &bloop_bloop, &rocket, &robot_talk, &computer_brain, &star_drift, &ufo}, 2},
-    {"Around the World / Animal Choir",
-     {&dhol_party, &reggaeton, &samba, &tabla_talk, &afrobeat, &clave_walk, &goron_drums, &island},
-     {&saria_song, &song_of_storms, &bird_call, &choir_rise, &frog_hop, &zeldas_lullaby, &goron_city, &owl_night}, 3},
+    {"Bouncy Pop / Twinkle",
+     {&bounce, &stomp, &skippy, &cowbell_party, &clap_along, &hop_scotch, &big_parade, &tick_tock},
+     {&star_steps, &music_box_song, &harp_hop, &bell_tower, &glass_rain, &wind_up, &tiptoe, &lullabell}, 0},
     {"Silly Kitchen / Game On",
      {&pots_and_pans, &beatbox, &spoons, &whisk, &pop_corn, &stir_it, &clank, &dish_washer},
      {&level_one, &coin_grab, &boss_fight, &power_up, &pixel_hop, &crunch_time, &warp_zone, &high_score}, 4},

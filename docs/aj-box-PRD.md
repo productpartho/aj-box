@@ -118,10 +118,10 @@ The black keys carry printed labels (OP1 to OP6, PIT, GLO, MONO, POLY) for the s
 
 | Page | Drum theme | Melody theme |
 | --- | --- | --- |
-| 1 | Bouncy Pop | Twinkle (music box, bells) |
+| 1 | Around the World (dhol, tabla, samba, reggaeton) | Animal Choir (cat, bird, voices) |
 | 2 | Disco Dance | Bubblegum (bright synth chords) |
 | 3 | Head-Nod (hip-hop, lo-fi) | Space (lasers, bloops, pads) |
-| 4 | Around the World (dhol, tabla, samba, reggaeton) | Animal Choir (cat, bird, voices) |
+| 4 | Bouncy Pop | Twinkle (music box, bells) |
 | 5 | Silly Kitchen (pots, spoons, beatbox) | Game On (chiptune) |
 | 6 | Sleepy Time (brushes, rain stick) | Dreamy (kalimba, harp, toy piano) |
 

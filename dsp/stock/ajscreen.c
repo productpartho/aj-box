@@ -21,8 +21,8 @@ enum { STRIPS = 15, ALL = (1 << STRIPS) - 1, HELLO_MS = 1500, SHOW_MS = 1500, KN
 
 /* Pictures in the library's order (assets/loops.c, kits.inc, instruments.inc). */
 static const uint8_t *const theme_art[AJAPP_SIDES][6] = {
-    {art_theme_pop, art_theme_disco, art_theme_headnod, art_theme_world, art_theme_kitchen, art_theme_sleepy},
-    {art_theme_twinkle, art_theme_bubblegum, art_theme_space, art_theme_animals, art_theme_game, art_theme_dreamy},
+    {art_theme_world, art_theme_disco, art_theme_headnod, art_theme_pop, art_theme_kitchen, art_theme_sleepy},
+    {art_theme_animals, art_theme_bubblegum, art_theme_space, art_theme_twinkle, art_theme_game, art_theme_dreamy},
 };
 static const uint8_t *const kit_art[] = {
     art_theme_pop, art_theme_disco, art_theme_headnod, art_theme_world, art_kit_spoon, art_theme_sleepy,
@@ -60,6 +60,7 @@ static struct {
     uint32_t started, mode_until, over_until, finish_until, spin_from[AJAPP_SIDES];
     uint8_t mode, mode_on, heart, over_on, over_kind, over_a, over_b, finish_on, spinning[AJAPP_SIDES];
     uint8_t effects_seen, last_effect, bars, low, readings, battery, late;
+    uint8_t next, sent;         /* the strip whose turn is next; the one on its way (STRIPS: none) */
 } scr;
 
 static int before(uint32_t now, uint32_t until) { return (int32_t)(until - now) > 0; }
@@ -431,7 +432,7 @@ void ajscreen_init(uint32_t now)
 {
     memset(&scr, 0, sizeof scr);
     scr.started = now; scr.bars = 3;
-    scr.target.mode = MODE_NONE; scr.pending = ALL;
+    scr.target.mode = MODE_NONE; scr.pending = ALL; scr.sent = STRIPS;
 }
 
 void ajscreen_redraw(void) { scr.pending = ALL; }
@@ -471,13 +472,24 @@ int ajscreen_draw(uint32_t now, unsigned max_strips)
     build(&s, now);
     scr.pending |= (uint16_t)differ(&scr.target, &s);
     scr.target = s;
-    for (int n = 0; n < STRIPS && max_strips; ++n) {
+    /* Strips take turns, carrying on from the last one sent. Starting from the
+     * top every time starved the bottom of the screen whenever the tiles
+     * changed faster than a whole pass (seen on the FM-1, Nov 15, 2026). */
+    for (unsigned tried = 0; tried < STRIPS && max_strips; ++tried) {
+        const int busy = fm1_screen_pending();
+        if (busy > 0) break;                        /* the last strip is still on its way: next call */
+        if (scr.sent < STRIPS) {
+            if (busy < 0) scr.pending |= (uint16_t)(1U << scr.sent);     /* it never arrived: send it again */
+            scr.sent = STRIPS;
+        }
+        const unsigned n = scr.next;
+        scr.next = (uint8_t)((n + 1) % STRIPS);
         if (!(scr.pending >> n & 1)) continue;
-        const ajd_canvas_t canvas = {strip, 0, n * 16, 240, 16};
-        if (fm1_screen_pending() > 0) break;        /* the last strip is still on its way: next call */
+        const ajd_canvas_t canvas = {strip, 0, (int)n * 16, 240, 16};
         paint(&canvas, &scr.target);
-        if (fm1_screen_submit(0, (unsigned)n * 16, 240, 16, strip, 240 * 16)) break;
+        if (fm1_screen_submit(0, n * 16, 240, 16, strip, 240 * 16)) { scr.next = (uint8_t)n; break; }
         scr.pending &= (uint16_t)~(1U << n);
+        scr.sent = (uint8_t)n;
         --max_strips;
     }
     return scr.pending != 0;

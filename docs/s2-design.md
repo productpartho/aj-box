@@ -156,6 +156,24 @@ Built with M-VAVE's unchanged `sdk/Build.ps1 -Package`. Nothing has been install
 - **Two changes the browser compile needed** (it is stricter than the FM-1 compile): `assets/loops.c` says its left-out fields are meant, and `ajbox_target.h` recognises the browser build like the FM-1 build.
 - **One layout difference from FM1 Open V14:** AJ Box's image is smaller, so M-VAVE's packager starts the FM-1's own settings area (Bluetooth pairings and the like) 12 KiB earlier (458,752 instead of 471,040) and makes it 45,056 bytes instead of 32,768. The user partition, where the sample bank and AJ Box's saves live, starts at the same place (507,904). I expect the FM-1 to forget its Bluetooth pairings at the install; I can't confirm that from the desktop.
 
+### First run on the FM-1 (Nov 15, 2026), and the second build
+
+Partho installed build `77d1d6db72053920` through the update page. Identity before `FM-1_8000014`, after `FM-1_8660001`, no force update asked. M-Flasher's bootloader was not reinstalled (build plan, step 2).
+
+**What worked:** hello screen and chime, play screen, drum and melody loops, key and PLAY lights, a heart (shown as number 1), a jam recorded and replayed, a parent setting ("Saved"). Parent-mode readings: `b 612`, `l 0`: the sound never fell behind. The power-off test has not been done yet.
+
+**The update page's warning after the install** ("sample initialization is incomplete. Write the built-in bank from the sampler page") is expected and must be ignored: the page asks the FM-1 about its sample bank, AJ Box does not answer the workbench, and after ten tries the page says this. It writes nothing unless the FM-1 replies that the bank is empty.
+
+**Bug found: the screen stayed half painted after the heart picture.** The screen is sent in 15 strips, one per control pass, and every pass started again from the top. With a pair playing, the tiles (strips 3 to 13) changed again before a pass reached the bottom, so the bottom strips kept the old picture until something else changed. The desktop tests missed it because they repaint the whole screen before looking. Fixed in `ajscreen_draw`: strips now take turns, carrying on from the last one sent, and a strip the screen driver reports as lost is sent again. New test `test_repaint` plays a pair at 200 BPM, saves a heart and compares what one-strip-a-pass painting left with a full repaint; it failed on the old code (33 rows left over) and passes now.
+
+**Pages 1 and 4 swapped, at Partho's request:** Around the World / Animal Choir is now page 1 and Bouncy Pop / Twinkle page 4, on both sides (PRD "Loop library and storage" updated to match). The loops, their tile pictures, page kits and per-loop volumes moved together. Hearts, the jam and the remembered pair store loops by position, so anything saved from page 1 or 4 with the first build plays the other page's loop at the same key after this build.
+
+**Second build:** app image 439,060 of 453,921 bytes, every script check passed, Build ID `8e19300bcf4417d1`, page SHA-256 `3fa17555…2839`, package SHA-256 `4b3c6026…b4d9`. 488 desktop checks pass. Not installed yet.
+
+**Old engine:** 1 of its 6,008 checks fails after the page swap (Trap Cat alone peaks at -3.76 dBFS, wanted -6 +/- 2). The same loop passes its level check on the stock instrument, which is what the FM-1 runs. Not looked into.
+
+**Brightness:** the screen driver already sets the panel to its maximum (command 0x51, 255) and there is no backlight dimmer; lights are on or off.
+
 ## What I don't know yet, and how I'll find out
 
 1. **Does a pattern swap click or stall?** Edits briefly hold the audio gate. Test on the desktop first, then on the first device build.

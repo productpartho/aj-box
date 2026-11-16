@@ -36,10 +36,11 @@ static void test_keys(void)
     fresh();
     CHECK(!now().running, "running before any key");
     ajapp_press(AJAPP_DRUMS, 0);
+    ajapp_page_step(AJAPP_MELODY, 3);                   /* Twinkle, page 4: Harp Hop is a pluck loop */
     ajapp_press(AJAPP_MELODY, 2);
     blocks(4);
-    CHECK(now().running && now().slot[0] == 0 && now().slot[1] == 2, "pair did not start");
-    CHECK(notes_in(T_DRUMS) > 8 && notes_in(T_PLUCK) > 4, "loops are not in their tracks");
+    CHECK(now().running && now().slot[0] == 0 && now().slot[1] == 26, "pair did not start");
+    CHECK(notes_in(T_DRUMS) + notes_in(T_SAMPLER) > 8 && notes_in(T_PLUCK) > 4, "loops are not in their tracks");
 
     run_to_step(22);
     unsigned before = now().step;
@@ -50,9 +51,9 @@ static void test_keys(void)
 
     run_to_step(33);
     ajapp_press(AJAPP_MELODY, 2);                       /* the playing key again */
-    CHECK(now().stopping[1] && now().slot[1] == 2, "melody should wait for the beat");
+    CHECK(now().stopping[1] && now().slot[1] == 26, "melody should wait for the beat");
     run_to_step(35);
-    CHECK(now().slot[1] == 2, "melody stopped before the beat");
+    CHECK(now().slot[1] == 26, "melody stopped before the beat");
     run_to_step(37);
     CHECK(now().slot[1] == -1 && notes_in(T_PLUCK) == 0, "melody did not stop on the beat");
     CHECK(now().running && now().slot[0] == 1, "drums should carry on alone");
@@ -99,7 +100,7 @@ static void test_holds_finish(void)
     printf("held keys and Finish\n");
     fresh();
     ajapp_pick(AJAPP_DRUMS, 0);
-    ajapp_pick(AJAPP_MELODY, 2);
+    ajapp_pick(AJAPP_MELODY, 26);                       /* Harp Hop, a pluck loop */
     blocks(4);
     struct groove_step loop[GROOVE_STEPS], held[GROOVE_STEPS], back[GROOVE_STEPS];
     groove_sequence_read(T_DRUMS, 0, loop, GROOVE_STEPS);
@@ -179,7 +180,7 @@ static void test_sounds(void)
         for (unsigned t = T_FM; t <= T_BASS; ++t) elsewhere += t != track ? notes_in(t) : 0;
         CHECK(notes_in(track) > 0 && !elsewhere, "%s: melody should move to its engine's track", lib->instruments[i]->name);
     }
-    ajapp_pick(AJAPP_MELODY, 4);                        /* Glass Rain, another FM loop */
+    ajapp_pick(AJAPP_MELODY, 28);                       /* Glass Rain, another FM loop */
     blocks(2);
     CHECK(now().instrument == 255 && notes_in(T_FM) > 0, "a new melody key should go back to its own instrument");
 
@@ -821,6 +822,43 @@ static void test_panel(void)
     CHECK(!now().running, "and Finish should end the music");
 }
 
+/* The FM-1 paints one 16-row strip per control pass. However busy the tiles
+ * are, every strip has to get its turn (found on the FM-1, Nov 15, 2026: the
+ * bottom of the heart picture stayed on screen under a playing pair). */
+static unsigned stale_rows(unsigned from, unsigned to)
+{
+    static uint16_t seen[240 * 240];
+    memcpy(seen, sim_pixels(), sizeof seen);
+    look();
+    unsigned n = 0;
+    for (unsigned y = from; y < to; ++y) n += memcmp(seen + y * 240, sim_pixels() + y * 240, 240 * sizeof(uint16_t)) != 0;
+    return n;
+}
+
+static void test_repaint(void)
+{
+    enum { SELECT = 0, SAVE = 9 };
+    printf("repaint: every strip gets its turn, even at the fastest tempo\n");
+    fresh();
+    ajpanel_init();
+    ajscreen_init(fm1_millis());
+    wait_ms(1600);
+    turn(SELECT, 100);
+    tap_key(0); tap_key(14);
+    wait_ms(1500);
+    tap_button(SAVE);
+    CHECK(now().hearts == 1, "SAVE should keep a heart");
+    unsigned worst = 0;
+    for (unsigned n = 0; n < 12; ++n) {       /* from 1.7 s: the heart picture has gone */
+        wait_ms(n ? 150 : 1700);
+        unsigned stale = stale_rows(192, 240);
+        if (stale > worst) worst = stale;
+    }
+    CHECK(worst == 0, "the bottom of the play screen should be repainted after the heart picture: %u rows left over", worst);
+    wait_ms(400);
+    CHECK(stale_rows(0, 32) == 0, "and the top strip");
+}
+
 int main(void)
 {
     test_keys();
@@ -833,6 +871,7 @@ int main(void)
     test_screens();
     test_parent();
     test_panel();
+    test_repaint();
     printf("%u checks, %u failed\n", checks, failures);
     return failures != 0;
 }
