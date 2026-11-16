@@ -211,6 +211,21 @@ Partho installed the fourth build (`8db777a7c5fc3d43`): "worked great". That cov
 
 **Fifth build:** app image 440,692 of 453,921 bytes (13,229 to spare), heap 192,044, every script check passed, Build ID `254d09aeb93dfda6`, page SHA-256 `a7d019e8…84aa`, package SHA-256 `4843b02d…3a56`. 1,134 desktop checks pass. Not installed yet.
 
+### Partho's report on the FM-1, Nov 15, 2026 (evening)
+
+In his words: "drums are fine now, tearing is better, power off tests work too."
+
+- **Drum sound:** fine now. Nothing was changed for it on purpose; the settings fix (an instrument or kit writing every setting of its engine) is the likely reason, not confirmed.
+- **Tearing:** better.
+- **Power-off test:** hearts, the jam and a parent setting came back after switching off. Not yet recorded: which build it was run on (the fourth, `8db777a7c5fc3d43`, or the fifth, `254d09aeb93dfda6`) and whether it was the three rounds the plan asks for.
+
+**Still open before S2's "everything in the PRD works on the FM-1" can be said:**
+
+- The battery picture and the sleepy screen are left out: only one battery reading is known (`b 612`); a reading at full charge and one near flat are needed.
+- The sound gap while saving (PRD rule 10) has not been measured or asked about.
+- The PRD's pictures for "the jam didn't save" and "the setting didn't save" are not drawn.
+- The old desktop engine has 1 of 6,008 checks failing since the page swap.
+
 ## What I don't know yet, and how I'll find out
 
 1. **Does a pattern swap click or stall?** Edits briefly hold the audio gate. Test on the desktop first, then on the first device build.
