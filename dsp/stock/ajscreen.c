@@ -13,7 +13,7 @@
 #include "art.inc"
 
 enum { MODE_HELLO, MODE_PLAY, MODE_HEART, MODE_FINISH, MODE_MOOD, MODE_SLEEPY, MODE_PARENT, MODE_NONE = 255 };
-enum { OVER_NONE, OVER_KNOB, OVER_KIT, OVER_INSTRUMENT };
+enum { OVER_NONE, OVER_KNOB, OVER_KIT, OVER_INSTRUMENT, OVER_TEMPO };
 enum { TILE_EMPTY, TILE_PLAYING, TILE_MUTED };
 enum { DECO_NONE, DECO_NOTES, DECO_SPARKLE, DECO_ECHO };
 enum { STRIPS = 15, ALL = (1 << STRIPS) - 1, HELLO_MS = 1500, SHOW_MS = 1500, KNOB_MS = 1200, SPIN_MS = 400, SLEEPY_MS = 2500 };
@@ -137,6 +137,7 @@ static void build(struct scene *s, uint32_t now)
         s->over.kind = scr.over_kind; s->over.a = scr.over_a; s->over.b = scr.over_b;
         if (scr.over_kind == OVER_KIT) s->over.a = st.kit;
         if (scr.over_kind == OVER_INSTRUMENT) s->over.a = st.instrument;
+        if (scr.over_kind == OVER_TEMPO) s->over.a = (uint8_t)(st.bpm > 255 ? 255 : st.bpm);
         s->over.glyph = scr.last_effect;
     }
 }
@@ -214,12 +215,30 @@ static void paint_tile(const ajd_canvas_t *c, const struct scene *s, unsigned si
         ajd_disc(c, PX(cx - 25 + 10 * i), PX(155), PX(3), i == s->tile[side].page ? AJD_CREAM : edge, 256);
 }
 
+static int text(const ajd_canvas_t *c, int x16, int y16, const char *s, unsigned scale, uint16_t colour);
 static void paint_overlay(const ajd_canvas_t *c, const struct scene *s)
 {
     static const uint16_t knob_colour[AJAPP_KNOBS] = {AJD_PINK, AJD_GRAPE, AJD_LILAC, AJD_MAGENTA};
     const int cx = PX(120), cy = PX(116);
     ajd_disc(c, cx, cy, PX(42), AJD_PLUM, 256);
     ajd_ring(c, cx, cy, PX(41), PX(2), AJD_DUSK, 256);
+    if (s->over.kind == OVER_TEMPO) {
+        /* SELECT's pop-up (Partho, Nov 15, 2026): the speed arrows, the BPM in big figures, and a
+         * gold arc that fills from the slowest tempo to the fastest. */
+        enum { BIG = 352 };
+        const unsigned bpm = s->over.a < AJAPP_BPM_MIN ? AJAPP_BPM_MIN : s->over.a > AJAPP_BPM_MAX ? AJAPP_BPM_MAX : s->over.a;
+        static const uint8_t *const arrows[3] = {art_speed1, art_speed2, art_speed3};
+        char figures[4];
+        unsigned n = 0;
+        if (bpm >= 100) figures[n++] = (char)('0' + bpm / 100);
+        figures[n++] = (char)('0' + bpm / 10 % 10); figures[n++] = (char)('0' + bpm % 10); figures[n] = 0;
+        ajd_ring(c, cx, cy, PX(36), PX(5), AJD_DUSK, 256);
+        if (bpm > AJAPP_BPM_MIN)
+            ajd_arc(c, cx, cy, PX(36), PX(5), 0, (int)((bpm - AJAPP_BPM_MIN) * 256 / (AJAPP_BPM_MAX - AJAPP_BPM_MIN)), AJD_GOLD);
+        picture(c, arrows[bpm < 90 ? 0 : bpm < 140 ? 1 : 2], 111, 90, 18, AJD_LILAC, 256);
+        text(c, cx - text(0, 0, 0, figures, BIG, 0) / 2, PX(109), figures, BIG, AJD_CREAM);
+        return;
+    }
     if (s->over.kind != OVER_KNOB) {
         const uint8_t *art = s->over.kind == OVER_KIT ? kit_art[s->over.a % COUNT(kit_art)]
                                                       : instrument_art[s->over.a % COUNT(instrument_art)];
@@ -463,6 +482,7 @@ void ajscreen_event(unsigned event, unsigned a, unsigned b, uint32_t now)
     case AJSCREEN_KNOB: scr.over_kind = OVER_KNOB; scr.over_a = (uint8_t)a; scr.over_b = (uint8_t)b; scr.over_on = 1; scr.over_until = now + KNOB_MS; break;
     case AJSCREEN_KIT: scr.over_kind = OVER_KIT; scr.over_on = 1; scr.over_until = now + KNOB_MS; break;
     case AJSCREEN_INSTRUMENT: scr.over_kind = OVER_INSTRUMENT; scr.over_on = 1; scr.over_until = now + KNOB_MS; break;
+    case AJSCREEN_TEMPO: scr.over_kind = OVER_TEMPO; scr.over_on = 1; scr.over_until = now + KNOB_MS; break;
     case AJSCREEN_DICE: if (a < AJAPP_SIDES) { scr.spinning[a] = 1; scr.spin_from[a] = now; } break;
     case AJSCREEN_HOME: scr.mode_on = scr.over_on = 0; break;
     default: break;

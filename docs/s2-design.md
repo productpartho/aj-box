@@ -203,6 +203,14 @@ The parent screen has four rows (36 pixels apart instead of 46), and three lette
 
 **Fourth build:** app image 440,308 of 453,921 bytes (13,613 to spare), heap 192,044, every script check passed, Build ID `8db777a7c5fc3d43`, page SHA-256 `d430c956…b043`, package SHA-256 `12211cf9…c3b6`. 1,129 desktop checks pass. Not installed yet; it also carries the third build's fixes, which Partho has not installed either.
 
+### Fourth build on the FM-1, and the tempo pop-up (Nov 15, 2026)
+
+Partho installed the fourth build (`8db777a7c5fc3d43`): "worked great". That covers the white noise, the stuck notes, the tile picture following the page, and the new knobs, as he found them on the FM-1; he did not report on each item separately, and the tearing and the power-off test are still open.
+
+**Added at his request: a pop-up when SELECT changes the tempo**, like the instrument's. It shows the speed arrows, the BPM in big figures and a gold arc that fills from 30 to 200 BPM, for 1.2 s. While a Mood or heart picture is up, it waits behind it. PRD "Screens" updated.
+
+**Fifth build:** app image 440,692 of 453,921 bytes (13,229 to spare), heap 192,044, every script check passed, Build ID `254d09aeb93dfda6`, page SHA-256 `a7d019e8…84aa`, package SHA-256 `4843b02d…3a56`. 1,134 desktop checks pass. Not installed yet.
+
 ## What I don't know yet, and how I'll find out
 
 1. **Does a pattern swap click or stall?** Edits briefly hold the audio gate. Test on the desktop first, then on the first device build.

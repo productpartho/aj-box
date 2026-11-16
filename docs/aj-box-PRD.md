@@ -199,7 +199,7 @@ The screen splits down the middle to match her hands: pink drums on the left, pu
 - **Bottom strip:** a bubble for each effect that's on. Turning a knob draws an arc in that knob's colour.
 - **States by glow, not words:** playing glows, muted dims, a Dice pick spins in.
 
-While REC is on, a dot pulses in the top strip. SAVE and SEQ show a heart with its number (1 to 8). Mood shows a sun (Happy), a cloud (Dreamy), a moon (Spooky), a magic wand (Magic), a balloon (Floaty), a paper lantern (Faraway) or a treasure map (Adventure).
+While REC is on, a dot pulses in the top strip. Turning SELECT pops up the tempo in the middle of the screen for a moment: the speed arrows, the BPM in big figures and a gold arc from slowest to fastest. SAVE and SEQ show a heart with its number (1 to 8). Mood shows a sun (Happy), a cloud (Dreamy), a moon (Spooky), a magic wand (Magic), a balloon (Floaty), a paper lantern (Faraway) or a treasure map (Adventure).
 
 | Role | Colour | Hex |
 | --- | --- | --- |

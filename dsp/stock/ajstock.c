@@ -495,6 +495,14 @@ static void screens(const char *dir)
     wait_ms(1000);
     ajapp_parent_open(); shot(dir, "17-parent-mode");
     ajapp_parent_row(1); ajapp_parent_change(1); shot(dir, "18-parent-next-bar-saved");
+    /* Past the sheet's 18 places: saved as a picture of its own. */
+    ajapp_parent_change(-1); ajapp_parent_close();
+    ajscreen_battery(3, 0, fm1_millis());
+    ajapp_pick(AJAPP_DRUMS, 1); ajapp_pick(AJAPP_MELODY, 0);
+    wait_ms(2600);
+    ajapp_set_bpm(140); ajscreen_event(AJSCREEN_TEMPO, 0, 0, fm1_millis());
+    wait_ms(200); shot(dir, "19-tempo-pop-up");
+    ajapp_set_bpm(AJAPP_BPM_DEFAULT);
     ajapp_parent_change(1); ajapp_parent_close();
     snprintf(path, sizeof path, "%s/all-screens.png", dir);
     if (!png_write(path, sheet, SHEET_W, SHEET_H)) printf("%s\n", path);

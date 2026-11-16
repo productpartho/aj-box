@@ -509,6 +509,21 @@ static void test_screens(void)
     CHECK(pixel(120, 84) == AJD_PLUM || pixel(120, 84) == AJD_PINK || pixel(120, 84) == AJD_GRAPE, "the arc should go after about a second");
     CHECK(pixel(120, 116) == AJD_PLUM, "the gap between the halves should be back");
 
+    /* SELECT's pop-up: the BPM in cream figures and a gold arc from slowest to fastest. */
+    unsigned plain = count_colour(AJD_CREAM);
+    ajapp_set_bpm(140); ajscreen_event(AJSCREEN_TEMPO, 0, 0, fm1_millis()); look();
+    CHECK(pixel(156, 116) == AJD_GOLD && pixel(84, 116) == AJD_DUSK, "140 BPM should fill the arc past a quarter and short of three quarters");
+    unsigned three = count_colour(AJD_CREAM);
+    ajapp_set_bpm(AJAPP_BPM_MAX); look();
+    CHECK(pixel(84, 116) == AJD_GOLD, "200 BPM should fill the arc");
+    ajapp_set_bpm(AJAPP_BPM_MIN); look();
+    unsigned two = count_colour(AJD_CREAM);
+    CHECK(pixel(156, 116) == AJD_DUSK && two < three, "30 BPM should empty the arc and take two figures, not three: %u then %u", three, two);
+    (void)plain;
+    ajapp_set_bpm(AJAPP_BPM_DEFAULT);
+    wait_ms(1300); look();
+    CHECK(pixel(120, 116) == AJD_PLUM && pixel(156, 116) != AJD_GOLD, "the tempo pop-up should go away");
+
     /* Hearts: the number, the row, and an empty heart when nothing was saved. */
     ajapp_save_heart();
     ajscreen_event(AJSCREEN_HEART, ajapp_save_heart(), 0, fm1_millis()); look();
@@ -759,7 +774,10 @@ static void test_panel(void)
     CHECK(now().mood == AJAPP_MOODS - 1, "KNOB 4 back past Happy should wrap to the last Mood, got %u", now().mood);
     turn(KNOB4, 1);
     CHECK(now().mood == 0, "and forward again to Happy, got %u", now().mood);
+    wait_ms(1600);                                  /* the Mood picture has gone */
     turn(SELECT, 3);
+    look();
+    CHECK(pixel(156, 116) == AJD_GOLD, "turning SELECT should show the tempo pop-up");
     CHECK(now().bpm == 122, "SELECT three clicks should be 122 BPM, got %u", now().bpm);
     turn(SELECT, -100);
     CHECK(now().bpm == AJAPP_BPM_MIN, "SELECT should stop at 30 BPM, got %u", now().bpm);

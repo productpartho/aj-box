@@ -165,6 +165,7 @@ void ajpanel_step(const struct fm1_controls *c, uint32_t now)
          * go is a parent setting now). */
         if (c->encoders[E_SELECT]) ajapp_set_bpm((unsigned)((int)st.bpm + c->encoders[E_SELECT] * BPM_STEP < AJAPP_BPM_MIN
                                                                ? AJAPP_BPM_MIN : (int)st.bpm + c->encoders[E_SELECT] * BPM_STEP));
+        if (c->encoders[E_SELECT]) ajscreen_event(AJSCREEN_TEMPO, 0, 0, now);
         if (c->encoders[E_PRESETS]) {
             int turn = c->encoders[E_PRESETS] > 0 ? 1 : -1, count = (int)ajb_factory_library.kit_count;
             int at = st.kit == 255 ? (turn > 0 ? -1 : 0) : st.kit;

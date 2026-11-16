@@ -17,6 +17,7 @@ enum {
     AJSCREEN_KNOB,          /* a = AJAPP_KNOB_..., b = 0..127 */
     AJSCREEN_KIT,           /* the kit was changed */
     AJSCREEN_INSTRUMENT,    /* the instrument was changed */
+    AJSCREEN_TEMPO,         /* the tempo was changed with SELECT */
     AJSCREEN_DICE,          /* a = side: its picture spins in */
     AJSCREEN_HOME,          /* back to the play screen */
 };
