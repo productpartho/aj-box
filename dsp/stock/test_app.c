@@ -176,6 +176,7 @@ static void test_sounds(void)
     static const uint8_t home[5] = {0, 0, T_PLUCK, T_PSG, T_BASS};      /* by instrument kind */
     for (unsigned i = 0; i < lib->instrument_count; ++i) {
         ajapp_set_instrument(i);
+        blocks(3 * STEP_BLOCKS);                        /* a held note's let-go cell on the old track has gone */
         unsigned kind = lib->instruments[i]->kind, track = kind == AJB_INSTRUMENT_FM ? T_FM : home[kind], elsewhere = 0;
         for (unsigned t = T_FM; t <= T_BASS; ++t) elsewhere += t != track ? notes_in(t) : 0;
         CHECK(notes_in(track) > 0 && !elsewhere, "%s: melody should move to its engine's track", lib->instruments[i]->name);
@@ -210,7 +211,8 @@ static void test_sounds(void)
     }
     CHECK(!outside, "%u notes are outside the Spooky scale after the bar", outside);
 
-    ajapp_pick(AJAPP_MELODY, 3 * 8);                    /* Saria's Song: fixed notes */
+    ajapp_pick(AJAPP_MELODY, 0);                        /* Saria's Song: fixed notes */
+    blocks(3 * STEP_BLOCKS);
     groove_sequence_read(T_FM, 0, low, GROOVE_STEPS);
     ajapp_set_mood(0);
     run_to_step(2);
@@ -859,6 +861,102 @@ static void test_repaint(void)
     CHECK(stale_rows(0, 32) == 0, "and the top strip");
 }
 
+static void stop_melody(void)
+{
+    int slot = now().slot[1];
+    if (slot < 0) return;
+    for (unsigned n = 0; n < 6 && now().view_page[1] != slot / 8; ++n) ajapp_page_step(AJAPP_MELODY, 1);
+    ajapp_press(AJAPP_MELODY, (unsigned)slot % 8);
+    for (unsigned n = 0; n < 600 && now().slot[1] != -1; ++n) block();
+}
+
+/* A melody loop swapped out, or stopped, must not leave a note sounding
+ * (heard on the FM-1, Nov 15, 2026). The drums are muted so that only the
+ * melody side reaches the output. */
+static void test_hanging(void)
+{
+    printf("hanging notes: a swapped or stopped melody loop goes quiet\n");
+    const ajb_library_t *lib = &ajb_factory_library;
+    fresh();
+    ajapp_pick(AJAPP_DRUMS, 1);
+    ajapp_hold(AJAPP_HOLD_MUTE_DRUMS, 1);
+    blocks(8);
+    for (unsigned a = 0; a < 48; ++a) {
+        for (unsigned turn_ = 0; turn_ < 3; ++turn_) {
+            unsigned b = (a + 5 + 11 * turn_) % 48;
+            ajapp_pick(AJAPP_MELODY, a);
+            blocks(STEP_BLOCKS * (5 + 3 * turn_) + 9 * a % STEP_BLOCKS + 3);
+            ajapp_pick(AJAPP_MELODY, b);
+            blocks(STEP_BLOCKS * 3 + 7);
+            stop_melody();
+            CHECK(now().slot[1] == -1, "the melody should have stopped");
+            blocks(1034);                                   /* 3 s for a release to die away */
+            double left = energy(170);                      /* then half a second that should be silent */
+            CHECK(left < 0.5, "%s then %s: still sounding after both stopped (%.3f)",
+                  lib->pages[a / 8].melody[a % 8]->name, lib->pages[b / 8].melody[b % 8]->name, left);
+        }
+    }
+    ajapp_hold(AJAPP_HOLD_MUTE_DRUMS, 0);
+}
+
+/* Each melody loop has to sound the same whatever was played before it: an
+ * instrument sets every setting of its engine (heard on the FM-1, Nov 15, 2026:
+ * after Crunchy Chip, Star Steps was white noise). */
+static double loop_energy(unsigned m)
+{
+    ajapp_pick(AJAPP_MELODY, m);
+    blocks(8);
+    run_to_step(0);
+    double sum = 0;
+    for (unsigned b = 0; b < 16 * STEP_BLOCKS; ++b) {
+        ajapp_tick();
+        const float *out = sim_render();
+        for (unsigned i = 0; i < FM1_BLOCK_WORDS; ++i) sum += (double)out[i] * out[i];
+    }
+    return sum;
+}
+static unsigned melody_settings(unsigned m, uint8_t values[GROOVE_TONE_PARAMS])
+{
+    static const uint8_t home[5] = {0, 0, T_PLUCK, T_PSG, T_BASS};      /* by instrument kind */
+    const ajb_library_t *lib = &ajb_factory_library;
+    unsigned kind = lib->pages[m / 8].melody[m % 8]->instrument->kind;
+    memset(values, 0, GROOVE_TONE_PARAMS);
+    if (kind == AJB_INSTRUMENT_FM) return 0;        /* an FM voice is loaded whole */
+    groove_tone_copy(home[kind], 0, values);
+    return 1;
+}
+static void test_leaks(void)
+{
+    printf("instrument leaks: a loop has the same settings and loudness after any other loop\n");
+    const ajb_library_t *lib = &ajb_factory_library;
+    static double alone[48];
+    static uint8_t fresh_settings[48][GROOVE_TONE_PARAMS];
+    for (unsigned m = 0; m < 48; ++m) {
+        fresh();
+        ajapp_pick(AJAPP_DRUMS, 1);
+        ajapp_hold(AJAPP_HOLD_MUTE_DRUMS, 1);
+        alone[m] = loop_energy(m);
+        melody_settings(m, fresh_settings[m]);
+    }
+    fresh();
+    ajapp_pick(AJAPP_DRUMS, 1);
+    ajapp_hold(AJAPP_HOLD_MUTE_DRUMS, 1);
+    unsigned seed = 12345;
+    for (unsigned n = 0; n < 240; ++n) {
+        seed = seed * 1664525U + 1013904223U;
+        unsigned before = now().slot[1] < 0 ? 0 : (unsigned)now().slot[1], m = (seed >> 8) % 48;
+        if (m == before) continue;
+        /* 3 dB allows for the last loop's ring-out. */
+        double after = loop_energy(m), db = 10 * log10((after + 1e-9) / (alone[m] + 1e-9));
+        const char *name = lib->pages[m / 8].melody[m % 8]->name, *last = lib->pages[before / 8].melody[before % 8]->name;
+        CHECK(fabs(db) < 3.0, "%s after %s is %+.1f dB against the same loop from a fresh start", name, last, db);
+        uint8_t settings[GROOVE_TONE_PARAMS];
+        if (melody_settings(m, settings))
+            CHECK(!memcmp(settings, fresh_settings[m], sizeof settings), "%s after %s has other engine settings than from a fresh start",
+                  name, last);
+    }
+}
+
 int main(void)
 {
     test_keys();
@@ -872,6 +970,8 @@ int main(void)
     test_parent();
     test_panel();
     test_repaint();
+    test_hanging();
+    test_leaks();
     printf("%u checks, %u failed\n", checks, failures);
     return failures != 0;
 }

@@ -108,9 +108,13 @@ static void build(struct scene *s, uint32_t now)
     s->top.recording = st.recording;
     s->top.blink = st.recording && (now / 550 & 1);
     for (unsigned side = 0; side < AJAPP_SIDES; ++side) {
-        static const uint8_t lift[4] = {5, 3, 1, 0};
+        /* Up on the beat, down on the next 16th: two repaints a beat. The four-step
+         * hop repainted the picture all the time, which tore on the FM-1's
+         * strip-by-strip screen (Partho, Nov 15, 2026). */
+        static const uint8_t lift[4] = {5, 0, 0, 0};
         int playing = st.slot[side] >= 0;
-        s->tile[side].art = (uint8_t)(playing ? st.slot[side] / 8 : st.view_page[side]);
+        /* The picture is the page the keys will play, like the page dots (Partho, Nov 15, 2026). */
+        s->tile[side].art = st.view_page[side];
         s->tile[side].state = !playing ? TILE_EMPTY : st.muted[side] ? TILE_MUTED : TILE_PLAYING;
         s->tile[side].page = st.view_page[side];
         if (st.running && s->tile[side].state == TILE_PLAYING) {
@@ -145,7 +149,20 @@ static unsigned differ(const struct scene *a, const struct scene *b)
     if (a->top.recording != b->top.recording) return ALL;       /* the frame round the whole screen */
     unsigned strips = 0;
     if (memcmp(&a->top, &b->top, sizeof a->top)) strips |= 0x0003;          /* rows 0..31 */
-    if (memcmp(a->tile, b->tile, sizeof a->tile)) strips |= 0x1FFC;         /* rows 32..207 */
+    for (unsigned side = 0; side < AJAPP_SIDES; ++side) {
+        if (a->tile[side].art != b->tile[side].art || a->tile[side].state != b->tile[side].state ||
+            a->tile[side].page != b->tile[side].page || a->tile[side].deco != b->tile[side].deco) {
+            strips |= 0x1FFC;                                               /* the whole tile: rows 32..207 */
+            continue;
+        }
+        /* Only what moved: fewer strips, so less of the screen is mid-repaint. */
+        if (a->tile[side].lift != b->tile[side].lift || a->tile[side].spin != b->tile[side].spin)
+            strips |= 0x01F0;                                               /* the picture: rows 64..143 */
+        if (a->tile[side].phase != b->tile[side].phase)
+            strips |= a->tile[side].deco == DECO_NOTES ? 0x001C             /* rows 32..79 */
+                    : a->tile[side].deco == DECO_SPARKLE ? 0x0638           /* rows 48..95 and 144..175 */
+                    : 0x03F8;                                               /* echo rings: rows 48..159 */
+    }
     if (memcmp(&a->bottom, &b->bottom, sizeof a->bottom)) strips |= 0x7000; /* rows 192..239 */
     if (memcmp(&a->over, &b->over, sizeof a->over)) strips |= 0x07F0;       /* rows 64..175 */
     return strips;

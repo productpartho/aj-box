@@ -68,6 +68,7 @@ static struct {
     uint8_t swap_step[AJAPP_SIDES];
     struct { uint32_t off_at; uint8_t note; } chime[4];
     uint8_t chime_channel;
+    struct { uint8_t on, step, from; } tail[8];     /* per track: a cell that lets a held note go (melody_put) */
 } app;
 _Static_assert(sizeof(struct snapshot) == 32, "snapshot layout");
 
@@ -215,7 +216,17 @@ static void apply_instrument(const ajb_instrument_t *in)
         groove_fm_import(track, patch);
         return;
     }
-    for (unsigned k = 0; k < in->knob_count; ++k) tone_set(track, 0, in->knobs[k].parameter, in->knobs[k].value);
+    /* Every setting of the engine, not only the ones the instrument names: the
+     * rest go back to the engine's own defaults. Leaving them alone let one
+     * instrument's settings leak into the next on the same track (heard on the
+     * FM-1, Nov 15, 2026: Crunchy Chip left the chip's noise on for Star Steps). */
+    for (unsigned p = 0; p < GROOVE_TONE_PARAMS; ++p) {
+        const fm1_param_t *info = groove_tone_parameter(track, 0, p);
+        if (!info) continue;
+        unsigned value = info->def;
+        for (unsigned k = 0; k < in->knob_count; ++k) if (in->knobs[k].parameter == p) value = in->knobs[k].value;
+        tone_set(track, 0, p, value);
+    }
 }
 static void set_volume(unsigned track, unsigned volume)
 {
@@ -273,6 +284,44 @@ static void write_from(unsigned track, const struct groove_step *cells, unsigned
     }
     groove_sequence_replace(track, 0, next, count);
 }
+/* A held note is the same note in each cell, tied to the next (put_note). The
+ * stock sequencer only lets a tied note go when another note cell arrives, so
+ * taking the pattern away mid-note left it sounding for good (heard on the
+ * FM-1, Nov 15, 2026, with Zelda's Lullaby). When the cell now playing is tied
+ * and the next one is empty, write that note once more there, untied and as
+ * short as a gate goes: the sequencer keeps it without striking it again and
+ * lets it go a moment later. ajapp_tick takes the cell away once it has played. */
+enum { TIE = 1U << 12, LET_GO = 1U << 5 };
+static void melody_put(unsigned track, const struct groove_step *cells, unsigned count, unsigned from, unsigned keep)
+{
+    struct groove_step old[STEPS], put[STEPS];
+    struct groove_view v;
+    groove_sequence_read(track, 0, old, STEPS);
+    write_from(track, cells, count, from, keep);
+    groove_get_view(track, 0, &v);
+    if (!v.playing || track >= 8) return;       /* stopped: the sequencer has let everything go */
+    unsigned length = v.sequence_length ? v.sequence_length : STEPS, p = v.play_step % length, q = (p + 1U) % length;
+    groove_sequence_read(track, 0, put, STEPS);
+    if (!old[p].velocity || !(old[p].drums & TIE) || put[q].velocity) return;
+    struct groove_step end = old[p];
+    end.drums = LET_GO;
+    groove_sequence_replace(track, q, &end, 1);
+    app.tail[track].on = 1; app.tail[track].step = (uint8_t)q; app.tail[track].from = (uint8_t)p;
+}
+static void tails_tick(void)
+{
+    for (unsigned t = 0; t < 8; ++t) {
+        if (!app.tail[t].on) continue;
+        struct groove_view v;
+        groove_get_view(t, 0, &v);
+        if (v.playing && (v.play_step == app.tail[t].from || v.play_step == app.tail[t].step)) continue;
+        struct groove_step cell;
+        groove_sequence_read(t, app.tail[t].step, &cell, 1);
+        if (cell.velocity && cell.drums == LET_GO) groove_sequence_replace(t, app.tail[t].step, empty, 1);
+        app.tail[t].on = 0;
+    }
+}
+
 static const ajb_drum_loop_t *drum_loop(int index) { return app.lib->pages[index / AJB_SLOTS].drums[index % AJB_SLOTS]; }
 static const ajb_melody_loop_t *melody_loop(int index) { return app.lib->pages[index / AJB_SLOTS].melody[index % AJB_SLOTS]; }
 
@@ -302,13 +351,13 @@ static void write_melody(unsigned from, unsigned keep)
 {
     struct groove_step cells[STEPS];
     if (app.slot[AJAPP_MELODY] == NONE) {
-        groove_sequence_replace(app.melody_track, 0, empty, STEPS);
+        melody_put(app.melody_track, empty, STEPS, 0, 0);
         return;
     }
     const ajb_melody_loop_t *m = melody_loop(app.slot[AJAPP_MELODY]);
     unsigned count = melody_cells(m, app.mood, app.fast ? 2 : 1, cells);
     if (groove_sequence_length(app.melody_track) != count) groove_sequence_length_set(app.melody_track, count);
-    write_from(app.melody_track, cells, count, from % count, keep);
+    melody_put(app.melody_track, cells, count, from % count, keep);
 }
 static void set_melody_sound(void)
 {
@@ -316,7 +365,7 @@ static void set_melody_sound(void)
     const ajb_instrument_t *in = instrument_of(melody_loop(app.slot[AJAPP_MELODY]));
     unsigned track = track_of(in);
     if (track != app.melody_track) {
-        groove_sequence_replace(app.melody_track, 0, empty, STEPS);
+        melody_put(app.melody_track, empty, STEPS, 0, 0);
         app.melody_track = track;
     }
     apply_instrument(in);
@@ -456,7 +505,7 @@ void ajapp_finish(void)
                 cells[bar + i].velocity = 100;
                 cells[bar + i].drums = (uint16_t)((15U << 5) | (i < 7 ? 1U << 12 : 0U));
             }
-        write_from(app.melody_track, cells, count, bar % count, keep < count ? keep : 0);
+        melody_put(app.melody_track, cells, count, bar % count, keep < count ? keep : 0);
     }
     app.finishing = 1;
     app.finish_step = (uint8_t)bar;
@@ -767,6 +816,7 @@ void ajapp_tick(void)
 {
     if (!app.lib) return;
     uint32_t ms = fm1_millis();
+    tails_tick();
     for (unsigned i = 0; i < 4; ++i)
         if (app.chime[i].note && (int32_t)(ms - app.chime[i].off_at) >= 0) {
             uint8_t off[3] = {(uint8_t)(0x80 | app.chime_channel), app.chime[i].note, 0};

@@ -174,6 +174,22 @@ Partho installed build `77d1d6db72053920` through the update page. Identity befo
 
 **Brightness:** the screen driver already sets the panel to its maximum (command 0x51, 255) and there is no backlight dimmer; lights are on or off.
 
+### Second run on the FM-1 (Nov 15, 2026), and the third build
+
+Partho installed the second build (`8e19300bcf4417d1`) and reported five things.
+
+**White noise, "really loud", after melody Dice or on Star Steps.** The chip (PSG), pluck and bass engines each have one set of settings per track, and an instrument only wrote the settings it names. Crunchy Chip sets the chip's MODE to MIX (tone and noise); Chip Star, Game Lead and Bloop never set MODE back, so they played with the noise on after it. Dice finds this quickly. Fixed in `apply_instrument`: every setting of the engine is written, the ones an instrument doesn't name at the engine's own default. New test `test_leaks` plays 240 melody loops in random order and compares each loop's engine settings and loudness with the same loop from a fresh start; it fails on the old code (67 checks) and passes now. The desktop engine's noise is not loud enough to show in the loudness check alone, which is why the settings are compared directly.
+
+**Notes that stay on when another melody loop starts (Zelda's Lullaby).** A held note is the same note in each cell, tied to the next. The stock sequencer lets a tied note go only when another note cell arrives, so emptying or moving the pattern mid-note left it sounding for good. Fixed in `melody_put`: when the cell now playing is tied and the next is empty, that note is written once more there, untied with the shortest gate, which the sequencer keeps without striking again and lets go; `ajapp_tick` takes the cell away once it has played. New test `test_hanging` swaps and stops all 48 melody loops at three different moments each and listens for sound 3 s later; it failed on the old code and passes now.
+
+**The tile picture didn't change with the page while a loop played.** It showed the playing loop's page; the page dots showed the page the keys play. The picture now follows the page shown, like the dots.
+
+**Tearing while the pictures move.** The screen is sent a strip at a time, so a moving picture is briefly part old, part new. Two changes: only the strips that changed are sent (the picture's 5 strips instead of the tile's 11), and the picture now hops up on the beat and comes down on the next 16th (two repaints a beat) instead of moving on every 16th. Not checkable on the desktop; to be looked at on the FM-1. How long the FM-1 takes per strip is still unmeasured.
+
+**Drum sound "could be a bit better and cleaner".** Not looked at yet: needs to know which loops and what is wrong.
+
+**Third build:** app image 439,732 of 453,921 bytes (14,189 to spare), heap 192,044, every script check passed, Build ID `daaa1eb6f784f553`, page SHA-256 `98406133…ae9a`, package SHA-256 `ef4dbe9d…3fce`. 1,119 desktop checks pass. Not installed yet. The old engine's tests were not rerun.
+
 ## What I don't know yet, and how I'll find out
 
 1. **Does a pattern swap click or stall?** Edits briefly hold the audio gate. Test on the desktop first, then on the first device build.
