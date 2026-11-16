@@ -14,7 +14,7 @@
   --body: 'Nunito', 'Segoe UI', system-ui, sans-serif;
 }
 * { box-sizing: border-box; }
-body { background: var(--plum); color: var(--cream); font: 16px/1.5 var(--body); }
+body { margin: 0; background: var(--plum); color: var(--cream); font: 16px/1.5 var(--body); }
 .wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 64px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   display: flex; flex-direction: column; gap: 44px; }
@@ -124,6 +124,27 @@ td.n { font: 600 15px var(--display); color: var(--gold); width: 2.2em; font-var
   .hot { font-size: 8px; border-width: 1.5px; border-radius: 7px; }
 }
 @media (prefers-reduced-motion: no-preference) { .hot, .chip, .play { transition: border-color .12s, background .12s, box-shadow .12s, opacity .15s; } }
+/* The printed manual (build.pl makes it with PRINT on): everything laid out, nothing to tap. */
+.ctls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 24px; }
+.ctl { border-top: 3px solid var(--grape); padding-top: 8px; font-size: 13.5px; display: flex; flex-direction: column; gap: 4px; }
+.ctl .tag { font: 600 11px var(--display); letter-spacing: .8px; text-transform: uppercase; color: var(--gold); }
+.ctl h3 { font-size: 17px; }
+.ctl .stock { color: var(--muted); font-size: 12.5px; }
+.ctl ul { margin: 0; padding-left: 18px; }
+.books { display: flex; flex-direction: column; gap: 18px; }
+.book { display: flex; flex-direction: column; gap: 8px; }
+@page { size: Letter; margin: 11mm 0; background: #2A0A3D; }
+html.print { background: var(--plum); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.print .wrap { max-width: none; padding: 0 44px; gap: 30px; }
+.print .chips, .print .panel, .print .play, .print #page { display: none; }
+.print .stage { grid-template-columns: minmax(0, 1fr); }
+.print .two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.print .pad { grid-template-columns: minmax(0, 1fr); }
+.print .card { padding: 12px; }
+.print table { font-size: 13.5px; }
+.print td { padding: 5px 10px 5px 0; }
+.print h2 { break-after: avoid; }
+.print .ctl, .print .card, .print figure, .print .pad, .print .rules div, .print tr, .print .book, .print .photo, .print li { break-inside: avoid; }
 </style>
 
 <div class="wrap">
@@ -259,6 +280,7 @@ td.n { font: 600 15px var(--display); color: var(--gold); width: 2.2em; font-var
 </div>
 
 <script>
+const PRINT = %%PRINT%%;
 const SHOTS = %%SHOTS%%;
 const SOUNDS = %%SOUNDS%%;
 const ICONS = %%ICONS%%;
@@ -510,4 +532,26 @@ KITS.forEach((k, i) => { const li = el('li'); li.append(el('span', 'n', String(i
   if (i < 6) li.append(el('small', '', 'page ' + [4, 2, 3, 1, 5, 6][i])); $('kits').append(li); });
 INSTRUMENTS.forEach(([name, kind], i) => { const li = el('li'); li.append(el('span', 'n', String(i + 1)), name, el('small', '', kind)); $('instruments').append(li); });
 MOODS.forEach((m) => { const r = el('tr'); m.forEach((t, i) => r.append(el('td', i ? '' : 'n', t))); r.firstChild.style.width = 'auto'; $('moodtable').append(r); });
+/* the printed manual */
+if (PRINT) {
+  document.documentElement.classList.add('print');
+  const swap = (sel, from, to) => { const e = document.querySelector(sel); e.textContent = e.textContent.replace(from, to); };
+  swap('.lede', 'Tap any key, button or knob on the picture to see its job.', 'Every key, button and knob is listed under the picture.');
+  swap('#oneshots .sub', ' Press play to hear each one.', ' The web manual plays each one.');
+  const sec = el('section'), grid = el('div', 'ctls'); sec.id = 'controls';
+  sec.append(el('h2', '', 'Every control'), el('p', 'sub', 'From the keys up to the knobs. The name in grey is what is printed on the FM-1.'), grid);
+  CONTROLS.forEach((c) => {
+    const m = /^([dm])(\d)$/.exec(c.id);
+    if (m && m[2] !== '1') return;
+    const card = el('div', 'ctl'), ul = el('ul'), drum = m && m[1] === 'd';
+    card.append(el('div', 'tag', m ? 'White keys' : c.tag), el('h3', '', m ? (drum ? 'Drum loops 1 to 8' : 'Melodies 1 to 8') : c.title),
+      el('div', 'stock', m ? 'The 8 white keys on the ' + (drum ? 'left' : 'right') + ', numbered on the picture' : c.stock));
+    c.points.forEach((t) => ul.append(el('li', '', t))); card.append(ul); grid.append(card);
+  });
+  $('box').after(sec);
+  const books = el('div', 'books');
+  PAGES.forEach((p, k) => { page(k); const b = el('div', 'book'), two = el('div', 'two'); two.innerHTML = $('page').innerHTML;
+    b.append(el('h3', '', 'Page ' + (k + 1)), two); books.append(b); });
+  $('page').after(books);
+}
 </script>

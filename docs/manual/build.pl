@@ -7,10 +7,17 @@
 #   bash dsp/stock/build.sh
 #   dsp/build/ajstock.exe screens renders/s2/screens
 #   dsp/build/ajstock.exe oneshots renders/s2/oneshots
-#   perl docs/manual/build.pl          ->  docs/manual/out/aj-box-manual.html
+#   perl docs/manual/build.pl
+#
+# It writes three pages:
+#   docs/manual/aj-box-manual.html            the manual, a whole page that opens by itself (kept in git)
+#   docs/manual/out/aj-box-manual.html        the same without the page wrapper, for publishing as an Artifact
+#   docs/manual/out/aj-box-manual-print.html  everything laid out for paper; the PDF is printed from it:
+#     chrome --headless --no-pdf-header-footer --virtual-time-budget=8000
+#       --print-to-pdf=docs/manual/aj-box-manual.pdf docs/manual/out/aj-box-manual-print.html
 #
 # The FM-1 photo is M-VAVE's, fetched once from Synth Anatomy into
-# docs/manual/cache; it and the built page are not kept in git.
+# docs/manual/cache, which is not kept in git.
 use strict;
 use warnings;
 use MIME::Base64 qw(encode_base64);
@@ -65,9 +72,14 @@ for my $label ('Bouncy Pop', 'Disco Dance', 'Head-Nod', 'Around the World', 'Sil
 my $json = JSON::PP->new->canonical;
 my $page = slurp("${here}template.html");
 my %fill = (PHOTO => uri('image/jpeg', slurp($photo)), SHOTS => $json->encode(\%shots), SOUNDS => $json->encode(\@sounds),
-            ICONS => $json->encode(\%icons));
-$page =~ s/%%(\w+)%%/exists $fill{$1} ? $fill{$1} : die "unknown slot $1\n"/ge;
+            ICONS => $json->encode(\%icons), PRINT => 0);
+my $whole = "<!doctype html>\n<html lang=\"en\">\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n";
 mkdir "${here}out" unless -d "${here}out";
-open my $out, '>:raw', "${here}out/aj-box-manual.html" or die $!;
-print $out $page; close $out;
-printf "docs/manual/out/aj-box-manual.html  %d KiB\n", length($page) / 1024;
+for my $make (["out/aj-box-manual.html", 0, ''], ["aj-box-manual.html", 0, $whole], ["out/aj-box-manual-print.html", 1, $whole]) {
+    my ($name, $print, $head) = @$make;
+    $fill{PRINT} = $print;
+    (my $made = $page) =~ s/%%(\w+)%%/exists $fill{$1} ? $fill{$1} : die "unknown slot $1\n"/ge;
+    open my $out, '>:raw', "$here$name" or die "$name: $!\n";
+    print $out $head, $made; close $out;
+    printf "docs/manual/%s  %d KiB\n", $name, length($head . $made) / 1024;
+}

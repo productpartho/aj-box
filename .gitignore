@@ -2,7 +2,8 @@
 /dsp/build/
 /renders/
 
-# The manual: M-VAVE's photo and the built page (perl docs/manual/build.pl)
+# The manual: M-VAVE's photo and the working pages (perl docs/manual/build.pl).
+# docs/manual/aj-box-manual.html and .pdf are kept.
 /docs/manual/cache/
 /docs/manual/out/
 
