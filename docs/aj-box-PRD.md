@@ -118,7 +118,7 @@ The black keys carry printed labels (OP1 to OP6, PIT, GLO, MONO, POLY) for the s
 
 | Page | Drum theme | Melody theme |
 | --- | --- | --- |
-| 1 | Around the World (dhol, tabla, samba, reggaeton) | Animal Choir (cat, bird, voices) |
+| 1 | Around the World (dhol, tabla, samba, reggaeton; drums for three Zelda tunes) | Animal Choir (seven tunes from Zelda: Ocarina of Time, and a choir) |
 | 2 | Disco Dance | Bubblegum (bright synth chords) |
 | 3 | Head-Nod (hip-hop, lo-fi) | Space (lasers, bloops, pads) |
 | 4 | Bouncy Pop | Twinkle (music box, bells) |

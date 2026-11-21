@@ -246,6 +246,25 @@ In his words: "drums are fine now, tearing is better, power off tests work too."
 
 **Seventh build on the FM-1 (Nov 15, 2026).** Partho reports he installed and tested it ("I've tested it") and asked for the branch to be merged. Which checks he ran, the `b` number and the bars he saw were not recorded.
 
+**Three more Zelda tunes on page 1 (Partho, Nov 21, 2026: "my daughter really likes the zelda songs").** He chose what goes: Choir stays; Bird Call, Frog Hop and Owl Night make way on the melody side, Clave Walk and Island on the drum side.
+
+| Key | Drums | Melody |
+| --- | --- | --- |
+| 3 | Samba (as before) | Gerudo Valley, on Candy Brass |
+| 5 | Afrobeat (as before) | Epona's Song, on Bird Flute |
+| 6 | Gerudo Drums | Zelda's Lullaby (as before) |
+| 8 | Kokiri Drums | Kokiri Forest, on Bird Flute |
+
+- **Where the notes come from.** Gerudo Valley (bars 8 to 11) and Kokiri Forest (bars 10 to 13, with the harp's answer) are copied from MIDI transcriptions by John Kuzma, downloaded from vgmusic.com with Partho's yes into `assets/reference` and read with `tools/midi_dump.pl`. Epona's Song is by ear: the notes (D5 B4 A4, twice, then D5 B4 A4 B4 A4) are certain, the lengths are from memory. It is a waltz of 48 steps, like Song of Storms.
+- **Drums.** Gerudo Drums are that file's hand claps, a clap on every 16th with its accents, plus a kick where the bass plays. Kokiri Forest has no drums of its own, so Kokiri Drums follow its plucked strings. Epona's Song has no drum loop.
+- **Loops are 4 bars at most** (64 steps, or 48 for a waltz), so Gerudo Valley is its first ending only; the tune's second ending did not fit.
+- **Not lined up:** Gerudo Valley is melody key 3 and Gerudo Drums drum key 6, because no existing loop was moved. Kokiri (8) and Goron (7) do line up.
+- **Hearts:** a heart saved from one of the five replaced keys now plays the Zelda loop there.
+- **The effects test** used melody key 3 (Bird Call). Crunch keeps the loudness the same by design, so the test's loudness measure only shows it on a held sound; it now uses the Choir (key 4).
+- Levels re-measured (`ajstock levels`); WAVs in `renders/zelda`. Nobody has listened to them yet.
+
+**Eighth build:** app image 441,204 of 453,921 bytes (12,717 to spare), heap 192,044, every script check passed, Build ID `609f0d864d5965ee`, page SHA-256 `c877e538…637d`, package SHA-256 `2dd143d3…f6f1`. 1,235 desktop checks pass. The old engine's tests were not rerun. Not installed yet.
+
 ## What I don't know yet, and how I'll find out
 
 1. **Does a pattern swap click or stall?** Edits briefly hold the audio gate. Test on the desktop first, then on the first device build.

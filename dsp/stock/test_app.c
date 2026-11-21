@@ -246,7 +246,7 @@ static void test_effects(void)
     printf("effects and knobs\n");
     fresh();
     ajapp_pick(AJAPP_DRUMS, 0);
-    ajapp_pick(AJAPP_MELODY, 2);
+    ajapp_pick(AJAPP_MELODY, 3);                        /* Choir: Crunch keeps the loudness by design, so it needs a held sound to show */
     blocks(16 * STEP_BLOCKS);
     uint8_t sends[2];
     groove_sends_get(T_DRUMS, sends);
@@ -1099,6 +1099,40 @@ static void test_battery(void)
     CHECK(pixel(70, 120) == AJD_MAGENTA, "and the sleepy screen comes again the next time it runs low");
 }
 
+/* The Zelda tunes added on Nov 21, 2026 (Partho: his daughter likes them): the notes
+ * the sequencer holds are the ones in the transcriptions, and the names are on page 1. */
+static void test_zelda_tunes(void)
+{
+    printf("Zelda tunes: Gerudo Valley, Epona's Song and Kokiri Forest hold the right notes\n");
+    const ajb_page_t *page = &ajb_factory_library.pages[0];
+    CHECK(!strcmp(page->melody[2]->name, "Gerudo Valley") && !strcmp(page->melody[4]->name, "Epona's Song") &&
+          !strcmp(page->melody[7]->name, "Kokiri Forest"), "page 1 melody keys 3, 5 and 8 should be the three tunes");
+    CHECK(!strcmp(page->drums[5]->name, "Gerudo Drums") && !strcmp(page->drums[7]->name, "Kokiri Drums"),
+          "page 1 drum keys 6 and 8 should be the two new drum loops");
+    /* step, MIDI note (60 is C4); a rest has no velocity */
+    static const struct { uint8_t key, count; uint8_t at[8][2]; uint8_t rests[2]; } tune[3] = {
+        {2, 8, {{1, 61}, {2, 66}, {3, 68}, {4, 69}, {17, 62}, {33, 59}, {49, 66}, {52, 65}}, {0, 6}},      /* C#4 F#4 G#4 A4; D4; B3; F#4 .. F4 */
+        {4, 6, {{0, 74}, {2, 71}, {4, 69}, {30, 71}, {36, 69}, {45, 69}}, {46, 47}},                        /* D5 B4 A4 .. B4 A4 */
+        {7, 8, {{0, 67}, {2, 72}, {4, 67}, {6, 64}, {8, 62}, {17, 69}, {40, 70}, {62, 65}}, {3, 31}},       /* G4 C5 G4 E4 D4; A4; A#4; F4 */
+    };
+    for (unsigned n = 0; n < 3; ++n) {
+        fresh();
+        ajapp_pick(AJAPP_MELODY, tune[n].key);
+        blocks(3 * STEP_BLOCKS);
+        struct groove_step cells[GROOVE_STEPS], again[GROOVE_STEPS];
+        groove_sequence_read(T_FM, 0, cells, GROOVE_STEPS);
+        for (unsigned k = 0; k < tune[n].count; ++k)
+            CHECK(cells[tune[n].at[k][0]].velocity && cells[tune[n].at[k][0]].note == tune[n].at[k][1], "%s step %u should be note %u, is %u (velocity %u)",
+                  page->melody[tune[n].key]->name, tune[n].at[k][0], tune[n].at[k][1], cells[tune[n].at[k][0]].note, cells[tune[n].at[k][0]].velocity);
+        for (unsigned k = 0; k < 2; ++k)
+            CHECK(!cells[tune[n].rests[k]].velocity, "%s step %u should be a rest", page->melody[tune[n].key]->name, tune[n].rests[k]);
+        ajapp_set_mood(2);
+        run_to_step(2);
+        groove_sequence_read(T_FM, 0, again, GROOVE_STEPS);
+        CHECK(!memcmp(cells, again, sizeof cells), "%s should ignore Mood", page->melody[tune[n].key]->name);
+    }
+}
+
 int main(void)
 {
     test_keys();
@@ -1116,6 +1150,7 @@ int main(void)
     test_leaks();
     test_mash();
     test_battery();
+    test_zelda_tunes();
     printf("%u checks, %u failed\n", checks, failures);
     return failures != 0;
 }

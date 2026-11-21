@@ -55,8 +55,8 @@ static const ajb_drum_loop_t fill = {"Fill", 16, NULL, {
  * (Nov 15, 2026); the files in loops/ keep their first numbering. */
 static const ajb_page_t pages[] = {
     {"Around the World / Animal Choir",
-     {&dhol_party, &reggaeton, &samba, &tabla_talk, &afrobeat, &clave_walk, &goron_drums, &island},
-     {&saria_song, &song_of_storms, &bird_call, &choir_rise, &frog_hop, &zeldas_lullaby, &goron_city, &owl_night}, 3},
+     {&dhol_party, &reggaeton, &samba, &tabla_talk, &afrobeat, &gerudo_drums, &goron_drums, &kokiri_drums},
+     {&saria_song, &song_of_storms, &gerudo_valley, &choir_rise, &eponas_song, &zeldas_lullaby, &goron_city, &kokiri_forest}, 3},
     {"Disco Dance / Bubblegum",
      {&glitter_ball, &roller_skate, &funky_chicken, &clap_hustle, &tom_tom_club, &shimmy, &mirror_ball, &cha_ching},
      {&bubble_pop, &gumdrop, &disco_strut, &fizzy_pop, &sugar_rush, &roller_rink, &sparkle_stairs, &jelly_wobble}, 1},

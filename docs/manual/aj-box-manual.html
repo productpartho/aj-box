@@ -155,7 +155,7 @@ html.print { background: var(--plum); print-color-adjust: exact; -webkit-print-c
 <header>
   <h1><span class="aj">AJ</span> <span class="box">Box</span> manual</h1>
   <p class="lede">A loop toy that lives on an M-VAVE FM-1. One hand picks a drum beat, the other picks a tune, and whatever she presses stays in time. Tap any key, button or knob on the picture to see its job.</p>
-  <p class="note"><b>Where this stands (15 Nov 2026, night).</b> AJ Box is on the FM-1. This describes the seventh build (Build ID b7fae6f4…), which is not recorded as installed yet. Over the fourth build, the last one recorded as installed, it adds the speed pop-up, the battery picture, saving in silence and a fix for a note that could stick. The screen pictures come from the desktop simulator running the same code.</p>
+  <p class="note"><b>Where this stands (21 Nov 2026).</b> AJ Box is on the FM-1. This describes the eighth build (Build ID 609f0d86…), which is not installed yet. Over the seventh build, which Partho tested on the FM-1, it adds three more Zelda tunes on page 1 (Gerudo Valley, Epona's Song, Kokiri Forest) and drum loops for two of them. The screen pictures come from the desktop simulator running the same code.</p>
 </header>
 
 <section id="box">
@@ -189,7 +189,7 @@ html.print { background: var(--plum); print-color-adjust: exact; -webkit-print-c
 
 <section id="loops">
   <h2>The loops</h2>
-  <p class="sub">96 loops: 6 pages, each with 8 drum loops and 8 melodies. The numbers are the white keys, counted from the left on each side. The Back and Next keys turn the page for one side only, so any drum page can go with any melody page. Around the World and Animal Choir, with the four Zelda tunes, are page 1.</p>
+  <p class="sub">96 loops: 6 pages, each with 8 drum loops and 8 melodies. The numbers are the white keys, counted from the left on each side. The Back and Next keys turn the page for one side only, so any drum page can go with any melody page. Around the World and Animal Choir, with the seven Zelda tunes, are page 1.</p>
   <div class="chips" role="tablist" aria-label="Page" id="pages"></div>
   <div class="two" id="page"></div>
 </section>
@@ -274,7 +274,8 @@ html.print { background: var(--plum); print-color-adjust: exact; -webkit-print-c
   <ul class="todo">
     <li><b>The battery levels are an estimate</b> from one reading on this FM-1. If the bars or the sleepy screen come at the wrong time, note the <b>b</b> number in parent mode at full charge and when nearly flat, and the levels can be set from those.</li>
     <li><b>The power-off test</b> was reported as working. Which build it was run on, and whether it was the three rounds the plan asks for, is not recorded.</li>
-    <li><b>The seventh build</b> is not recorded as installed, so the battery picture, saving in silence and the stuck-note fix have been checked on the desktop only.</li>
+    <li><b>The eighth build</b> is not installed yet, so the three new Zelda tunes and their drum loops have been checked on the desktop only. Epona's Song was written by ear; the other two come from written-out transcriptions.</li>
+    <li><b>Hearts saved from page 1.</b> A heart that used Bird Call, Frog Hop, Owl Night, Clave Walk or Island now plays the Zelda loop on that key.</li>
     <li><b>Two pictures are not drawn:</b> "the jam didn't save" and "the setting didn't save" (parent mode says "Not saved" in words).</li>
     <li><b>Hearts and jams from the first build.</b> Pages 1 and 4 changed places after it, so anything saved from either page back then plays the other page's loop.</li>
     <li><b>Stickers and knob caps.</b> A picture strip over the black keys and coloured caps for KNOB 1 to 4 are planned, not made.</li>
@@ -291,8 +292,8 @@ const ICONS = {"Animal Choir":"<svg aria-hidden=\"true\" viewBox=\"0 0 48 48\" s
 
 const PAGES = [
   { drum: 'Around the World', melody: 'Animal Choir', di: 'Around the World', mi: 'Animal Choir',
-    drums: ['Dhol Party', 'Reggaeton', 'Samba', 'Tabla Talk', 'Afrobeat', 'Clave Walk', 'Goron Drums', 'Island'],
-    tunes: ["Saria's Song", 'Song of Storms', 'Bird Call', 'Choir', 'Frog Hop', "Zelda's Lullaby", 'Goron City', 'Owl Night'] },
+    drums: ['Dhol Party', 'Reggaeton', 'Samba', 'Tabla Talk', 'Afrobeat', 'Gerudo Drums', 'Goron Drums', 'Kokiri Drums'],
+    tunes: ["Saria's Song", 'Song of Storms', 'Gerudo Valley', 'Choir', "Epona's Song", "Zelda's Lullaby", 'Goron City', 'Kokiri Forest'] },
   { drum: 'Disco Dance', melody: 'Bubblegum', di: 'Disco Dance', mi: 'Bubblegum',
     drums: ['Glitter Ball', 'Roller Skate', 'Funky Chicken', 'Hand Clap Hustle', 'Tom Tom Club', 'Shimmy', 'Mirror Ball', 'Cha-Ching'],
     tunes: ['Bubble Pop', 'Gumdrop', 'Disco Strut', 'Fizzy Pop', 'Sugar Rush', 'Roller Rink', 'Sparkle Stairs', 'Jelly Wobble'] },
@@ -310,7 +311,7 @@ const PAGES = [
     tunes: ['Kalimba Dream', 'Harp Glow', 'Toy Piano Tune', 'Cloud Ride', 'Sleepy Box', 'Thumb Piano', 'Moonbeam', 'Goodnight'] },
 ];
 const ONESHOT_LOOPS = { 'Dhol Party': 1, 'Goron Drums': 1, 'Pots and Pans': 1, 'Beatbox': 1, 'Rain Stick': 1 };
-const ZELDA = { "Saria's Song": 1, 'Song of Storms': 1, "Zelda's Lullaby": 1, 'Goron City': 1 };
+const ZELDA = { "Saria's Song": 1, 'Song of Storms': 1, "Zelda's Lullaby": 1, 'Goron City': 1, 'Gerudo Valley': 1, "Epona's Song": 1, 'Kokiri Forest': 1 };
 const PADS = [
   { name: 'Dhol low', what: 'The deep side of a dhol drum.', where: ['Dhol Party'] },
   { name: 'Dhol high', what: 'The snappy side of the dhol.', where: ['Dhol Party'] },
@@ -418,7 +419,7 @@ const CONTROLS = [
     points: ['The balance between the two sides.', 'Left: more drums. Right: more melody. The middle is even.'], shot: 'balance' },
   { id: 'k4', kind: 'knob', round: 1, layer: 2, x: 1516, y: 268, w: 88, h: 88, tag: 'Knob', title: 'Mood', stock: 'Printed KNOB4 (magenta cap planned)',
     points: ['Each click steps to the next Mood, or the one before: Happy, Dreamy, Spooky, Magic, Floaty, Faraway, Adventure, round and round.',
-      'The Mood\'s picture shows, and the melody changes its notes on the next bar.', 'The four Zelda tunes stay as written.'], shot: 'mood' },
+      'The Mood\'s picture shows, and the melody changes its notes on the next bar.', 'The seven Zelda tunes stay as written.'], shot: 'mood' },
   { id: 'master', kind: 'knob', round: 1, layer: 1, x: 413, y: 268, w: 88, h: 88, tag: 'Knob', title: 'Volume', stock: 'Printed MASTER',
     points: ['Loudness, all the way from silent to full.', 'It is the only knob with a stop at each end.'] },
   { id: 'select', kind: 'knob', round: 1, layer: 2, x: 556, y: 268, w: 88, h: 88, tag: 'Knob', title: 'Speed', stock: 'Printed SELECT',
