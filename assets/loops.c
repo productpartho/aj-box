@@ -50,7 +50,7 @@ static const ajb_drum_loop_t fill = {"Fill", 16, NULL, {
     [AJB_LT] = "............x...",
 }, GAIN(0.58)};
 
-/* Name, drum loops, melody loops, page kit (index into kits). Around the World /
+/* Name, drum loops, melody loops, page kit (index into home_kits). Around the World /
  * Animal Choir is page 1 and Bouncy Pop / Twinkle page 4 at Partho's request
  * (Nov 15, 2026); the files in loops/ keep their first numbering. */
 static const ajb_page_t pages[] = {
@@ -84,6 +84,7 @@ static const ajb_sample_t *const samples[] = {
 #define COUNT(a) (sizeof (a) / sizeof (a)[0])
 const ajb_library_t ajb_factory_library = {
     .pages = pages, .page_count = COUNT(pages), .kits = kits, .kit_count = COUNT(kits),
+    .home_kits = home_kits, .home_kit_count = COUNT(home_kits),
     .instruments = instruments, .instrument_count = COUNT(instruments), .fill = &fill,
 #ifndef AJB_NO_SAMPLES
     .samples = samples, .sample_count = COUNT(samples),

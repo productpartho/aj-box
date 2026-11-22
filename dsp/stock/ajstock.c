@@ -14,6 +14,8 @@
  *   ajstock oneshots <dir>         the 8 synthesized pad sounds as WAVs
  *   ajstock bank <file.fm1s>       the same 8 sounds as a sample bank file for FM1 Open's workbench
  *   ajstock screens <dir>          every screen as a 240 x 240 PNG, and one sheet of them all
+ *   ajstock kits <dir> [loop]      every kit on a drum loop (all of page 1 if none is named): WAVs,
+ *                                  and how far apart the kits sound
  *   ajstock levels <file>          measure every loop alone and write the track
  *                                  volumes that put drums and melodies on target */
 #include "ajapp.h"
@@ -90,6 +92,9 @@ static void boot(void)
 static ajb_wav_writer_t wav;
 static int wav_open;
 static double peak;
+static float *tape;                 /* when set, block() also keeps the output here, in mono */
+static unsigned tape_at, tape_max;
+static double loud_sum, loud_n, last_level;   /* mean square of the output; finish() leaves it in dB in last_level */
 static const double BAR_BLOCKS = 4.0 * 60.0 / AJAPP_BPM_DEFAULT * FM1_SAMPLE_RATE / FM1_BLOCK_FRAMES;
 
 /* One audio block: the control side ticks and the instrument renders,
@@ -104,10 +109,13 @@ static void block(void)
     for (unsigned i = 0; i < FM1_BLOCK_WORDS; ++i) {
         double a = fabs(q[i] / 8388608.0);
         if (a > peak) peak = a;
+        loud_sum += a * a; loud_n += 1;
         int32_t v = (q[i] + 128) >> 8;
         pcm[i] = (int16_t)(v > 32767 ? 32767 : v < -32768 ? -32768 : v);
     }
     if (wav_open) ajb_wav_write(&wav, pcm, FM1_BLOCK_FRAMES);
+    for (unsigned i = 0; tape && i < FM1_BLOCK_FRAMES && tape_at < tape_max; ++i)
+        tape[tape_at++] = 0.5f * (out[2 * i] + out[2 * i + 1]);
 }
 static void blocks(unsigned n) { while (n--) block(); }
 /* Play up to bar line `bar` (counted from the start of the file at 110 BPM), less `early` blocks. */
@@ -121,7 +129,7 @@ static void until(double bar, unsigned early)
 static int start(const char *path)
 {
     boot();
-    peak = 0; played = 0;
+    peak = 0; played = 0; loud_sum = loud_n = 0;
     wav_open = path && !ajb_wav_open(&wav, path, 2, FM1_SAMPLE_RATE);
     return path && !wav_open;
 }
@@ -139,11 +147,13 @@ static double finish(const char *path)
     if (wav_open) ajb_wav_close(&wav);
     wav_open = 0;
     double db = peak > 0 ? 20.0 * log10(peak) : -999.0;
+    last_level = loud_n > 0 && loud_sum > 0 ? 10.0 * log10(loud_sum / loud_n) : -999.0;
     if (path) printf("%-72s %5.1fs  peak %6.2f dBFS\n", path, seconds, db);
     return db;
 }
 enum { EARLY = 6 };   /* a press about 17 ms before the bar it should land on */
 
+static int render_kit = -1;            /* render_pair puts the drums on this kit; -1: the loop's own sound */
 static double render_pair(int drum, int melody, const char *path, unsigned bars, const unsigned *moods, unsigned count,
                           int volume)
 {
@@ -151,6 +161,7 @@ static double render_pair(int drum, int melody, const char *path, unsigned bars,
     ajapp_debug_volume(volume);
     ajapp_set_mood(moods[0]);
     if (drum >= 0) ajapp_pick(AJAPP_DRUMS, (unsigned)drum);
+    if (drum >= 0 && render_kit >= 0) ajapp_set_kit((unsigned)render_kit);
     if (melody >= 0) ajapp_pick(AJAPP_MELODY, (unsigned)melody);
     for (unsigned m = 1; m < count; ++m) { until(bars * m, 0); ajapp_set_mood(moods[m]); }   /* lands on the next bar */
     until(bars * count, 0);
@@ -334,6 +345,24 @@ static unsigned find_volume(unsigned side, int index, double target, double *rea
     *reached = render_pair(side ? -1 : index, side ? index : -1, NULL, 4, &happy, 1, (int)low);
     return low;
 }
+/* A drum loop on PRESETS kit `kit`: the track volume that brings its peak closest
+ * to `target` without passing it, and without it coming out more than 3 dB
+ * louder on average than the loop's own sound does (`own_level`): a fuzzed or
+ * ringing kit is much louder than a short one at the same peak. */
+static unsigned find_kit_volume(int index, unsigned kit, double target, double own_level, double *reached)
+{
+    static const unsigned happy = 0;
+    unsigned low = 1, high = 127;
+    render_kit = (int)kit;
+    while (low < high) {
+        unsigned mid = (low + high + 1) / 2;
+        if (render_pair(index, -1, NULL, 4, &happy, 1, (int)mid) <= target && last_level <= own_level + 3.0) low = mid;
+        else high = mid - 1;
+    }
+    *reached = render_pair(index, -1, NULL, 4, &happy, 1, (int)low);
+    render_kit = -1;
+    return low;
+}
 static int levels(const char *file, double drum_target, double melody_target)
 {
     const ajb_library_t *lib = &ajb_factory_library;
@@ -346,6 +375,37 @@ static int levels(const char *file, double drum_target, double melody_target)
             printf("%-6s %u.%u %-18s volume %3u  peak %7.2f dBFS%s\n", side ? "melody" : "drums", i / 8 + 1, i % 8 + 1,
                    name, found[side][i], reached, reached < target - 2.0 ? "  SHORT" : "");
         }
+    /* The same for every drum loop on each PRESETS kit, in kit_volumes.inc beside `file`. */
+    static uint8_t on_kit[32][48];
+    static const unsigned happy = 0;
+    unsigned kits = lib->kit_count < 32 ? lib->kit_count : 32;
+    for (unsigned i = 0; i < lib->page_count * AJB_SLOTS && i < 48; ++i) {
+        render_pair((int)i, -1, NULL, 4, &happy, 1, found[0][i]);
+        double own_level = last_level;
+        printf("kits   %u.%u %-18s", i / 8 + 1, i % 8 + 1, lib->pages[i / 8].drums[i % 8]->name);
+        for (unsigned k = 0; k < kits; ++k) {
+            double reached;
+            on_kit[k][i] = (uint8_t)find_kit_volume((int)i, k, drum_target, own_level, &reached);
+            printf(" %3u%s", on_kit[k][i], reached < drum_target - 2.0 && on_kit[k][i] == 127 ? "!" : "");
+        }
+        printf("\n");
+        fflush(stdout);
+    }
+    char kit_file[600];
+    const char *slash = strrchr(file, '/');
+    snprintf(kit_file, sizeof kit_file, "%.*skit_volumes.inc", slash ? (int)(slash - file + 1) : 0, file);
+    FILE *g = fopen(kit_file, "w");
+    if (!g) return 1;
+    fprintf(g, "/* Written by `ajstock levels`: the stock track volume for every drum loop on each\n"
+               " * PRESETS kit, a row per kit (kits.inc order), 8 loops per page. It brings the loop's\n"
+               " * peak close to %.0f dBFS, held back where the kit would come out more than 3 dB\n"
+               " * louder on average than the loop's own sound. Re-run after changing a pattern or kit. */\n", drum_target);
+    for (unsigned k = 0; k < kits; ++k) {
+        fprintf(g, "    {");
+        for (unsigned i = 0; i < 48; ++i) fprintf(g, "%s%u", i ? (i % 8 ? ", " : ",\n     ") : "", on_kit[k][i]);
+        fprintf(g, "},\n");
+    }
+    fclose(g);
     FILE *f = fopen(file, "w");
     if (!f) return 1;
     fprintf(f, "/* Written by `ajstock levels`: the stock track volume that brings each loop alone\n"
@@ -359,6 +419,143 @@ static int levels(const char *file, double drum_target, double melody_target)
     }
     fclose(f);
     return 0;
+}
+
+/* ---- kits: how different they sound ---- */
+
+/* A drum loop on one kit, as a listener's rough picture of it: how its energy
+ * is spread over KIT_BANDS octave bands from 150 Hz up (dB against their sum;
+ * what a small speaker gives), how loud it is, and how much of the time it
+ * is sounding. Bass under 150 Hz is kept apart in `low`. */
+enum { KIT_BANDS = 7, KIT_FFT = 4096 };
+typedef struct { double band[KIT_BANDS], low, level, full; } kit_print_t;
+
+static void fft(double *re, double *im, unsigned n)
+{
+    for (unsigned i = 1, j = 0; i < n; ++i) {
+        unsigned bit = n >> 1;
+        for (; j & bit; bit >>= 1) j ^= bit;
+        j ^= bit;
+        if (i < j) { double t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; }
+    }
+    for (unsigned len = 2; len <= n; len <<= 1) {
+        double angle = -2.0 * 3.14159265358979323846 / len;
+        for (unsigned i = 0; i < n; i += len)
+            for (unsigned k = 0; k < len / 2; ++k) {
+                double c = cos(angle * k), s = sin(angle * k);
+                double xr = re[i + k + len / 2] * c - im[i + k + len / 2] * s, xi = re[i + k + len / 2] * s + im[i + k + len / 2] * c;
+                re[i + k + len / 2] = re[i + k] - xr; im[i + k + len / 2] = im[i + k] - xi;
+                re[i + k] += xr; im[i + k] += xi;
+            }
+    }
+}
+static void kit_print_of(const float *x, unsigned frames, kit_print_t *out)
+{
+    static double re[KIT_FFT], im[KIT_FFT];
+    double power[KIT_BANDS + 1] = {0}, square = 0, top = 0;
+    for (unsigned at = 0; at + KIT_FFT <= frames; at += KIT_FFT / 2) {
+        for (unsigned i = 0; i < KIT_FFT; ++i) {
+            re[i] = x[at + i] * (0.5 - 0.5 * cos(2.0 * 3.14159265358979323846 * i / KIT_FFT));
+            im[i] = 0;
+        }
+        fft(re, im, KIT_FFT);
+        for (unsigned k = 1; k < KIT_FFT / 2; ++k) {
+            double hz = (double)k * FM1_SAMPLE_RATE / KIT_FFT, p = re[k] * re[k] + im[k] * im[k];
+            if (hz < 150.0) { power[KIT_BANDS] += p; continue; }
+            unsigned band = (unsigned)(log2(hz / 150.0));
+            if (band < KIT_BANDS) power[band] += p;
+        }
+    }
+    double sum = 1e-30;
+    for (unsigned b = 0; b < KIT_BANDS; ++b) sum += power[b];
+    for (unsigned b = 0; b < KIT_BANDS; ++b) out->band[b] = 10.0 * log10(power[b] / sum + 1e-6);
+    out->low = 10.0 * log10(power[KIT_BANDS] / sum + 1e-6);
+    /* Sounding: 10 ms windows within 30 dB of the loudest one. */
+    enum { WINDOW = FM1_SAMPLE_RATE / 100 };
+    unsigned windows = frames / WINDOW, sounding = 0;
+    for (unsigned w = 0; w < windows; ++w) {
+        double e = 0;
+        for (unsigned i = 0; i < WINDOW; ++i) e += (double)x[w * WINDOW + i] * x[w * WINDOW + i];
+        if (e > top) top = e;
+    }
+    for (unsigned w = 0; w < windows; ++w) {
+        double e = 0;
+        for (unsigned i = 0; i < WINDOW; ++i) e += (double)x[w * WINDOW + i] * x[w * WINDOW + i];
+        sounding += e > top * 0.001;
+        square += e;
+    }
+    out->level = 10.0 * log10(square / (frames ? frames : 1) + 1e-12);
+    out->full = windows ? (double)sounding / windows : 0;
+}
+/* How far apart two pictures are: the RMS difference of the band shapes in dB,
+ * plus a little for a different length of sound (1.0 of `full` counts as 20 dB). */
+static double kit_distance(const kit_print_t *a, const kit_print_t *b)
+{
+    double sum = 0;
+    for (unsigned i = 0; i < KIT_BANDS; ++i) sum += (a->band[i] - b->band[i]) * (a->band[i] - b->band[i]);
+    double shape = sqrt(sum / KIT_BANDS), length = 20.0 * fabs(a->full - b->full);
+    return sqrt(shape * shape + length * length);
+}
+/* Two bars of drum loop `index` alone on kit `kit` (-1: the page's own), written to `path` if given. */
+static void kit_render(int index, int kit, const char *path, kit_print_t *out)
+{
+    static float heard[FM1_SAMPLE_RATE * 6];
+    start(path);
+    ajapp_pick(AJAPP_DRUMS, (unsigned)index);
+    if (kit >= 0) ajapp_set_kit((unsigned)kit);
+    tape = heard; tape_at = 0; tape_max = sizeof heard / sizeof heard[0];
+    until(2, 0);
+    tape = NULL;
+    kit_print_of(heard, tape_at, out);
+    finish(NULL);
+}
+/* Every kit on drum loop `index`: the pictures, and how far apart they are.
+ * Returns the distance between the two kits that sound most alike. */
+static double kits_on(int index, const char *dir, int quiet)
+{
+    const ajb_library_t *lib = &ajb_factory_library;
+    static kit_print_t print[33];
+    static const char *label[33];
+    unsigned n = lib->kit_count < 32 ? lib->kit_count : 32;
+    const char *loop = lib->pages[index / AJB_SLOTS].drums[index % AJB_SLOTS]->name;
+    for (unsigned k = 0; k < n; ++k) {
+        char path[512], a[64], b[64];
+        slug(a, sizeof a, loop); slug(b, sizeof b, lib->kits[k]->name);
+        snprintf(path, sizeof path, "%s/%s_%02u-%s.wav", dir ? dir : "", a, k + 1, b);
+        kit_render(index, (int)k, dir ? path : NULL, &print[k]);
+        label[k] = lib->kits[k]->name;
+    }
+    {                                   /* and the loop's own sound, to compare; it is not counted */
+        char path[512], a[64];
+        slug(a, sizeof a, loop);
+        snprintf(path, sizeof path, "%s/%s_00-own.wav", dir ? dir : "", a);
+        kit_render(index, -1, dir ? path : NULL, &print[n]);
+        label[n] = "(own)";
+    }
+    double nearest = 1e9, total = 0;
+    unsigned pairs = 0, one = 0, other = 0;
+    for (unsigned a = 0; a < n; ++a)
+        for (unsigned b = a + 1; b < n; ++b) {
+            double d = kit_distance(&print[a], &print[b]);
+            if (d < nearest) { nearest = d; one = a; other = b; }
+            total += d; ++pairs;
+        }
+    if (quiet == 2)
+        printf("%u.%u %-14s closest %4.1f (%s, %s)  average %4.1f\n", index / AJB_SLOTS + 1, index % AJB_SLOTS + 1, loop, nearest,
+               label[one], label[other], pairs ? total / pairs : 0);
+    if (quiet) return nearest;
+    printf("\n%s (%u.%u): closest two kits %.1f apart, average %.1f\n", loop, index / AJB_SLOTS + 1, index % AJB_SLOTS + 1,
+           nearest, pairs ? total / pairs : 0);
+    printf("  %-9s  level  full   <150 | 150   300   600   1k2   2k4   4k8   9k6 | nearest other kit\n", "kit");
+    for (unsigned a = 0; a <= n; ++a) {
+        unsigned who = a; double near = 1e9;
+        for (unsigned b = 0; b < n; ++b)
+            if (b != a && kit_distance(&print[a], &print[b]) < near) { near = kit_distance(&print[a], &print[b]); who = b; }
+        printf("  %-9s %6.1f  %3.0f%%  %5.1f |", label[a], print[a].level, 100.0 * print[a].full, print[a].low);
+        for (unsigned i = 0; i < KIT_BANDS; ++i) printf("%5.1f ", print[a].band[i]);
+        printf("| %4.1f %s\n", near, label[who]);
+    }
+    return nearest;
 }
 
 /* ---- screens ---- */
@@ -564,6 +761,15 @@ int main(int argc, char **argv)
         FILE *f = fopen(argv[2], "wb");
         if (!f || fwrite(bank, 1, bytes, f) != bytes || fclose(f)) { fprintf(stderr, "cannot write %s\n", argv[2]); return 1; }
         printf("%s  %u bytes\n", argv[2], bytes);
+        return 0;
+    }
+    if (argc >= 3 && !strcmp(argv[1], "kits")) {             /* every kit on a drum loop (default: all of page 1) */
+        if (argc > 3 && !strcmp(argv[3], "all")) {            /* one line a loop, no WAVs */
+            for (unsigned i = 0; i < ajb_factory_library.page_count * AJB_SLOTS; ++i) kits_on((int)i, NULL, 2);
+            return 0;
+        }
+        if (argc > 3 && loop_index(argv[3]) >= 0) { kits_on(loop_index(argv[3]), argv[2], 0); return 0; }
+        for (int i = 0; i < AJB_SLOTS; ++i) kits_on(i, argv[2], 0);
         return 0;
     }
     if (argc >= 3 && !strcmp(argv[1], "screens")) { screens(argv[2]); return 0; }

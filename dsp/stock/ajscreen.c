@@ -137,7 +137,9 @@ static void build(struct scene *s, uint32_t now)
     s->bottom.effects = st.effects;
     if (scr.over_on) {
         s->over.kind = scr.over_kind; s->over.a = scr.over_a; s->over.b = scr.over_b;
-        if (scr.over_kind == OVER_KIT) s->over.a = st.kit;
+        /* The loop's own sound is not a kit: 0x80 and its page, drawn as the page's picture. */
+        if (scr.over_kind == OVER_KIT)
+            s->over.a = st.kit != 255 ? st.kit : (uint8_t)(0x80 | (st.slot[AJAPP_DRUMS] >= 0 ? st.slot[AJAPP_DRUMS] / AJB_SLOTS : st.view_page[AJAPP_DRUMS]));
         if (scr.over_kind == OVER_INSTRUMENT) s->over.a = st.instrument;
         if (scr.over_kind == OVER_TEMPO) s->over.a = (uint8_t)(st.bpm > 255 ? 255 : st.bpm);
         s->over.glyph = scr.last_effect;
@@ -242,8 +244,8 @@ static void paint_overlay(const ajd_canvas_t *c, const struct scene *s)
         return;
     }
     if (s->over.kind != OVER_KNOB) {
-        const uint8_t *art = s->over.kind == OVER_KIT ? kit_art[s->over.a % COUNT(kit_art)]
-                                                      : instrument_art[s->over.a % COUNT(instrument_art)];
+        const uint8_t *art = s->over.kind != OVER_KIT ? instrument_art[s->over.a % COUNT(instrument_art)]
+                           : s->over.a & 0x80 ? theme_art[AJAPP_DRUMS][(s->over.a & 0x7f) % 6] : kit_art[s->over.a % COUNT(kit_art)];
         ajd_picture(c, art, PX(96), PX(92), 256, 0, 0, 256);
         return;
     }

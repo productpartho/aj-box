@@ -167,9 +167,10 @@ void ajpanel_step(const struct fm1_controls *c, uint32_t now)
                                                                ? AJAPP_BPM_MIN : (int)st.bpm + c->encoders[E_SELECT] * BPM_STEP));
         if (c->encoders[E_SELECT]) ajscreen_event(AJSCREEN_TEMPO, 0, 0, now);
         if (c->encoders[E_PRESETS]) {
-            int turn = c->encoders[E_PRESETS] > 0 ? 1 : -1, count = (int)ajb_factory_library.kit_count;
-            int at = st.kit == 255 ? (turn > 0 ? -1 : 0) : st.kit;
-            ajapp_set_kit((unsigned)wrap(at + turn, count));
+            /* 13 stops: the 12 kits, then the loop's own sound, which is also where it starts. */
+            int turn = c->encoders[E_PRESETS] > 0 ? 1 : -1, own = (int)ajb_factory_library.kit_count;
+            int to = wrap((st.kit == 255 ? own : st.kit) + turn, own + 1);
+            ajapp_set_kit(to == own ? AJAPP_KIT_OWN : (unsigned)to);
             ajscreen_event(AJSCREEN_KIT, 0, 0, now);
         }
         if (c->encoders[E_KNOB4]) {

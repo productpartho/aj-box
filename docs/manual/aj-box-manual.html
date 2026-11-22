@@ -155,7 +155,7 @@ html.print { background: var(--plum); print-color-adjust: exact; -webkit-print-c
 <header>
   <h1><span class="aj">AJ</span> <span class="box">Box</span> manual</h1>
   <p class="lede">A loop toy that lives on an M-VAVE FM-1. One hand picks a drum beat, the other picks a tune, and whatever she presses stays in time. Tap any key, button or knob on the picture to see its job.</p>
-  <p class="note"><b>Where this stands (21 Nov 2026).</b> AJ Box is on the FM-1. This describes the eighth build (Build ID 609f0d86…), which is not installed yet. Over the seventh build, which Partho tested on the FM-1, it adds three more Zelda tunes on page 1 (Gerudo Valley, Epona's Song, Kokiri Forest) and drum loops for two of them. The screen pictures come from the desktop simulator running the same code.</p>
+  <p class="note"><b>Where this stands (22 Nov 2026).</b> AJ Box is on the FM-1. This describes the ninth build (Build ID b5ddea87…), which is not installed yet. It has 12 new drum kits that each use different sounds (the first twelve sounded alike on the FM-1), and the three Zelda tunes added on page 1 in the eighth build (Gerudo Valley, Epona's Song, Kokiri Forest) with drum loops for two of them. The screen pictures come from the desktop simulator running the same code.</p>
 </header>
 
 <section id="box">
@@ -205,7 +205,7 @@ html.print { background: var(--plum); print-color-adjust: exact; -webkit-print-c
   <div class="two">
     <div class="card drums">
       <h3>PRESETS: 12 drum kits</h3>
-      <p class="sub">Same beat, new drums. Every page starts on its own kit; turning PRESETS steps through all of them. The one-shots keep their own sound.</p>
+      <p class="sub">Same beat, new drums. Every loop starts on its own sound. Turning PRESETS steps through 12 kits, each a different set of sounds, and then back to the loop's own sound (13 stops). Loops made of one-shots change with the kit too.</p>
       <ul class="pills" id="kits"></ul>
     </div>
     <div class="card melody">
@@ -274,7 +274,9 @@ html.print { background: var(--plum); print-color-adjust: exact; -webkit-print-c
   <ul class="todo">
     <li><b>The battery levels are an estimate</b> from one reading on this FM-1. If the bars or the sleepy screen come at the wrong time, note the <b>b</b> number in parent mode at full charge and when nearly flat, and the levels can be set from those.</li>
     <li><b>The power-off test</b> was reported as working. Which build it was run on, and whether it was the three rounds the plan asks for, is not recorded.</li>
-    <li><b>The eighth build</b> is not installed yet, so the three new Zelda tunes and their drum loops have been checked on the desktop only. Epona's Song was written by ear; the other two come from written-out transcriptions.</li>
+    <li><b>The ninth build</b> is not installed yet, so the 12 new drum kits have been checked on the desktop only, by measuring them, not by ear. Three kits (Sleepy, Boom, Space) use the reverb or echo all the time; if the sound stutters on them, note the <b>l</b> number in parent mode.</li>
+    <li><b>The three new Zelda tunes</b> and their drum loops: Epona's Song was written by ear; the other two come from written-out transcriptions.</li>
+    <li><b>Hearts and jams that saved a kit</b> in an earlier build bring back the new kit with that number.</li>
     <li><b>Hearts saved from page 1.</b> A heart that used Bird Call, Frog Hop, Owl Night, Clave Walk or Island now plays the Zelda loop on that key.</li>
     <li><b>Two pictures are not drawn:</b> "the jam didn't save" and "the setting didn't save" (parent mode says "Not saved" in words).</li>
     <li><b>Hearts and jams from the first build.</b> Pages 1 and 4 changed places after it, so anything saved from either page back then plays the other page's loop.</li>
@@ -322,7 +324,9 @@ const PADS = [
   { name: 'Cuica high', what: 'The squeaky "laughing" drum from Goron City.', where: ['Goron Drums'] },
   { name: 'Cuica low', what: 'The same drum, lower.', where: ['Goron Drums'] },
 ];
-const KITS = ['Pop', 'Disco', 'Head-Nod', 'World', 'Kitchen', 'Sleepy', 'Boom', 'Robot', 'Tiny', 'Fuzzy', 'Bongo', 'Space'];
+const KITS = [['Pop', 'clean drum machine'], ['Disco', 'claps, open hats, cowbell'], ['Head-Nod', 'beatbox'], ['World', 'dhol and hand drums'],
+  ['Kitchen', 'pot, spoon, bowls'], ['Sleepy', 'heartbeat and hush'], ['Boom', 'giant low drums'], ['Robot', 'crushed, with beeps'],
+  ['Tiny', 'toy kit, an octave up'], ['Fuzzy', 'rock kit through fuzz'], ['Bongo', 'congas, cuica, clave'], ['Space', 'zaps and echoes']];
 const INSTRUMENTS = [['Chip Star', 'chiptune'], ['Harp', 'plucked'], ['Tub Bells', 'FM'], ['Bubble Piano', 'FM'], ['Bouncy Bass', 'acid bass'],
   ['Party Organ', 'FM'], ['Bloop', 'chiptune'], ['Glass Bell', 'FM'], ['Laser', 'FM'], ['Toy Guitar', 'plucked'], ['Candy Brass', 'FM'],
   ['Squelch', 'acid bass'], ['Space Pad', 'FM'], ['Game Lead', 'chiptune'], ['Toy Piano', 'FM'], ['Bird Flute', 'FM'], ['Rubber Lead', 'acid bass'],
@@ -426,7 +430,7 @@ const CONTROLS = [
     points: ['Slower or faster, from 30 to 200 beats a minute, 4 at a click. It starts at 110.', 'A pop-up shows the number, with a gold arc from slowest to fastest.',
       'The arrows at the top right of the screen show slow, medium or fast.', 'In parent mode it picks the row instead.'], shot: 'tempo' },
   { id: 'presets', kind: 'knob', round: 1, layer: 3, x: 411, y: 408, w: 88, h: 88, tag: 'Knob', title: 'Drum kit', stock: 'Printed PRESETS',
-    points: ['Same beat, new drums. 12 kits.', 'The kit\'s picture shows in the middle of the screen for a moment.'], shot: 'kit' },
+    points: ['Same beat, new drums. 12 kits, then the loop\'s own sound again.', 'The kit\'s picture shows in the middle of the screen for a moment.'], shot: 'kit' },
   { id: 'algorithm', kind: 'knob', round: 1, layer: 3, x: 556, y: 408, w: 88, h: 88, tag: 'Knob', title: 'Instrument', stock: 'Printed ALGORITHM',
     points: ['Same tune, new instrument. 20 instruments.', 'A new melody loop goes back to its own instrument.'], shot: 'instrument' },
   { id: 'octdown', kind: 'button', layer: 3, x: 436, y: 519, w: 86, h: 54, tag: 'Button', title: 'Melody lower', stock: 'Printed OCT−',
@@ -533,8 +537,7 @@ PADS.forEach((pad, i) => {
 });
 
 /* sounds and moods */
-KITS.forEach((k, i) => { const li = el('li'); li.append(el('span', 'n', String(i + 1)), k);
-  if (i < 6) li.append(el('small', '', 'page ' + [4, 2, 3, 1, 5, 6][i])); $('kits').append(li); });
+KITS.forEach(([k, what], i) => { const li = el('li'); li.append(el('span', 'n', String(i + 1)), k, el('small', '', what)); $('kits').append(li); });
 INSTRUMENTS.forEach(([name, kind], i) => { const li = el('li'); li.append(el('span', 'n', String(i + 1)), name, el('small', '', kind)); $('instruments').append(li); });
 MOODS.forEach((m) => { const r = el('tr'); m.forEach((t, i) => r.append(el('td', i ? '' : 'n', t))); r.firstChild.style.width = 'auto'; $('moodtable').append(r); });
 /* the printed manual */

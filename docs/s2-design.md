@@ -265,6 +265,51 @@ In his words: "drums are fine now, tearing is better, power off tests work too."
 
 **Eighth build:** app image 441,204 of 453,921 bytes (12,717 to spare), heap 192,044, every script check passed, Build ID `609f0d864d5965ee`, page SHA-256 `c877e538…637d`, package SHA-256 `2dd143d3…f6f1`. 1,235 desktop checks pass. The old engine's tests were not rerun. Not installed yet.
 
+### Kits that sound different (Partho, Nov 22, 2026)
+
+**His report on the FM-1:** "The drum kit knob really doesn't do anything except for when it changes to the robot... They all sound basically the same."
+
+**Why.** All 12 kits were the DRUM 808 with different knob settings, every line of a loop stayed on its own drum, and a loop of recorded sounds ignored the knob. `ajstock kits` (new) plays every kit on a drum loop and compares them: the spread of energy over seven octave bands from 150 Hz up, and how much of the time the loop is sounding. On page 1 the closest two kits were 0.0 to 1.3 apart on every loop (dB, roughly), and on Dhol Party all twelve were identical. The 808's toms and congas can only be retuned by two semitones either way, which is why tom loops barely moved.
+
+**What Partho decided** (asked, because each changes the PRD): remove the 808-only rule; recorded-sound loops follow the knob; every loop keeps today's sound until the knob is turned.
+
+**What changed.**
+
+- A kit now has three parts (`dsp/include/ajbox_library.h`): 808 settings, sampler pad settings (level, tune, length), and a table saying what each line of a loop plays: any 808 drums and any pads, layered if both.
+- The six old page kits are kept unchanged as *home kits* (`assets/loops/kits.inc`). A loop plays its page's home kit until PRESETS is turned, so nothing she knows changed.
+- PRESETS has 13 stops: the 12 new kits, then the loop's own sound. The own-sound stop shows the page's picture.
+- A kit change writes the drum loop again for the new sounds. What has been struck rings on; the next step is on the new kit. During Finish the loop is left alone.
+- Loudness: a kit changes how loud a loop is (for one loop the track volumes that even it out run from 22 to 127), so `ajstock levels` now also finds a track volume for every drum loop on every kit (`dsp/stock/kit_volumes.inc`, 576 numbers). It brings the peak to the drum level and holds a kit back where it would average more than 3 dB louder than the loop's own sound.
+
+**The 12 kits.**
+
+| # | Kit | Kick line | Snare line | Hats | The rest |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Pop | 808 kick | 808 snare | 808 hats | Clean drum machine; recorded lines go to kick, toms, rim and snare |
+| 2 | Disco | Short clicky kick | Snare and clap together | Open hats; the open hat is a cymbal | Big bright claps with reverb, toms are short congas, rim is a cowbell |
+| 3 | Head-Nod | Mouth kick | "Shh" | Dull low hats | Clap is the spoon (a finger snap); toms are mouth kick, rim and hat |
+| 4 | World | Dhol low | Dhol high | Maracas | Conga, clave; outer toms are the dhol |
+| 5 | Kitchen | Pot | Spoon | High clave "tink" | Claps and toms are high clanky bowls, open hat a pan lid (cowbell) |
+| 6 | Sleepy | Soft low tom | Brushed snare | The "shh" an octave up, short and quiet | Maracas claps, reverb on everything |
+| 7 | Boom | Long low kick with the dhol an octave down | Deep snare and a low tom | Low hats | Long driven toms, thunder clap, gong cymbal, reverb |
+| 8 | Robot | Crushed kick | Crushed snare with a cowbell | High clave beeps | Everything through the bit crusher; claps are a cowbell |
+| 9 | Tiny | Highest, shortest kick | Rim click and the spoon | Highest, shortest hats | Recorded sounds an octave up; toms are cowbell, rim and pot |
+| 10 | Fuzzy | Short fuzzed kick | Folded snare with a folded tom | Short cymbals | Claps are snares, toms folded |
+| 11 | Bongo | Low conga | High conga | Clave | No kick or snare at all; cuicas on two tom lines, cowbell for the open hat |
+| 12 | Space | Long swooping kick | High ringing snare into the echo | High hats into the echo | Cuicas an octave down on two tom lines, clave ping, recorded sounds an octave down |
+
+Two kits are the same as a loop's own sound by design: World on Dhol Party, and Kitchen on Pots and Pans apart from a lower pot.
+
+**What I could and could not check.** I cannot listen. The measure above is a rough stand-in for an ear: it sees the colour and length of a sound, not whether it is pleasant. Three kits (Sleepy, Boom, Space) send drums to the stock reverb or echo all the time, not only when Sparkle or Echo is on; the simulator plays that without trouble, and the **l** number in parent mode is how to see whether the FM-1 keeps up. Hearts and jams that saved a kit choice from an earlier build bring back the new kit at that number.
+
+**Not done:** kits on the FM, chiptune, plucked-string or 303 engines. Two of the eight tracks are spare, so a second copy of an engine could play drum lines as notes, but what that costs the FM-1 in memory and time can only be measured there.
+
+**Measured after the change** (`ajstock kits`, WAVs and the table in `renders/kits`): on page 1 the closest two kits are 2.4 to 5.3 apart on every loop (0.0 to 1.3 before) and the average pair 9.3 to 17.7 (4.5 to 10.3 before). Over all 48 drum loops the closest pair is 1.3 at worst, 2.9 in the middle. Two of the 576 loop-and-kit pairs stay more than 2 dB under the drum level at full track volume: Rain Stick on Sleepy and Heartbeat on Fuzzy. `renders/s2/demos/06-kits.wav` steps through the 12 kits on one loop; it peaks at -9.9 dBFS, 2 dB over the drum level, in the moment one kit's tail rings on under the next kit's volume.
+
+**Tests:** `test_kits` in `dsp/stock/test_app.c`: a recorded-sound loop moves to the drum machine and back unchanged, a drum-machine loop moves to the pads, two sounds on one line, pad settings set and given back, the own sound is each page's home kit, a kit change keeps the beat, no two kits closer than 1.0 on 13 loops, no kit past the drum level, and the 13 stops of the knob. 1,436 checks pass. The old engine's tests were not rerun; it reads only a kit's 808 settings and a page's kit number, which now points at the home kits.
+
+**Ninth build:** app image 443,956 of 453,921 bytes (9,965 to spare; the kits and their volumes cost 2,752), heap 192,044, every script check passed, Build ID `b5ddea87a11a6485`, page SHA-256 `500f7b20…a491`. Not installed yet. Whether the eighth build was installed before this report is not recorded.
+
 ## What I don't know yet, and how I'll find out
 
 1. **Does a pattern swap click or stall?** Edits briefly hold the audio gate. Test on the desktop first, then on the first device build.

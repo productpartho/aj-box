@@ -798,10 +798,16 @@ static void test_panel(void)
     turn(SELECT, 100);
     CHECK(now().bpm == AJAPP_BPM_MAX, "SELECT should stop at 200 BPM, got %u", now().bpm);
     turn(SELECT, -22);
+    /* PRESETS has 13 stops: the 12 kits, then the loop's own sound, where it starts. */
     turn(PRESETS, 1);
     CHECK(now().kit == 0, "PRESETS should choose the first kit, got %u", now().kit);
     turn(PRESETS, -1);
-    CHECK(now().kit == 11, "PRESETS back should wrap to the last kit, got %u", now().kit);
+    CHECK(now().kit == 255, "PRESETS back from the first kit should be the loop's own sound, got %u", now().kit);
+    turn(PRESETS, -1);
+    CHECK(now().kit == 11, "PRESETS back from the own sound should be the last kit, got %u", now().kit);
+    turn(PRESETS, 1);
+    CHECK(now().kit == 255, "PRESETS on from the last kit should be the loop's own sound, got %u", now().kit);
+    turn(PRESETS, -1);
     turn(ALGORITHM, 1);
     CHECK(now().instrument == 0, "ALGORITHM should choose the first instrument, got %u", now().instrument);
     turn(ALGORITHM, -1);
@@ -1133,6 +1139,113 @@ static void test_zelda_tunes(void)
     }
 }
 
+/* The kits (PRD "Sound swaps"). The first twelve sounded alike on the FM-1
+ * (Partho, Nov 22, 2026): all were the 808 with small changes, and a loop of
+ * recorded sounds did not change at all. */
+static unsigned pad_setting(unsigned pad, unsigned parameter)
+{
+    uint8_t values[GROOVE_TONE_PARAMS] = {0};
+    groove_tone_copy(T_SAMPLER, pad, values);
+    return values[parameter];
+}
+static void test_kits(void)
+{
+    printf("kits: each plays a loop on different sounds, the own sound comes back, none is louder\n");
+    const ajb_library_t *lib = &ajb_factory_library;
+    struct groove_step own[2][GROOVE_STEPS], cells[2][GROOVE_STEPS];
+    enum { POP, DISCO, HEADNOD, WORLD, KITCHEN, SLEEPY, BOOM, ROBOT, TINY, FUZZY, BONGO, SPACE };
+
+    /* A loop of recorded sounds follows the kit: Dhol Party is two pad lines. */
+    fresh();
+    ajapp_pick(AJAPP_DRUMS, 0);
+    blocks(4);
+    groove_sequence_read(T_DRUMS, 0, own[0], GROOVE_STEPS);
+    groove_sequence_read(T_SAMPLER, 0, own[1], GROOVE_STEPS);
+    CHECK(notes_in(T_DRUMS) == 0 && own[1][0].drums == 1U << 0, "Dhol Party's own sound should be the dhol pads only");
+    ajapp_set_kit(POP);
+    groove_sequence_read(T_DRUMS, 0, cells[0], GROOVE_STEPS);
+    CHECK(notes_in(T_SAMPLER) == 0 && cells[0][0].drums == 1U << AJB_BD && cells[0][2].drums == 1U << AJB_HT,
+          "on Pop the dhol's low side should be the kick and its high side a tom: %u %u", cells[0][0].drums, cells[0][2].drums);
+    CHECK(cells[0][0].velocity == own[1][0].velocity && cells[0][3].velocity == own[1][3].velocity, "a kit should keep the accents");
+    ajapp_set_kit(AJAPP_KIT_OWN);
+    groove_sequence_read(T_DRUMS, 0, cells[0], GROOVE_STEPS);
+    groove_sequence_read(T_SAMPLER, 0, cells[1], GROOVE_STEPS);
+    CHECK(now().kit == 255 && !memcmp(own, cells, sizeof own), "the own sound should bring the loop back as it was");
+
+    /* A drum-machine loop on recorded sounds: Reggaeton is kick, snare and clap. */
+    ajapp_pick(AJAPP_DRUMS, 1);
+    blocks(4);
+    ajapp_set_kit(HEADNOD);
+    groove_sequence_read(T_DRUMS, 0, cells[0], GROOVE_STEPS);
+    groove_sequence_read(T_SAMPLER, 0, cells[1], GROOVE_STEPS);
+    CHECK((cells[1][0].drums & (1U << 4)) && (cells[1][3].drums & (1U << 5)) && (cells[1][2].drums & (1U << 3)),
+          "on Head-Nod the kick should be the mouth kick, the snare the shh, the clap the spoon");
+    CHECK(notes_in(T_DRUMS) == 0, "on Head-Nod Reggaeton should have left the drum machine, %u steps there", notes_in(T_DRUMS));
+    /* Two sounds on one line: Disco's snare is a snare and a clap. */
+    ajapp_set_kit(DISCO);
+    groove_sequence_read(T_DRUMS, 0, cells[0], GROOVE_STEPS);
+    CHECK(cells[0][3].drums == ((1U << AJB_SD) | (1U << AJB_CP)), "on Disco a snare should be snare and clap, got %u", cells[0][3].drums);
+
+    /* The pads' own settings: a kit's, and back to the sampler's when the kit goes. */
+    ajapp_set_kit(TINY);
+    CHECK(pad_setting(0, 1) == 36 && pad_setting(7, 1) == 36 && pad_setting(0, 2) == 60, "Tiny should tune the pads up and cut them short");
+    ajapp_set_kit(SPACE);
+    CHECK(pad_setting(0, 1) == 12 && pad_setting(0, 2) == 127, "Space should tune the pads down and give their length back");
+    ajapp_set_kit(AJAPP_KIT_OWN);
+    CHECK(pad_setting(0, 1) == 24 && pad_setting(5, 0) == 100 && pad_setting(5, 2) == 127, "the own sound should give the pads their own settings back");
+    for (unsigned kit = 0; kit < lib->kit_count; ++kit) {
+        ajapp_set_kit(kit);
+        unsigned wrong = 0;
+        for (unsigned i = 0; i < lib->kits[kit]->pad_count; ++i) {
+            const ajb_kit_edit_t *e = &lib->kits[kit]->pad_edits[i];
+            wrong += e->part >= AJB_PADS || e->parameter >= 3 || pad_setting(e->part, e->parameter) != e->value;
+        }
+        CHECK(!wrong, "kit %s: %u pad settings did not take", lib->kits[kit]->name, wrong);
+    }
+
+    /* The own sound is the page's home kit, as before these kits: its 808 settings. */
+    for (unsigned page = 0; page < lib->page_count; ++page) {
+        ajapp_pick(AJAPP_DRUMS, page * AJB_SLOTS + 1);
+        ajapp_set_kit(BOOM);
+        ajapp_set_kit(AJAPP_KIT_OWN);
+        const ajb_kit_t *home = lib->home_kits[lib->pages[page].kit];
+        unsigned wrong = 0;
+        for (unsigned i = 0; i < home->count; ++i) {
+            const ajb_kit_edit_t *e = &home->edits[i];
+            uint8_t values[GROOVE_TONE_PARAMS] = {0};
+            groove_tone_copy(T_DRUMS, e->part, values);
+            wrong += values[e->parameter] != (e->part == AJB_PARTS && e->parameter == 0 ? 110 : e->value);
+        }
+        CHECK(!wrong && !home->part_to && !home->pad_to && !home->pad_count, "page %u: the own sound is not its home kit (%u settings)", page + 1, wrong);
+    }
+    CHECK(lib->kit_count == 12 && lib->home_kit_count == 6, "12 kits and 6 home kits, got %u and %u", lib->kit_count, lib->home_kit_count);
+
+    /* A kit changes the next step, not the clock, and a heart keeps it. */
+    fresh();
+    ajapp_pick(AJAPP_DRUMS, 1);
+    run_to_step(21);
+    ajapp_set_kit(KITCHEN);
+    blocks(2);
+    CHECK(now().running && now().step >= 21 && now().step <= 22 && now().slot[0] == 1, "a kit change moved the beat: step %u", now().step);
+
+    /* How it sounds: on every loop of page 1 and one loop of each other page,
+     * no two kits alike (the first twelve: 0.0 to 1.3 apart on page 1 by this
+     * measure, `ajstock kits`), and no kit past the drum level. */
+    static const uint8_t loops[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 18, 27, 33, 42};
+    static const unsigned happy = 0;
+    for (unsigned n = 0; n < sizeof loops; ++n) {
+        double nearest = kits_on(loops[n], NULL, 1);
+        CHECK(nearest >= 1.0, "loop %u.%u: two kits sound alike, %.1f apart", loops[n] / 8 + 1, loops[n] % 8 + 1, nearest);
+        for (unsigned kit = 0; kit < lib->kit_count; ++kit) {
+            render_kit = (int)kit;
+            double db = render_pair(loops[n], -1, NULL, 4, &happy, 1, -1);
+            render_kit = -1;
+            CHECK(db <= -11.9 && db > -24.0, "loop %u.%u on %s peaks at %.1f dBFS", loops[n] / 8 + 1, loops[n] % 8 + 1,
+                  lib->kits[kit]->name, db);
+        }
+    }
+}
+
 int main(void)
 {
     test_keys();
@@ -1151,6 +1264,7 @@ int main(void)
     test_mash();
     test_battery();
     test_zelda_tunes();
+    test_kits();
     printf("%u checks, %u failed\n", checks, failures);
     return failures != 0;
 }

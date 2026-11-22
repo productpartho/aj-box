@@ -37,13 +37,26 @@ typedef struct {
     const char *pads[AJB_PADS];
 } ajb_drum_loop_t;
 
-/* A kit is a list of DRUM 808 parameter edits on top of the engine defaults
- * (part, parameter index as in the firmware descriptors, value). */
+/* A kit (PRD "Sound swaps") is three things:
+ *  - `edits`: DRUM 808 settings on top of the engine defaults (part, parameter
+ *    index as in the firmware descriptors, value);
+ *  - `pad_edits`: the same for the sampler's pads (part = pad; parameter
+ *    0 Level, 1 Tune in semitones around 24, 2 Length), on top of its defaults;
+ *  - `part_to` and `pad_to`: which sounds play each line of a drum loop. Entry
+ *    n is what the loop's 808 line n (or pad line n) plays on this kit: a mask
+ *    of 808 parts and a mask of pads, layered if both are set. An empty entry,
+ *    or no table, leaves the line on its own sound.
+ * The stock instrument uses all three; the old engine only `edits`. */
 typedef struct { uint8_t part, parameter, value; } ajb_kit_edit_t;
+typedef struct { uint16_t parts; uint8_t pads; } ajb_kit_route_t;
 typedef struct {
     const char *name;
     const ajb_kit_edit_t *edits;
     unsigned count;
+    const ajb_kit_edit_t *pad_edits;
+    unsigned pad_count;
+    const ajb_kit_route_t *part_to;     /* AJB_PARTS entries, or NULL */
+    const ajb_kit_route_t *pad_to;      /* AJB_PADS entries, or NULL */
 } ajb_kit_t;
 
 /* Melody engines (PRD "Sound swaps"): FM1 Open's DX7, Pluck (plucked
@@ -88,8 +101,9 @@ typedef struct {
 } ajb_melody_loop_t;
 
 /* A page: 8 drum and 8 melody loops (PRD "Loop library and storage").
- * `kit` is the page's own drum kit, used when she picks a drum loop from it
- * until PRESETS chooses another. */
+ * `kit` is the page's own drum kit, the sound its drum loops have until
+ * PRESETS chooses another: an index into the library's `home_kits` (the old
+ * engine, which has no home kits, reads it as an index into `kits`). */
 typedef struct {
     const char *name;
     const ajb_drum_loop_t *drums[AJB_SLOTS];
@@ -104,6 +118,8 @@ typedef struct {
     unsigned page_count;
     const ajb_kit_t *const *kits;
     unsigned kit_count;
+    const ajb_kit_t *const *home_kits;  /* the pages' own kits; PRESETS does not step through these */
+    unsigned home_kit_count;
     const ajb_instrument_t *const *instruments;
     unsigned instrument_count;
     const ajb_drum_loop_t *fill;

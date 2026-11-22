@@ -100,7 +100,7 @@ The black keys carry printed labels (OP1 to OP6, PIT, GLO, MONO, POLY) for the s
 | KNOB 3 (lilac) | Drums ↔ melody balance |
 | KNOB 4 (magenta) | Mood: each click steps to the next or the last of the 7 Moods, round and round, and shows its picture. Happy (C major pentatonic), Dreamy (F major pentatonic), Spooky (C minor pentatonic), Magic (C D E F♯ G♯), Floaty (C D F G B♭), Faraway (C D E♭ G A♭) or Adventure (C D♭ E G A♭), changing on the next bar |
 | SELECT | Speed: turtle to rabbit, 30 to 200 BPM (beats per minute) |
-| PRESETS | Drum kit swap: same pattern, new sounds (Robot, Kitchen, Space and more). Its stock job is scrolling sounds, so the habit carries over |
+| PRESETS | Drum kit swap: same pattern, new sounds (Robot, Kitchen, Space and more). 13 stops: the 12 kits, then the loop's own sound again. Its stock job is scrolling sounds, so the habit carries over |
 | ALGORITHM | Melody instrument swap: same tune, new instrument |
 | OCT− and OCT+ | Melody one octave down or up; both together reset |
 | PLAY/STOP | Stop everything; press again to bring back the last drum and melody |
@@ -134,7 +134,15 @@ Decided Nov 14, 2026: all 8 are **one-shot sounds** on the stock sampler's 8 pad
 
 **How a melody loop is built:** instrument plus pattern. About half are arpeggios (a held chord played Up, Down, Bounce or Random, the same shapes as the stock arpeggiator) and half are 16-step riffs. Melodies use only the 5 notes of one pentatonic scale (default C major pentatonic: C, D, E, G, A), so nothing clashes. Most patterns are original. At Partho's request (Nov 14, 2026; this is a home toy) the library also has tunes from Zelda: Ocarina of Time: Saria's Song, Song of Storms and Zelda's Lullaby, with Goron City to follow. They play as written on Bird Flute and don't follow Mood, because they need notes outside the 5-note scale.
 
-**Sound swaps:** PRESETS steps through 12 drum kits built on the DRUM 808 engine and ALGORITHM through 20 melody instruments, all synthesized on FM1 Open's FM, Pluck (plucked string), PSG (chiptune) and 303 (acid bass) engines (24 before Nov 14, 2026, when 4 were sampled). A drum loop made of recorded sounds keeps its own sound; turning PRESETS on one just shows a sparkle.
+**Sound swaps:** PRESETS steps through 12 drum kits and ALGORITHM through 20 melody instruments, all synthesized on FM1 Open's FM, Pluck (plucked string), PSG (chiptune) and 303 (acid bass) engines (24 before Nov 14, 2026, when 4 were sampled).
+
+**Drum kits (changed Nov 22, 2026, at Partho's request: the first twelve were all the DRUM 808 with small changes and sounded alike on the FM-1).** A kit is a set of sounds, not a setting of one drum machine: it says which DRUM 808 drums and which of the 8 recorded sounds play each line of a drum loop, and how they are tuned. So a kit can be a beatbox, pots and spoons, hand drums, or the drum machine through fuzz. Three rules:
+
+- Every drum loop follows the kit, the ones made of recorded sounds too (they used to keep their own sound).
+- Until PRESETS is turned, a loop plays its own sound, the one it has had since the first build. That is not one of the 12 kits.
+- PRESETS has 13 stops: the 12 kits, then the loop's own sound again. On that stop the screen shows the page's picture.
+
+Any of the six engines may be used for a kit. Today's 12 use the DRUM 808 and the sampler, which every build so far has run on the FM-1; a kit on another engine needs a second copy of that engine running, to be tried on the FM-1 first.
 
 **Storage math** (SEA5, FM1 Open's stock sample codec, mono at 32 kHz, stored in the stock 456 KiB sample bank; chosen Nov 10, 2026 over 16 kHz IMA ADPCM for brighter sound)
 

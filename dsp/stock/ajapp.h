@@ -36,6 +36,7 @@ void ajapp_home(void);
 void ajapp_effect(unsigned effect, int on);
 void ajapp_knob(unsigned knob, unsigned value);      /* 0..127 */
 void ajapp_set_bpm(unsigned bpm);
+enum { AJAPP_KIT_OWN = 255 };           /* not a kit: the drum loop's own sound (its page's home kit) */
 void ajapp_set_kit(unsigned kit);
 void ajapp_set_instrument(unsigned instrument);
 void ajapp_set_octave(int octave);                   /* -2..+2 */

@@ -12,7 +12,7 @@
 cd "$(dirname "$0")/.." || exit 1
 OUT=firmware/app/ajbox
 FILES="dsp/stock/ajapp.c dsp/stock/ajapp.h dsp/stock/ajstore.c dsp/stock/ajstore.h dsp/stock/ajdraw.c dsp/stock/ajdraw.h
-  dsp/stock/ajscreen.c dsp/stock/ajscreen.h dsp/stock/ajpanel.c dsp/stock/ajpanel.h dsp/stock/volumes.inc
+  dsp/stock/ajscreen.c dsp/stock/ajscreen.h dsp/stock/ajpanel.c dsp/stock/ajpanel.h dsp/stock/volumes.inc dsp/stock/kit_volumes.inc
   dsp/src/effects.c dsp/src/effects.h dsp/include/ajbox.h dsp/include/ajbox_library.h dsp/include/ajbox_target.h
   assets/loops.c assets/icons/art.inc
   firmware/third_party/synth/dsp_math.h firmware/third_party/synth/fixed.h"

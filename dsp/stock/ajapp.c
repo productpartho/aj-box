@@ -25,6 +25,11 @@ static const uint8_t mood_root[AJAPP_MOODS] = {60, 65, 60, 60, 60, 60, 60};
 static const uint8_t loop_volume[AJAPP_SIDES][48] = {
 #include "volumes.inc"
 };
+/* The same for every drum loop on each PRESETS kit, a row per kit: a kit changes how loud a loop is. */
+static const uint8_t kit_volume[][48] = {
+#include "kit_volumes.inc"
+};
+enum { PAD_SETTINGS = 3 };              /* a kit sets a pad's Level, Tune and Length */
 
 static struct {
     const ajb_library_t *lib;
@@ -153,17 +158,29 @@ static unsigned melody_cells(const ajb_melody_loop_t *m, unsigned mood, unsigned
 }
 /* Step strings ('o' soft, 'x' normal, 'X' hard) as cells. A stock drum step
  * has one velocity for all its drums, so the loudest hit sets it. */
-static void hit_cells(const char *const *rows, unsigned count, unsigned steps, struct groove_step *cells)
+/* `to` is the kit's table for these lines (ajbox_library.h): what each one
+ * plays, as 808 parts and sampler pads. Without a table, or where its entry is
+ * empty, line p plays its own sound: 808 part p, or pad p if `own_pads`. Adds
+ * the hits to the 808 track's cells (`parts`) and the sampler's (`pads`). */
+static void hit_cells(const char *const *rows, unsigned count, unsigned steps, const ajb_kit_route_t *to, int own_pads,
+                      struct groove_step *parts, struct groove_step *pads)
 {
     static const uint8_t level[3] = {57, 99, 127};
-    memset(cells, 0, STEPS * sizeof *cells);
     for (unsigned s = 0; s < STEPS; ++s)
         for (unsigned p = 0; p < count; ++p) {
             char c = rows[p] ? rows[p][s % steps] : '.';
             int rank = c == 'o' ? 0 : c == 'x' ? 1 : c == 'X' ? 2 : -1;
             if (rank < 0) continue;
-            cells[s].drums |= (uint16_t)(1U << p);
-            if (level[rank] > cells[s].velocity) cells[s].velocity = level[rank];
+            unsigned part_mask = own_pads ? 0 : 1U << p, pad_mask = own_pads ? 1U << p : 0;
+            if (to && (to[p].parts || to[p].pads)) { part_mask = to[p].parts; pad_mask = to[p].pads; }
+            if (part_mask) {
+                parts[s].drums |= (uint16_t)(part_mask & ((1U << AJB_PARTS) - 1U));
+                if (level[rank] > parts[s].velocity) parts[s].velocity = level[rank];
+            }
+            if (pad_mask) {
+                pads[s].drums |= (uint16_t)(pad_mask & ((1U << AJB_PADS) - 1U));
+                if (level[rank] > pads[s].velocity) pads[s].velocity = level[rank];
+            }
         }
 }
 
@@ -201,6 +218,23 @@ static void apply_kit(const ajb_kit_t *kit)
         for (unsigned part = 0; part <= AJB_PARTS; ++part)
             for (unsigned p = 0; p < groove_tone_count(T_DRUMS, part) && p < GROOVE_TONE_PARAMS; ++p)
                 tone_set(T_DRUMS, part, p, want[part][p]);
+    /* The pads the same way: level, tune and length back to the sampler's own, then the kit's. */
+    for (unsigned pad = 0; pad < AJB_PADS; ++pad)
+        for (unsigned p = 0; p < PAD_SETTINGS; ++p) {
+            const fm1_param_t *info = groove_tone_parameter(T_SAMPLER, pad, p);
+            unsigned value = info ? info->def : 0;
+            for (unsigned i = 0; kit && i < kit->pad_count; ++i)
+                if (kit->pad_edits[i].part == pad && kit->pad_edits[i].parameter == p) value = kit->pad_edits[i].value;
+            if (info) tone_set(T_SAMPLER, pad, p, value);
+        }
+}
+/* The kit the drums are on: the one PRESETS chose, or the home kit of the drum loop's page. */
+static const ajb_kit_t *kit_now(void)
+{
+    if (app.kit != NONE && (unsigned)app.kit < app.lib->kit_count) return app.lib->kits[app.kit];
+    if (app.slot[AJAPP_DRUMS] == NONE) return NULL;
+    unsigned home = app.lib->pages[app.slot[AJAPP_DRUMS] / AJB_SLOTS].kit;
+    return home < app.lib->home_kit_count ? app.lib->home_kits[home] : NULL;
 }
 static unsigned track_of(const ajb_instrument_t *in)
 {
@@ -244,7 +278,9 @@ static unsigned balanced(unsigned side, unsigned volume)
 static void set_side_volume(unsigned side)
 {
     if (app.slot[side] == NONE) return;
-    unsigned volume = balanced(side, app.debug_volume >= 0 ? (unsigned)app.debug_volume : loop_volume[side][app.slot[side]]);
+    unsigned own = side == AJAPP_DRUMS && app.kit != NONE && (unsigned)app.kit < sizeof kit_volume / sizeof kit_volume[0]
+                       ? kit_volume[app.kit][app.slot[side]] : loop_volume[side][app.slot[side]];
+    unsigned volume = balanced(side, app.debug_volume >= 0 ? (unsigned)app.debug_volume : own);
     if (side == AJAPP_DRUMS) { set_volume(T_DRUMS, volume); set_volume(T_SAMPLER, volume); }
     else set_volume(app.melody_track, volume);
 }
@@ -347,16 +383,19 @@ static void write_drums(void)
         return;
     }
     const ajb_drum_loop_t *d = app.fill && app.lib->fill ? app.lib->fill : drum_loop(app.slot[AJAPP_DRUMS]);
-    hit_cells(d->parts, AJB_PARTS, d->steps, cells);
+    const ajb_kit_t *kit = kit_now();
+    struct groove_step pads[STEPS];
+    memset(cells, 0, sizeof cells);
+    memset(pads, 0, sizeof pads);
+    hit_cells(d->parts, AJB_PARTS, d->steps, kit ? kit->part_to : NULL, 0, cells, pads);
+    hit_cells(d->pads, AJB_PADS, d->steps, kit ? kit->pad_to : NULL, 1, cells, pads);
     groove_sequence_replace(T_DRUMS, 0, cells, STEPS);
-    hit_cells(d->pads, AJB_PADS, d->steps, cells);
-    groove_sequence_replace(T_SAMPLER, 0, cells, STEPS);
+    groove_sequence_replace(T_SAMPLER, 0, pads, STEPS);
 }
 static void set_drum_sound(void)
 {
     if (app.slot[AJAPP_DRUMS] == NONE) return;
-    unsigned kit = app.kit != NONE ? (unsigned)app.kit : app.lib->pages[app.slot[AJAPP_DRUMS] / AJB_SLOTS].kit;
-    if (kit < app.lib->kit_count) apply_kit(app.lib->kits[kit]);
+    apply_kit(kit_now());
     set_side_volume(AJAPP_DRUMS);
 }
 /* `from`/`keep` as in write_from: Mood lands on the bar, everything else at once. */
@@ -578,12 +617,16 @@ void ajapp_set_bpm(unsigned bpm)
     app.bpm = bpm;
     note(C_BPM, 0, bpm);
 }
+/* AJAPP_KIT_OWN gives the drum loop back its own sound, its page's home kit. A
+ * kit also says which sounds play each line, so the loop is written again: what
+ * has already been struck rings on, the next step is on the new kit. */
 void ajapp_set_kit(unsigned kit)
 {
-    if (!app.lib || kit >= app.lib->kit_count) return;
-    app.kit = (int)kit;
+    if (!app.lib || (kit != AJAPP_KIT_OWN && kit >= app.lib->kit_count)) return;
+    app.kit = kit == AJAPP_KIT_OWN ? NONE : (int)kit;
     note(C_KIT, 0, kit);
     set_drum_sound();
+    if (!app.finishing) write_drums();
 }
 void ajapp_set_instrument(unsigned instrument)
 {
